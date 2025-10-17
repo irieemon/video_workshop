@@ -14,32 +14,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check usage quota (freemium tier)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier, usage_quota, usage_current')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    if (profile.subscription_tier === 'free') {
-      if (
-        profile.usage_current.consultations_this_month >=
-        profile.usage_quota.consultations_per_month
-      ) {
-        return NextResponse.json(
-          {
-            error: 'Monthly consultation limit reached. Upgrade to Premium for unlimited access.',
-            code: 'QUOTA_EXCEEDED',
-          },
-          { status: 429 }
-        )
-      }
-    }
-
     const body = await request.json()
     const { brief, platform, seriesId, projectId } = body
 
@@ -69,9 +43,6 @@ export async function POST(request: NextRequest) {
       visualTemplate: visualTemplate || undefined,
       userId: user.id,
     })
-
-    // Increment usage counter
-    await supabase.rpc('increment_consultation_usage', { user_id: user.id })
 
     return NextResponse.json(result)
   } catch (error) {

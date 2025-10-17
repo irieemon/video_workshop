@@ -88,9 +88,6 @@ export default function NewVideoPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        if (data.code === 'QUOTA_EXCEEDED') {
-          throw new Error(data.error || 'Monthly consultation limit reached')
-        }
         throw new Error(data.error || 'Failed to generate prompt')
       }
 
@@ -233,13 +230,6 @@ export default function NewVideoPage() {
                 {error && (
                   <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
                     {error}
-                    {error.includes('limit') && (
-                      <div className="mt-2">
-                        <Link href="/dashboard/upgrade" className="text-sage-700 hover:text-sage-500 font-medium">
-                          Upgrade to Premium
-                        </Link>
-                      </div>
-                    )}
                   </div>
                 )}
 
