@@ -106,6 +106,7 @@ export async function runAgentRoundtable(input: RoundtableInput): Promise<Roundt
     optimizedPrompt: synthesis.prompt,
     characterCount: synthesis.characterCount,
     hashtags: synthesis.hashtags,
+    suggestedShots: synthesis.suggestedShots,
   }
 }
 
@@ -196,6 +197,7 @@ async function synthesizeRoundtable(data: {
   prompt: string
   characterCount: number
   hashtags: string[]
+  suggestedShots: Shot[]
 }> {
   const synthesisPrompt = `
 You are synthesizing a creative film crew roundtable discussion into structured video prompt outputs.
@@ -392,6 +394,7 @@ export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Pro
     optimizedPrompt: synthesis.prompt,
     characterCount: synthesis.characterCount,
     hashtags: synthesis.hashtags,
+    suggestedShots: synthesis.suggestedShots,
   }
 }
 
@@ -407,6 +410,7 @@ async function synthesizeAdvancedRoundtable(data: {
   prompt: string
   characterCount: number
   hashtags: string[]
+  suggestedShots: Shot[]
 }> {
   const synthesisPrompt = `
 You are synthesizing a creative film crew roundtable discussion into structured video prompt outputs.
