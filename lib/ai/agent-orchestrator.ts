@@ -255,11 +255,16 @@ Return JSON:
 
   const result = JSON.parse(completion.choices[0].message.content || '{}')
 
+  // Ensure hashtags is always an array of strings
+  const hashtags = Array.isArray(result.breakdown?.hashtags)
+    ? result.breakdown.hashtags.filter((tag: any) => typeof tag === 'string')
+    : []
+
   return {
-    breakdown: result.breakdown,
-    prompt: result.optimized_prompt,
-    characterCount: result.character_count,
-    hashtags: result.breakdown.hashtags,
+    breakdown: result.breakdown || {},
+    prompt: result.optimized_prompt || '',
+    characterCount: result.character_count || 0,
+    hashtags,
   }
 }
 
@@ -439,10 +444,15 @@ Return JSON:
 
   const result = JSON.parse(completion.choices[0].message.content || '{}')
 
+  // Ensure hashtags is always an array of strings
+  const hashtags = Array.isArray(result.breakdown?.hashtags)
+    ? result.breakdown.hashtags.filter((tag: any) => typeof tag === 'string')
+    : []
+
   return {
-    breakdown: result.breakdown,
-    prompt: result.optimized_prompt,
-    characterCount: result.character_count,
-    hashtags: result.breakdown.hashtags,
+    breakdown: result.breakdown || {},
+    prompt: result.optimized_prompt || '',
+    characterCount: result.character_count || 0,
+    hashtags,
   }
 }
