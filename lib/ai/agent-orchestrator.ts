@@ -28,6 +28,7 @@ interface RoundtableResult {
   optimizedPrompt: string
   characterCount: number
   hashtags: string[]
+  suggestedShots?: Shot[]
 }
 
 export async function runAgentRoundtable(input: RoundtableInput): Promise<RoundtableResult> {
@@ -210,7 +211,7 @@ CRITICAL COPYRIGHT SAFETY RULES:
 DISCUSSION SUMMARY:
 ${JSON.stringify(data, null, 2)}
 
-Generate TWO outputs:
+Generate THREE outputs:
 
 1. DETAILED BREAKDOWN (structured sections):
 - Scene Structure (with timestamps)
@@ -225,6 +226,11 @@ Generate TWO outputs:
 - Remove redundancy
 - MUST BE 100% COPYRIGHT-SAFE (no brands, IPs, celebrities, songs)
 
+3. SUGGESTED SHOT LIST (3-6 shots based on discussion):
+- Break down the video into specific shots with timing
+- Include description, camera movement, and lighting for each shot
+- Order shots sequentially from 1 to N
+
 Return JSON:
 {
   "breakdown": {
@@ -235,7 +241,17 @@ Return JSON:
     "hashtags": ["tag1", "tag2", ...]
   },
   "optimized_prompt": "... (COPYRIGHT-SAFE prompt)",
-  "character_count": 437
+  "character_count": 437,
+  "suggested_shots": [
+    {
+      "timing": "0-3s",
+      "description": "Wide establishing shot description",
+      "camera": "Slow dolly in, eye level",
+      "order": 1,
+      "lighting": "Natural, warm tones",
+      "notes": "Optional specific details"
+    }
+  ]
 }
 `
 
@@ -260,11 +276,24 @@ Return JSON:
     ? result.breakdown.hashtags.filter((tag: any) => typeof tag === 'string')
     : []
 
+  // Ensure suggested shots is valid
+  const suggestedShots = Array.isArray(result.suggested_shots)
+    ? result.suggested_shots.map((shot: any, index: number) => ({
+        timing: shot.timing || `${index * 4}-${(index + 1) * 4}s`,
+        description: shot.description || '',
+        camera: shot.camera || '',
+        order: shot.order || index + 1,
+        lighting: shot.lighting,
+        notes: shot.notes,
+      }))
+    : []
+
   return {
     breakdown: result.breakdown || {},
     prompt: result.optimized_prompt || '',
     characterCount: result.character_count || 0,
     hashtags,
+    suggestedShots,
   }
 }
 
@@ -397,7 +426,7 @@ ${data.shotList && data.shotList.length > 0 ? `USER'S REQUESTED SHOT LIST:\n${da
 DISCUSSION SUMMARY:
 ${JSON.stringify({ round1: data.round1, round2: data.round2 }, null, 2)}
 
-Generate TWO outputs:
+Generate THREE outputs:
 
 1. DETAILED BREAKDOWN (structured sections):
 - Scene Structure (with timestamps${data.shotList ? ' - MATCH USER SHOT LIST' : ''})
@@ -414,6 +443,12 @@ Generate TWO outputs:
 ${data.userPromptEdits ? '- INCORPORATE user prompt edits while maintaining quality' : ''}
 ${data.shotList ? '- REFLECT shot list structure in prompt' : ''}
 
+3. SUGGESTED SHOT LIST (3-6 shots based on discussion):
+${data.shotList ? '- REFINE and improve the user-provided shot list' : '- Generate new shot list based on discussion'}
+- Break down the video into specific shots with timing
+- Include description, camera movement, and lighting for each shot
+- Order shots sequentially from 1 to N
+
 Return JSON:
 {
   "breakdown": {
@@ -424,7 +459,17 @@ Return JSON:
     "hashtags": ["tag1", "tag2", ...]
   },
   "optimized_prompt": "... (COPYRIGHT-SAFE prompt)",
-  "character_count": 437
+  "character_count": 437,
+  "suggested_shots": [
+    {
+      "timing": "0-3s",
+      "description": "Wide establishing shot description",
+      "camera": "Slow dolly in, eye level",
+      "order": 1,
+      "lighting": "Natural, warm tones",
+      "notes": "Optional specific details"
+    }
+  ]
 }
 `
 
@@ -449,10 +494,23 @@ Return JSON:
     ? result.breakdown.hashtags.filter((tag: any) => typeof tag === 'string')
     : []
 
+  // Ensure suggested shots is valid
+  const suggestedShots = Array.isArray(result.suggested_shots)
+    ? result.suggested_shots.map((shot: any, index: number) => ({
+        timing: shot.timing || `${index * 4}-${(index + 1) * 4}s`,
+        description: shot.description || '',
+        camera: shot.camera || '',
+        order: shot.order || index + 1,
+        lighting: shot.lighting,
+        notes: shot.notes,
+      }))
+    : []
+
   return {
     breakdown: result.breakdown || {},
     prompt: result.optimized_prompt || '',
     characterCount: result.character_count || 0,
     hashtags,
+    suggestedShots,
   }
 }

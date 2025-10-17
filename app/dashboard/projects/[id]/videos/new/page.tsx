@@ -40,6 +40,7 @@ interface RoundtableResult {
   optimizedPrompt: string
   characterCount: number
   hashtags: string[]
+  suggestedShots?: Shot[]
 }
 
 export default function NewVideoPage() {
@@ -76,10 +77,14 @@ export default function NewVideoPage() {
     fetchSeries()
   }, [projectId])
 
-  // Initialize edited prompt when result arrives
+  // Initialize edited prompt and shot list when result arrives
   useEffect(() => {
     if (result) {
       setEditedPrompt(result.optimizedPrompt)
+      // Auto-populate shot list if AI provided suggestions
+      if (result.suggestedShots && result.suggestedShots.length > 0) {
+        setShotList(result.suggestedShots)
+      }
     }
   }, [result])
 
@@ -146,6 +151,41 @@ export default function NewVideoPage() {
       setResult(data)
     } catch (err: any) {
       setError(err.message || 'Failed to regenerate prompt')
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
+  const handleAISuggestShots = async () => {
+    if (!result) return
+
+    setRegenerating(true)
+    try {
+      // Use the advanced API to regenerate with current context
+      const response = await fetch('/api/agent/roundtable/advanced', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brief,
+          platform,
+          projectId,
+          seriesId,
+          additionalGuidance: additionalGuidance || 'Regenerate shot list with improved detail',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate shots')
+      }
+
+      // Update only the shot list
+      if (data.suggestedShots && data.suggestedShots.length > 0) {
+        setShotList(data.suggestedShots)
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate shots')
     } finally {
       setRegenerating(false)
     }
@@ -380,6 +420,7 @@ export default function NewVideoPage() {
                     <ShotListBuilder
                       shots={shotList}
                       onChange={setShotList}
+                      onAISuggest={handleAISuggestShots}
                     />
 
                     <AdditionalGuidance
