@@ -2,9 +2,12 @@ import OpenAI from 'openai'
 import { AgentName, AgentResponse, AgentDiscussion, DetailedBreakdown, VisualTemplate } from '../types/database.types'
 import { agentSystemPrompts } from './agent-prompts'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Lazy initialization to avoid build-time API key requirement
+function getOpenAI() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+}
 
 interface RoundtableInput {
   brief: string
@@ -111,6 +114,7 @@ async function callAgent(
     visualTemplate ? `\nSeries Template: ${JSON.stringify(visualTemplate)}` : ''
   }`
 
+  const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o', // Will use GPT-5 when available
     messages: [
@@ -153,6 +157,7 @@ async function callAgentWithContext(
     instruction += `Build upon the ideas from ${options.buildingOn.join(' and ').toUpperCase()}.`
   }
 
+  const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
     messages: [
@@ -219,6 +224,7 @@ Return JSON:
 }
 `
 
+  const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
