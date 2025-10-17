@@ -193,6 +193,14 @@ async function synthesizeRoundtable(data: {
   const synthesisPrompt = `
 You are synthesizing a creative film crew roundtable discussion into structured video prompt outputs.
 
+CRITICAL COPYRIGHT SAFETY RULES:
+- REMOVE all copyrighted brand names, product names, celebrity names, character names
+- REMOVE all references to specific movies, TV shows, songs, artists, albums
+- REMOVE all trademarked terms, logos, or IP references
+- REPLACE with GENERIC descriptions: "luxury car" not "Ferrari", "action hero" not "Iron Man"
+- ENSURE the final Sora prompt is 100% copyright-safe and will not trigger violations
+- If discussion contains copyrighted content, translate to generic equivalents
+
 DISCUSSION SUMMARY:
 ${JSON.stringify(data, null, 2)}
 
@@ -201,25 +209,26 @@ Generate TWO outputs:
 1. DETAILED BREAKDOWN (structured sections):
 - Scene Structure (with timestamps)
 - Visual Specifications (aspect ratio, lighting, camera, color)
-- Audio Direction (music/sound)
+- Audio Direction (GENERIC music moods/styles ONLY - NO specific songs/artists)
 - Platform Optimization (${data.platform}-specific)
-- Recommended Hashtags (5-10 tags)
+- Recommended Hashtags (5-10 tags, NO branded hashtags without permission)
 
 2. OPTIMIZED SORA2 PROMPT (character-limited, under 500 chars):
 - Concise, technical, Sora-optimized format
 - Preserve critical visual/narrative elements
 - Remove redundancy
+- MUST BE 100% COPYRIGHT-SAFE (no brands, IPs, celebrities, songs)
 
 Return JSON:
 {
   "breakdown": {
     "scene_structure": "...",
     "visual_specs": "...",
-    "audio": "...",
+    "audio": "... (GENERIC music description only)",
     "platform_optimization": "...",
     "hashtags": ["tag1", "tag2", ...]
   },
-  "optimized_prompt": "...",
+  "optimized_prompt": "... (COPYRIGHT-SAFE prompt)",
   "character_count": 437
 }
 `
@@ -230,7 +239,7 @@ Return JSON:
     messages: [
       {
         role: 'system',
-        content: 'You are an expert at distilling creative discussions into structured video prompts.',
+        content: 'You are an expert at distilling creative discussions into structured, COPYRIGHT-SAFE video prompts. You MUST remove all copyrighted content and replace with generic descriptions.',
       },
       { role: 'user', content: synthesisPrompt },
     ],
