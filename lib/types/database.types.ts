@@ -124,6 +124,7 @@ export interface Database {
           sora_video_url: string | null
           platform: 'tiktok' | 'instagram' | 'both' | null
           status: 'draft' | 'generated' | 'published'
+          user_edits: UserEdits | null
           created_at: string
           updated_at: string
         }
@@ -140,6 +141,7 @@ export interface Database {
           sora_video_url?: string | null
           platform?: 'tiktok' | 'instagram' | 'both' | null
           status?: 'draft' | 'generated' | 'published'
+          user_edits?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -156,6 +158,7 @@ export interface Database {
           sora_video_url?: string | null
           platform?: 'tiktok' | 'instagram' | 'both' | null
           status?: 'draft' | 'generated' | 'published'
+          user_edits?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -304,4 +307,34 @@ export interface DetailedBreakdown {
   audio: string
   platform_optimization: string
   hashtags: string[]
+}
+
+// Advanced Mode Types
+export interface Shot {
+  timing: string
+  description: string
+  camera: string
+  order: number
+  lighting?: string
+  notes?: string
+}
+
+export interface AdvancedEdit {
+  timestamp: string
+  prompt_changes?: string
+  shot_list?: Shot[]
+  additional_guidance?: string
+  regenerated_agents?: AgentName[]
+}
+
+export interface UserEdits {
+  mode: 'standard' | 'advanced'
+  iterations: number
+  additional_guidance?: string // Persists across regenerations
+  edits: AdvancedEdit[]
+  final_version?: {
+    prompt: string
+    shot_list?: Shot[]
+    character_count: number
+  }
 }

@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import { AgentName, AgentResponse, AgentDiscussion, DetailedBreakdown, VisualTemplate } from '../types/database.types'
+import { AgentName, AgentResponse, AgentDiscussion, DetailedBreakdown, VisualTemplate, Shot } from '../types/database.types'
 import { agentSystemPrompts } from './agent-prompts'
 
 // Lazy initialization to avoid build-time API key requirement
@@ -14,6 +14,12 @@ interface RoundtableInput {
   platform: 'tiktok' | 'instagram'
   visualTemplate?: VisualTemplate
   userId: string
+}
+
+interface AdvancedRoundtableInput extends RoundtableInput {
+  userPromptEdits?: string
+  shotList?: Shot[]
+  additionalGuidance?: string
 }
 
 interface RoundtableResult {
@@ -240,6 +246,190 @@ Return JSON:
       {
         role: 'system',
         content: 'You are an expert at distilling creative discussions into structured, COPYRIGHT-SAFE video prompts. You MUST remove all copyrighted content and replace with generic descriptions.',
+      },
+      { role: 'user', content: synthesisPrompt },
+    ],
+    temperature: 0.5,
+    response_format: { type: 'json_object' },
+  })
+
+  const result = JSON.parse(completion.choices[0].message.content || '{}')
+
+  return {
+    breakdown: result.breakdown,
+    prompt: result.optimized_prompt,
+    characterCount: result.character_count,
+    hashtags: result.breakdown.hashtags,
+  }
+}
+
+export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Promise<RoundtableResult> {
+  const { brief, platform, visualTemplate, userPromptEdits, shotList, additionalGuidance } = input
+
+  // Build enhanced brief with additional guidance and shot list context
+  let enhancedBrief = brief
+
+  if (additionalGuidance) {
+    enhancedBrief += `\n\nADDITIONAL CREATIVE GUIDANCE:\n${additionalGuidance}`
+  }
+
+  if (shotList && shotList.length > 0) {
+    enhancedBrief += `\n\nREQUESTED SHOT LIST:\n`
+    shotList.forEach((shot) => {
+      enhancedBrief += `Shot ${shot.order} (${shot.timing}): ${shot.description}`
+      if (shot.camera) enhancedBrief += ` | Camera: ${shot.camera}`
+      if (shot.lighting) enhancedBrief += ` | Lighting: ${shot.lighting}`
+      if (shot.notes) enhancedBrief += ` | Notes: ${shot.notes}`
+      enhancedBrief += '\n'
+    })
+  }
+
+  // Round 1: Parallel agent responses with enhanced brief
+  const agents: AgentName[] = [
+    'director',
+    'photography_director',
+    'platform_expert',
+    'social_media_marketer',
+    'music_producer',
+  ]
+
+  const round1Promises = agents.map(agent =>
+    callAgent(agent, enhancedBrief, platform, visualTemplate)
+  )
+
+  const round1Responses = await Promise.all(round1Promises)
+
+  // Round 2: Sequential debate (agents respond to each other)
+  const round2Context = round1Responses.map(r => ({
+    agent: r.agent,
+    response: r.response,
+  }))
+
+  const round2Responses: AgentResponse[] = []
+
+  // Platform Expert challenges Director (30% probability)
+  if (Math.random() < 0.3) {
+    const challenge = await callAgentWithContext(
+      'platform_expert',
+      enhancedBrief,
+      platform,
+      round2Context,
+      { challengeAgent: 'director' }
+    )
+    round2Responses.push(challenge)
+
+    // Director responds to challenge
+    const response = await callAgentWithContext(
+      'director',
+      enhancedBrief,
+      platform,
+      [...round2Context, challenge],
+      { respondingTo: 'platform_expert' }
+    )
+    round2Responses.push(response)
+  }
+
+  // Marketer builds on consensus
+  const marketerBuild = await callAgentWithContext(
+    'social_media_marketer',
+    enhancedBrief,
+    platform,
+    [...round2Context, ...round2Responses],
+    { buildingOn: ['director', 'platform_expert'] }
+  )
+  round2Responses.push(marketerBuild)
+
+  // Synthesis with user edits consideration
+  const synthesis = await synthesizeAdvancedRoundtable({
+    brief: enhancedBrief,
+    platform,
+    round1: round1Responses,
+    round2: round2Responses,
+    userPromptEdits,
+    shotList,
+  })
+
+  return {
+    discussion: {
+      round1: round1Responses,
+      round2: round2Responses,
+    },
+    detailedBreakdown: synthesis.breakdown,
+    optimizedPrompt: synthesis.prompt,
+    characterCount: synthesis.characterCount,
+    hashtags: synthesis.hashtags,
+  }
+}
+
+async function synthesizeAdvancedRoundtable(data: {
+  brief: string
+  platform: string
+  round1: AgentResponse[]
+  round2: AgentResponse[]
+  userPromptEdits?: string
+  shotList?: Shot[]
+}): Promise<{
+  breakdown: DetailedBreakdown
+  prompt: string
+  characterCount: number
+  hashtags: string[]
+}> {
+  const synthesisPrompt = `
+You are synthesizing a creative film crew roundtable discussion into structured video prompt outputs.
+
+CRITICAL COPYRIGHT SAFETY RULES:
+- REMOVE all copyrighted brand names, product names, celebrity names, character names
+- REMOVE all references to specific movies, TV shows, songs, artists, albums
+- REMOVE all trademarked terms, logos, or IP references
+- REPLACE with GENERIC descriptions: "luxury car" not "Ferrari", "action hero" not "Iron Man"
+- ENSURE the final Sora prompt is 100% copyright-safe and will not trigger violations
+- If discussion contains copyrighted content, translate to generic equivalents
+
+${data.userPromptEdits ? `USER'S DIRECT PROMPT EDITS:\n${data.userPromptEdits}\n\nIMPORTANT: Respect the user's edits while ensuring copyright safety.\n` : ''}
+
+${data.shotList && data.shotList.length > 0 ? `USER'S REQUESTED SHOT LIST:\n${data.shotList.map(s => `Shot ${s.order} (${s.timing}): ${s.description}${s.camera ? ` | Camera: ${s.camera}` : ''}${s.lighting ? ` | Lighting: ${s.lighting}` : ''}`).join('\n')}\n\nIMPORTANT: Incorporate this shot structure into the final prompt.\n` : ''}
+
+DISCUSSION SUMMARY:
+${JSON.stringify({ round1: data.round1, round2: data.round2 }, null, 2)}
+
+Generate TWO outputs:
+
+1. DETAILED BREAKDOWN (structured sections):
+- Scene Structure (with timestamps${data.shotList ? ' - MATCH USER SHOT LIST' : ''})
+- Visual Specifications (aspect ratio, lighting, camera, color)
+- Audio Direction (GENERIC music moods/styles ONLY - NO specific songs/artists)
+- Platform Optimization (${data.platform}-specific)
+- Recommended Hashtags (5-10 tags, NO branded hashtags without permission)
+
+2. OPTIMIZED SORA2 PROMPT (character-limited, under 500 chars):
+- Concise, technical, Sora-optimized format
+- Preserve critical visual/narrative elements
+- Remove redundancy
+- MUST BE 100% COPYRIGHT-SAFE (no brands, IPs, celebrities, songs)
+${data.userPromptEdits ? '- INCORPORATE user prompt edits while maintaining quality' : ''}
+${data.shotList ? '- REFLECT shot list structure in prompt' : ''}
+
+Return JSON:
+{
+  "breakdown": {
+    "scene_structure": "...",
+    "visual_specs": "...",
+    "audio": "... (GENERIC music description only)",
+    "platform_optimization": "...",
+    "hashtags": ["tag1", "tag2", ...]
+  },
+  "optimized_prompt": "... (COPYRIGHT-SAFE prompt)",
+  "character_count": 437
+}
+`
+
+  const openai = getOpenAI()
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert at distilling creative discussions into structured, COPYRIGHT-SAFE video prompts. You MUST remove all copyrighted content and replace with generic descriptions. When users provide edits or shot lists, respect their creative vision while ensuring copyright safety.',
       },
       { role: 'user', content: synthesisPrompt },
     ],

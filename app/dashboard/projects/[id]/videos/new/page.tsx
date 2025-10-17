@@ -6,10 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Sparkles, Loader2 } from 'lucide-react'
+import { ArrowLeft, Sparkles, Loader2, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { AgentRoundtable } from '@/components/agents/agent-roundtable'
 import { PromptOutput } from '@/components/videos/prompt-output'
+import { AdvancedModeToggle } from '@/components/videos/advanced-mode-toggle'
+import { EditablePromptField } from '@/components/videos/editable-prompt-field'
+import { ShotListBuilder } from '@/components/videos/shot-list-builder'
+import { AdditionalGuidance } from '@/components/videos/additional-guidance'
+import { Shot } from '@/lib/types/database.types'
 
 interface RoundtableResult {
   discussion: {
@@ -50,6 +55,13 @@ export default function NewVideoPage() {
   const [result, setResult] = useState<RoundtableResult | null>(null)
   const [series, setSeries] = useState<any[]>([])
 
+  // Advanced Mode State
+  const [advancedMode, setAdvancedMode] = useState(false)
+  const [editedPrompt, setEditedPrompt] = useState('')
+  const [shotList, setShotList] = useState<Shot[]>([])
+  const [additionalGuidance, setAdditionalGuidance] = useState('')
+  const [regenerating, setRegenerating] = useState(false)
+
   // Fetch series for this project
   useEffect(() => {
     const fetchSeries = async () => {
@@ -63,6 +75,13 @@ export default function NewVideoPage() {
     }
     fetchSeries()
   }, [projectId])
+
+  // Initialize edited prompt when result arrives
+  useEffect(() => {
+    if (result) {
+      setEditedPrompt(result.optimizedPrompt)
+    }
+  }, [result])
 
   const handleStartRoundtable = async () => {
     if (!brief.trim()) {
@@ -99,8 +118,44 @@ export default function NewVideoPage() {
     }
   }
 
+  const handleRegenerateWithEdits = async () => {
+    setError(null)
+    setRegenerating(true)
+
+    try {
+      const response = await fetch('/api/agent/roundtable/advanced', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brief,
+          platform,
+          projectId,
+          seriesId,
+          userPromptEdits: advancedMode ? editedPrompt : undefined,
+          shotList: advancedMode && shotList.length > 0 ? shotList : undefined,
+          additionalGuidance: advancedMode && additionalGuidance ? additionalGuidance : undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to regenerate prompt')
+      }
+
+      setResult(data)
+    } catch (err: any) {
+      setError(err.message || 'Failed to regenerate prompt')
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
   const handleSaveVideo = async () => {
     if (!result) return
+
+    const finalPrompt = advancedMode ? editedPrompt : result.optimizedPrompt
+    const finalCharCount = finalPrompt.length
 
     try {
       const response = await fetch('/api/videos', {
@@ -113,10 +168,30 @@ export default function NewVideoPage() {
           userBrief: brief,
           agentDiscussion: result.discussion,
           detailedBreakdown: result.detailedBreakdown,
-          optimizedPrompt: result.optimizedPrompt,
-          characterCount: result.characterCount,
+          optimizedPrompt: finalPrompt,
+          characterCount: finalCharCount,
           platform,
           hashtags: result.hashtags,
+          user_edits: advancedMode
+            ? {
+                mode: 'advanced',
+                iterations: 1,
+                additional_guidance: additionalGuidance || undefined,
+                edits: [
+                  {
+                    timestamp: new Date().toISOString(),
+                    prompt_changes: editedPrompt !== result.optimizedPrompt ? editedPrompt : undefined,
+                    shot_list: shotList.length > 0 ? shotList : undefined,
+                    additional_guidance: additionalGuidance || undefined,
+                  },
+                ],
+                final_version: {
+                  prompt: finalPrompt,
+                  shot_list: shotList.length > 0 ? shotList : undefined,
+                  character_count: finalCharCount,
+                },
+              }
+            : null,
         }),
       })
 
@@ -284,12 +359,65 @@ export default function NewVideoPage() {
             {result && (
               <>
                 <AgentRoundtable discussion={result.discussion} />
-                <PromptOutput
-                  detailedBreakdown={result.detailedBreakdown}
-                  optimizedPrompt={result.optimizedPrompt}
-                  characterCount={result.characterCount}
-                  hashtags={result.hashtags}
+
+                {/* Advanced Mode Toggle */}
+                <AdvancedModeToggle
+                  enabled={advancedMode}
+                  onChange={setAdvancedMode}
+                  disabled={loading || regenerating}
                 />
+
+                {/* Advanced Mode Controls */}
+                {advancedMode && (
+                  <div className="space-y-6">
+                    <EditablePromptField
+                      value={editedPrompt}
+                      originalValue={result.optimizedPrompt}
+                      onChange={setEditedPrompt}
+                      onRevert={() => setEditedPrompt(result.optimizedPrompt)}
+                    />
+
+                    <ShotListBuilder
+                      shots={shotList}
+                      onChange={setShotList}
+                    />
+
+                    <AdditionalGuidance
+                      value={additionalGuidance}
+                      onChange={setAdditionalGuidance}
+                    />
+
+                    {/* Regenerate Button */}
+                    <Button
+                      onClick={handleRegenerateWithEdits}
+                      disabled={regenerating}
+                      className="w-full bg-sage-500 hover:bg-sage-700"
+                      size="lg"
+                    >
+                      {regenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Regenerating with your guidance...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-5 w-5" />
+                          Regenerate with Edits
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Standard Mode Output */}
+                {!advancedMode && (
+                  <PromptOutput
+                    detailedBreakdown={result.detailedBreakdown}
+                    optimizedPrompt={result.optimizedPrompt}
+                    characterCount={result.characterCount}
+                    hashtags={result.hashtags}
+                  />
+                )}
               </>
             )}
 
