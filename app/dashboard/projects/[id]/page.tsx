@@ -70,9 +70,11 @@ export default async function ProjectDetailPage({
           <Button variant="outline" size="sm">
             Edit Project
           </Button>
-          <Button size="sm" className="bg-sage-500 hover:bg-sage-700">
-            <Plus className="mr-2 h-4 w-4" />
-            New Video
+          <Button size="sm" className="bg-sage-500 hover:bg-sage-700" asChild>
+            <Link href={`/dashboard/projects/${id}/videos/new`}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Video
+            </Link>
           </Button>
         </div>
       </div>
@@ -92,18 +94,21 @@ export default async function ProjectDetailPage({
                 <p className="mb-4 text-sm text-muted-foreground">
                   Get started by creating your first video with AI agent assistance.
                 </p>
-                <Button className="bg-sage-500 hover:bg-sage-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create First Video
+                <Button className="bg-sage-500 hover:bg-sage-700" asChild>
+                  <Link href={`/dashboard/projects/${id}/videos/new`}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create First Video
+                  </Link>
                 </Button>
               </div>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {project.videos?.slice(0, 6).map((video: any) => (
-                <div
+                <Link
                   key={video.id}
-                  className="rounded-lg border p-4 hover:border-sage-500 transition-colors"
+                  href={`/dashboard/projects/${id}/videos/${video.id}`}
+                  className="rounded-lg border p-4 hover:border-sage-500 transition-colors cursor-pointer block"
                 >
                   <h4 className="font-medium mb-1">{video.title}</h4>
                   <p className="text-sm text-muted-foreground line-clamp-2">
@@ -112,7 +117,7 @@ export default async function ProjectDetailPage({
                   <Badge variant="outline" className="mt-2 text-xs">
                     {video.platform}
                   </Badge>
-                </div>
+                </Link>
               ))}
             </div>
           )}
