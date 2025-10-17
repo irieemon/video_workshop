@@ -57,13 +57,12 @@ export async function POST(request: NextRequest) {
       hashtags,
     } = body
 
-    // Create the video
+    // Create the video (without hashtags - they go in separate table)
     const { data: video, error: videoError } = await supabase
       .from('videos')
       .insert({
         project_id: projectId,
         series_id: seriesId || null,
-        user_id: user.id,
         title,
         user_brief: userBrief,
         agent_discussion: agentDiscussion,
@@ -71,7 +70,6 @@ export async function POST(request: NextRequest) {
         optimized_prompt: optimizedPrompt,
         character_count: characterCount,
         platform,
-        hashtags,
       })
       .select()
       .single()
@@ -79,6 +77,17 @@ export async function POST(request: NextRequest) {
     if (videoError) {
       console.error('Video creation error:', videoError)
       return NextResponse.json({ error: 'Failed to create video' }, { status: 500 })
+    }
+
+    // Insert hashtags into separate table
+    if (hashtags && hashtags.length > 0 && video) {
+      const hashtagInserts = hashtags.map((tag: string) => ({
+        video_id: video.id,
+        tag: tag,
+        suggested_by: 'platform_expert' as const,
+      }))
+
+      await supabase.from('hashtags').insert(hashtagInserts)
     }
 
     // Increment video counter
@@ -116,11 +125,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const projectId = searchParams.get('projectId')
 
-    // Build query
+    // Build query - RLS will filter by user through project relationship
     let query = supabase
       .from('videos')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     // Filter by project if specified

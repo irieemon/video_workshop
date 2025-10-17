@@ -19,25 +19,31 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch video with project and series info
+    // Fetch video with project, series, and hashtags
     const { data: video, error } = await supabase
       .from('videos')
       .select(
         `
         *,
         project:projects(*),
-        series:series(*)
+        series:series(*),
+        hashtags:hashtags(tag)
       `
       )
       .eq('id', id)
-      .eq('user_id', user.id)
       .single()
 
     if (error || !video) {
       return NextResponse.json({ error: 'Video not found' }, { status: 404 })
     }
 
-    return NextResponse.json(video)
+    // Transform hashtags from array of objects to array of strings
+    const transformedVideo = {
+      ...video,
+      hashtags: video.hashtags?.map((h: any) => h.tag) || [],
+    }
+
+    return NextResponse.json(transformedVideo)
   } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

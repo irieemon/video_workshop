@@ -16,14 +16,15 @@ export default async function VideoDetailPage({
   const { id: projectId, videoId } = await params
   const supabase = await createClient()
 
-  // Fetch video with all details
+  // Fetch video with all details including hashtags
   const { data: video, error } = await supabase
     .from('videos')
     .select(
       `
       *,
       project:projects(*),
-      series:series(*)
+      series:series(*),
+      hashtags:hashtags(tag)
     `
     )
     .eq('id', videoId)
@@ -32,6 +33,9 @@ export default async function VideoDetailPage({
   if (error || !video) {
     notFound()
   }
+
+  // Transform hashtags from array of objects to array of strings
+  const hashtagsArray = video.hashtags?.map((h: any) => h.tag) || []
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,7 +94,7 @@ export default async function VideoDetailPage({
             detailedBreakdown={video.detailed_breakdown}
             optimizedPrompt={video.optimized_prompt}
             characterCount={video.character_count}
-            hashtags={video.hashtags || []}
+            hashtags={hashtagsArray}
           />
         )}
       </div>
