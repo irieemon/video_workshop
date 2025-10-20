@@ -39,7 +39,9 @@ export async function GET(
       return NextResponse.json({ error: 'Series not found' }, { status: 404 })
     }
 
-    if (series.project.user_id !== user.id) {
+    // Type assertion for the joined project data
+    const project = Array.isArray(series.project) ? series.project[0] : series.project
+    if (project.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -104,7 +106,9 @@ export async function POST(
       return NextResponse.json({ error: 'Series not found' }, { status: 404 })
     }
 
-    if (series.project.user_id !== user.id) {
+    // Type assertion for the joined project data
+    const project = Array.isArray(series.project) ? series.project[0] : series.project
+    if (project.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
