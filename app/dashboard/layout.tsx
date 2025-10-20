@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/dashboard/sidebar'
+import { MobileNav } from '@/components/dashboard/mobile-nav'
 import { UserMenu } from '@/components/dashboard/user-menu'
+import { Sparkles } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function DashboardLayout({
   children,
@@ -27,7 +30,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <Sidebar
         usageQuota={profile?.usage_quota}
         usageCurrent={profile?.usage_current}
@@ -37,10 +40,25 @@ export default async function DashboardLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b px-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold">Dashboard</h2>
+        <header className="flex h-16 items-center justify-between border-b px-4 md:px-6">
+          <div className="flex items-center gap-3">
+            {/* Mobile Menu */}
+            <MobileNav
+              usageQuota={profile?.usage_quota}
+              usageCurrent={profile?.usage_current}
+              subscriptionTier={profile?.subscription_tier}
+            />
+
+            {/* Mobile Logo */}
+            <Link href="/dashboard" className="flex md:hidden items-center gap-2">
+              <Sparkles className="h-5 w-5 text-sage-500" />
+              <span className="font-bold text-base">Sora2</span>
+            </Link>
+
+            {/* Desktop Title */}
+            <h2 className="hidden md:block text-lg font-semibold">Dashboard</h2>
           </div>
+
           <UserMenu
             user={{
               email: user.email || '',

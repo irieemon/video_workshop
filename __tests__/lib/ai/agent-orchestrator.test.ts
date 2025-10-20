@@ -155,7 +155,7 @@ describe('Agent Orchestrator', () => {
       expect(result.characterCount).toBe(45)
       expect(result.hashtags).toEqual(['test', 'video', 'ai'])
       expect(result.suggestedShots).toHaveLength(1)
-      expect(result.suggestedShots[0].timing).toBe('0-4s')
+      expect(result.suggestedShots?.[0].timing).toBe('0-4s')
     })
 
     it('should handle errors gracefully', async () => {

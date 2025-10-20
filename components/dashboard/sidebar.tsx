@@ -11,6 +11,7 @@ import {
   FolderKanban,
   Settings,
   Sparkles,
+  ListVideo,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -33,6 +34,7 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Projects', href: '/dashboard', icon: FolderKanban },
+    { name: 'Series', href: '/dashboard/series', icon: ListVideo },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]
 
@@ -41,7 +43,7 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
     : 10
 
   return (
-    <div className="flex h-full w-64 flex-col bg-muted/40 border-r">
+    <div className="hidden md:flex h-full w-64 flex-col bg-muted/40 border-r">
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/dashboard" className="flex items-center gap-2">
@@ -53,7 +55,9 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = item.href === '/dashboard'
+            ? pathname === '/dashboard'
+            : pathname.startsWith(item.href)
           return (
             <Link
               key={item.name}

@@ -87,7 +87,10 @@ export interface Database {
           project_id: string
           name: string
           description: string | null
+          genre: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
           visual_template: VisualTemplate
+          enforce_continuity: boolean
+          allow_continuity_breaks: boolean
           created_at: string
           updated_at: string
         }
@@ -96,7 +99,10 @@ export interface Database {
           project_id: string
           name: string
           description?: string | null
+          genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
           visual_template?: Json
+          enforce_continuity?: boolean
+          allow_continuity_breaks?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -105,9 +111,211 @@ export interface Database {
           project_id?: string
           name?: string
           description?: string | null
+          genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
           visual_template?: Json
+          enforce_continuity?: boolean
+          allow_continuity_breaks?: boolean
           created_at?: string
           updated_at?: string
+        }
+      }
+      series_characters: {
+        Row: {
+          id: string
+          series_id: string
+          name: string
+          description: string
+          role: 'protagonist' | 'supporting' | 'background' | 'other' | null
+          appearance_details: Json
+          performance_style: string | null
+          introduced_episode_id: string | null
+          evolution_timeline: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          name: string
+          description: string
+          role?: 'protagonist' | 'supporting' | 'background' | 'other' | null
+          appearance_details?: Json
+          performance_style?: string | null
+          introduced_episode_id?: string | null
+          evolution_timeline?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          name?: string
+          description?: string
+          role?: 'protagonist' | 'supporting' | 'background' | 'other' | null
+          appearance_details?: Json
+          performance_style?: string | null
+          introduced_episode_id?: string | null
+          evolution_timeline?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      series_settings: {
+        Row: {
+          id: string
+          series_id: string
+          name: string
+          description: string
+          environment_type: 'interior' | 'exterior' | 'mixed' | 'other' | null
+          time_of_day: string | null
+          atmosphere: string | null
+          details: Json
+          introduced_episode_id: string | null
+          is_primary: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          name: string
+          description: string
+          environment_type?: 'interior' | 'exterior' | 'mixed' | 'other' | null
+          time_of_day?: string | null
+          atmosphere?: string | null
+          details?: Json
+          introduced_episode_id?: string | null
+          is_primary?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          name?: string
+          description?: string
+          environment_type?: 'interior' | 'exterior' | 'mixed' | 'other' | null
+          time_of_day?: string | null
+          atmosphere?: string | null
+          details?: Json
+          introduced_episode_id?: string | null
+          is_primary?: boolean
+          created_at?: string
+        }
+      }
+      series_visual_style: {
+        Row: {
+          id: string
+          series_id: string
+          cinematography: Json
+          lighting: Json
+          color_palette: Json
+          composition_rules: Json
+          audio_style: Json
+          default_platform: 'tiktok' | 'instagram' | 'youtube-shorts' | 'both' | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          cinematography?: Json
+          lighting?: Json
+          color_palette?: Json
+          composition_rules?: Json
+          audio_style?: Json
+          default_platform?: 'tiktok' | 'instagram' | 'youtube-shorts' | 'both' | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          cinematography?: Json
+          lighting?: Json
+          color_palette?: Json
+          composition_rules?: Json
+          audio_style?: Json
+          default_platform?: 'tiktok' | 'instagram' | 'youtube-shorts' | 'both' | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      seasons: {
+        Row: {
+          id: string
+          series_id: string
+          season_number: number
+          name: string | null
+          description: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          season_number: number
+          name?: string | null
+          description?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          season_number?: number
+          name?: string | null
+          description?: string | null
+          created_at?: string
+        }
+      }
+      series_episodes: {
+        Row: {
+          id: string
+          series_id: string
+          season_id: string | null
+          video_id: string
+          episode_number: number
+          episode_title: string | null
+          story_beat: string | null
+          emotional_arc: string | null
+          continuity_breaks: Json
+          custom_context: Json
+          characters_used: string[]
+          settings_used: string[]
+          timeline_position: number | null
+          is_key_episode: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          season_id?: string | null
+          video_id: string
+          episode_number: number
+          episode_title?: string | null
+          story_beat?: string | null
+          emotional_arc?: string | null
+          continuity_breaks?: Json
+          custom_context?: Json
+          characters_used?: string[]
+          settings_used?: string[]
+          timeline_position?: number | null
+          is_key_episode?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          season_id?: string | null
+          video_id?: string
+          episode_number?: number
+          episode_title?: string | null
+          story_beat?: string | null
+          emotional_arc?: string | null
+          continuity_breaks?: Json
+          custom_context?: Json
+          characters_used?: string[]
+          settings_used?: string[]
+          timeline_position?: number | null
+          is_key_episode?: boolean
+          created_at?: string
         }
       }
       videos: {
@@ -279,6 +487,7 @@ export type AgentName =
   | 'platform_expert'
   | 'social_media_marketer'
   | 'music_producer'
+  | 'subject_director'
 
 export interface AgentResponse {
   agent: AgentName

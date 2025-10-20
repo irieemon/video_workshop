@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { brief, platform, seriesId, projectId } = body
+    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings } = body
 
     // Validate required fields
     if (!brief || !platform || !projectId) {
@@ -25,8 +25,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Fetch series template if applicable
+    // Fetch series context if applicable
     let visualTemplate = null
+    let seriesCharacters = null
+    let seriesSettings = null
+    let visualAssets = null
+
     if (seriesId) {
       const { data: series } = await supabase
         .from('series')
@@ -34,6 +38,32 @@ export async function POST(request: NextRequest) {
         .eq('id', seriesId)
         .single()
       visualTemplate = series?.visual_template
+
+      // Fetch selected characters
+      if (selectedCharacters && selectedCharacters.length > 0) {
+        const { data: characters } = await supabase
+          .from('series_characters')
+          .select('*')
+          .in('id', selectedCharacters)
+        seriesCharacters = characters
+      }
+
+      // Fetch selected settings
+      if (selectedSettings && selectedSettings.length > 0) {
+        const { data: settings } = await supabase
+          .from('series_settings')
+          .select('*')
+          .in('id', selectedSettings)
+        seriesSettings = settings
+      }
+
+      // Fetch all visual assets for this series
+      const { data: assets } = await supabase
+        .from('series_visual_assets')
+        .select('*')
+        .eq('series_id', seriesId)
+        .order('display_order', { ascending: true })
+      visualAssets = assets
     }
 
     // Run agent roundtable (orchestration logic)
@@ -41,6 +71,9 @@ export async function POST(request: NextRequest) {
       brief,
       platform,
       visualTemplate: visualTemplate || undefined,
+      seriesCharacters: seriesCharacters || undefined,
+      seriesSettings: seriesSettings || undefined,
+      visualAssets: visualAssets || undefined,
       userId: user.id,
     })
 

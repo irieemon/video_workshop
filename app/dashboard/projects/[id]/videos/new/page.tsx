@@ -14,6 +14,7 @@ import { AdvancedModeToggle } from '@/components/videos/advanced-mode-toggle'
 import { EditablePromptField } from '@/components/videos/editable-prompt-field'
 import { ShotListBuilder } from '@/components/videos/shot-list-builder'
 import { AdditionalGuidance } from '@/components/videos/additional-guidance'
+import { SeriesContextSelector } from '@/components/videos/series-context-selector'
 import { Shot } from '@/lib/types/database.types'
 
 interface RoundtableResult {
@@ -51,6 +52,8 @@ export default function NewVideoPage() {
   const [brief, setBrief] = useState('')
   const [platform, setPlatform] = useState<'tiktok' | 'instagram'>('tiktok')
   const [seriesId, setSeriesId] = useState<string | null>(null)
+  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
+  const [selectedSettings, setSelectedSettings] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<RoundtableResult | null>(null)
@@ -106,6 +109,8 @@ export default function NewVideoPage() {
           platform,
           projectId,
           seriesId,
+          selectedCharacters,
+          selectedSettings,
         }),
       })
 
@@ -136,6 +141,8 @@ export default function NewVideoPage() {
           platform,
           projectId,
           seriesId,
+          selectedCharacters,
+          selectedSettings,
           userPromptEdits: advancedMode ? editedPrompt : undefined,
           shotList: advancedMode && shotList.length > 0 ? shotList : undefined,
           additionalGuidance: advancedMode && additionalGuidance ? additionalGuidance : undefined,
@@ -170,6 +177,8 @@ export default function NewVideoPage() {
           platform,
           projectId,
           seriesId,
+          selectedCharacters,
+          selectedSettings,
           additionalGuidance: additionalGuidance || 'Regenerate shot list with improved detail',
         }),
       })
@@ -204,6 +213,8 @@ export default function NewVideoPage() {
         body: JSON.stringify({
           projectId,
           seriesId,
+          selectedCharacters,
+          selectedSettings,
           title: brief.slice(0, 100),
           userBrief: brief,
           agentDiscussion: result.discussion,
@@ -248,41 +259,42 @@ export default function NewVideoPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="container flex h-16 items-center justify-between px-8">
-          <Button variant="ghost" asChild>
+        <div className="container flex h-14 md:h-16 items-center justify-between px-4 md:px-8">
+          <Button variant="ghost" size="sm" asChild>
             <Link href={`/dashboard/projects/${projectId}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Project
+              <ArrowLeft className="mr-1 md:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Back to Project</span>
+              <span className="sm:hidden">Back</span>
             </Link>
           </Button>
           {result && (
-            <Button onClick={handleSaveVideo} className="bg-sage-500 hover:bg-sage-700">
-              Save Video
+            <Button onClick={handleSaveVideo} size="sm" className="bg-sage-500 hover:bg-sage-700">
+              Save
             </Button>
           )}
         </div>
       </div>
 
-      <div className="container py-8 px-8">
-        <div className="grid gap-8 lg:grid-cols-[400px_1fr]">
+      <div className="container py-4 md:py-8 px-4 md:px-8">
+        <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-[400px_1fr]">
           {/* Left Column: Input Form */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="text-lg md:text-xl flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-sage-500" />
                   Video Brief
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Describe your video idea for the AI film crew
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="brief">Brief Description *</Label>
+                  <Label htmlFor="brief" className="text-sm">Brief Description *</Label>
                   <textarea
                     id="brief"
-                    className="flex min-h-[150px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[120px] md:min-h-[150px] w-full rounded-md border border-input bg-background px-2 md:px-3 py-2 text-xs md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Example: Unboxing video for luxury skincare serum, Gen Z audience, need high engagement..."
                     value={brief}
                     onChange={(e) => setBrief(e.target.value)}
@@ -294,10 +306,11 @@ export default function NewVideoPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Platform *</Label>
-                  <div className="flex gap-2">
+                  <Label className="text-sm">Platform *</Label>
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
                       type="button"
+                      size="sm"
                       variant={platform === 'tiktok' ? 'default' : 'outline'}
                       onClick={() => setPlatform('tiktok')}
                       disabled={loading || !!result}
@@ -307,6 +320,7 @@ export default function NewVideoPage() {
                     </Button>
                     <Button
                       type="button"
+                      size="sm"
                       variant={platform === 'instagram' ? 'default' : 'outline'}
                       onClick={() => setPlatform('instagram')}
                       disabled={loading || !!result}
@@ -319,12 +333,17 @@ export default function NewVideoPage() {
 
                 {series.length > 0 && (
                   <div className="space-y-2">
-                    <Label htmlFor="series">Series (Optional)</Label>
+                    <Label htmlFor="series" className="text-sm">Series (Optional)</Label>
                     <select
                       id="series"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-9 md:h-10 w-full rounded-md border border-input bg-background px-2 md:px-3 py-2 text-xs md:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={seriesId || ''}
-                      onChange={(e) => setSeriesId(e.target.value || null)}
+                      onChange={(e) => {
+                        setSeriesId(e.target.value || null)
+                        // Reset selections when series changes
+                        setSelectedCharacters([])
+                        setSelectedSettings([])
+                      }}
                       disabled={loading || !!result}
                     >
                       <option value="">One-off video</option>
@@ -341,7 +360,23 @@ export default function NewVideoPage() {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
 
+            {/* Series Context Selection */}
+            {seriesId && (
+              <SeriesContextSelector
+                seriesId={seriesId}
+                selectedCharacters={selectedCharacters}
+                selectedSettings={selectedSettings}
+                onCharactersChange={setSelectedCharacters}
+                onSettingsChange={setSelectedSettings}
+                disabled={loading || !!result}
+              />
+            )}
+
+            <Card>
+              <CardContent className="space-y-3 md:space-y-4 pt-6">
                 {error && (
                   <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
                     {error}
@@ -353,17 +388,17 @@ export default function NewVideoPage() {
                     onClick={handleStartRoundtable}
                     disabled={loading || !brief.trim()}
                     className="w-full bg-sage-500 hover:bg-sage-700"
-                    size="lg"
+                    size="default"
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        AI Crew Collaborating...
+                        <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                        <span className="text-sm md:text-base">AI Crew Collaborating...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        Start Roundtable
+                        <Sparkles className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+                        <span className="text-sm md:text-base">Start Roundtable</span>
                       </>
                     )}
                   </Button>
@@ -381,7 +416,7 @@ export default function NewVideoPage() {
           </div>
 
           {/* Right Column: Agent Discussion & Results */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {loading && (
               <Card>
                 <CardContent className="pt-6">

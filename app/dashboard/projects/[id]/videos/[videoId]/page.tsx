@@ -40,40 +40,39 @@ export default async function VideoDetailPage({
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="container flex h-16 items-center justify-between px-8">
-          <Button variant="ghost" asChild>
+        <div className="container flex h-14 md:h-16 items-center justify-between px-4 md:px-8">
+          <Button variant="ghost" size="sm" asChild>
             <Link href={`/dashboard/projects/${projectId}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Project
+              <ArrowLeft className="mr-1 md:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Back to Project</span>
+              <span className="sm:hidden">Back</span>
             </Link>
           </Button>
         </div>
       </div>
 
-      <div className="container py-8 px-8">
+      <div className="container py-4 md:py-8 px-4 md:px-8">
         {/* Video Header */}
-        <div className="mb-8">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{video.title}</h1>
-              <div className="flex items-center gap-3 flex-wrap">
-                <Badge variant="outline" className="text-xs">
-                  {video.platform}
+        <div className="mb-6 md:mb-8">
+          <div className="flex flex-col gap-3 mb-4">
+            <h1 className="text-2xl md:text-3xl font-bold">{video.title}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-xs">
+                {video.platform}
+              </Badge>
+              {video.series && (
+                <Badge variant="secondary" className="text-xs">
+                  Series: {video.series.name}
                 </Badge>
-                {video.series && (
-                  <Badge variant="secondary" className="text-xs">
-                    Series: {video.series.name}
-                  </Badge>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  Created {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
-                </span>
-              </div>
+              )}
+              <span className="text-xs md:text-sm text-muted-foreground">
+                Created {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
+              </span>
             </div>
           </div>
 
           {/* User Brief */}
-          <div className="bg-muted/50 rounded-lg p-4 border">
+          <div className="bg-muted/50 rounded-lg p-3 md:p-4 border">
             <h3 className="font-semibold text-sm mb-2">Original Brief</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {video.user_brief}
@@ -83,7 +82,7 @@ export default async function VideoDetailPage({
 
         {/* Agent Discussion */}
         {video.agent_discussion && (
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <AgentRoundtable discussion={video.agent_discussion} />
           </div>
         )}

@@ -9,10 +9,41 @@ function getOpenAI() {
   })
 }
 
+interface SeriesCharacter {
+  id: string
+  name: string
+  description: string
+  role: string | null
+  performance_style: string | null
+}
+
+interface SeriesSetting {
+  id: string
+  name: string
+  description: string
+  environment_type: string | null
+  time_of_day: string | null
+  atmosphere: string | null
+  is_primary: boolean
+}
+
+interface VisualAsset {
+  id: string
+  name: string
+  description: string | null
+  asset_type: string
+  file_name: string
+  width: number | null
+  height: number | null
+}
+
 interface RoundtableInput {
   brief: string
   platform: 'tiktok' | 'instagram'
   visualTemplate?: VisualTemplate
+  seriesCharacters?: SeriesCharacter[]
+  seriesSettings?: SeriesSetting[]
+  visualAssets?: VisualAsset[]
   userId: string
 }
 
@@ -32,7 +63,7 @@ interface RoundtableResult {
 }
 
 export async function runAgentRoundtable(input: RoundtableInput): Promise<RoundtableResult> {
-  const { brief, platform, visualTemplate } = input
+  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets } = input
 
   // Round 1: Parallel agent responses
   const agents: AgentName[] = [
@@ -41,10 +72,11 @@ export async function runAgentRoundtable(input: RoundtableInput): Promise<Roundt
     'platform_expert',
     'social_media_marketer',
     'music_producer',
+    'subject_director',
   ]
 
   const round1Promises = agents.map(agent =>
-    callAgent(agent, brief, platform, visualTemplate)
+    callAgent(agent, brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets)
   )
 
   const round1Responses = await Promise.all(round1Promises)
@@ -114,13 +146,101 @@ async function callAgent(
   agentName: AgentName,
   brief: string,
   platform: string,
-  visualTemplate?: VisualTemplate
+  visualTemplate?: VisualTemplate,
+  seriesCharacters?: SeriesCharacter[],
+  seriesSettings?: SeriesSetting[],
+  visualAssets?: VisualAsset[]
 ): Promise<AgentResponse> {
   const systemPrompt = agentSystemPrompts[agentName]
 
-  const userMessage = `Brief: ${brief}\nPlatform: ${platform}${
-    visualTemplate ? `\nSeries Template: ${JSON.stringify(visualTemplate)}` : ''
-  }`
+  let userMessage = `Brief: ${brief}\nPlatform: ${platform}`
+
+  if (visualTemplate) {
+    userMessage += `\nSeries Template: ${JSON.stringify(visualTemplate)}`
+  }
+
+  if (seriesCharacters && seriesCharacters.length > 0) {
+    userMessage += `\n\nCHARACTERS IN THIS SCENE:\n`
+    seriesCharacters.forEach(char => {
+      userMessage += `- ${char.name}: ${char.description}`
+      if (char.role) userMessage += ` (Role: ${char.role})`
+      if (char.performance_style) userMessage += ` | Performance Style: ${char.performance_style}`
+      userMessage += '\n'
+    })
+  }
+
+  if (seriesSettings && seriesSettings.length > 0) {
+    userMessage += `\n\nSETTING/LOCATION:\n`
+    seriesSettings.forEach(setting => {
+      userMessage += `- ${setting.name}: ${setting.description}`
+      if (setting.environment_type) userMessage += ` (${setting.environment_type})`
+      if (setting.time_of_day) userMessage += ` | Time: ${setting.time_of_day}`
+      if (setting.atmosphere) userMessage += ` | Atmosphere: ${setting.atmosphere}`
+      userMessage += '\n'
+    })
+    userMessage += `\nIMPORTANT: The video MUST take place in this setting. All scenes should be set in this location.`
+  }
+
+  if (visualAssets && visualAssets.length > 0) {
+    userMessage += `\n\nVISUAL REFERENCE ASSETS:\n`
+    userMessage += `The following visual references should inform your creative decisions:\n\n`
+
+    const logos = visualAssets.filter(a => a.asset_type === 'logo')
+    const colorPalettes = visualAssets.filter(a => a.asset_type === 'color_palette')
+    const settingRefs = visualAssets.filter(a => a.asset_type === 'setting_reference')
+    const styleRefs = visualAssets.filter(a => a.asset_type === 'style_reference')
+    const others = visualAssets.filter(a => a.asset_type === 'other')
+
+    if (logos.length > 0) {
+      userMessage += `Brand Logos:\n`
+      logos.forEach(asset => {
+        userMessage += `- ${asset.name}`
+        if (asset.description) userMessage += `: ${asset.description}`
+        userMessage += '\n'
+      })
+      userMessage += '\n'
+    }
+
+    if (colorPalettes.length > 0) {
+      userMessage += `Color Palettes:\n`
+      colorPalettes.forEach(asset => {
+        userMessage += `- ${asset.name}`
+        if (asset.description) userMessage += `: ${asset.description}`
+        userMessage += '\n'
+      })
+      userMessage += `IMPORTANT: Ensure lighting, props, and overall aesthetic align with these color guidelines.\n\n`
+    }
+
+    if (settingRefs.length > 0) {
+      userMessage += `Setting Reference Images:\n`
+      settingRefs.forEach(asset => {
+        userMessage += `- ${asset.name}`
+        if (asset.description) userMessage += `: ${asset.description}`
+        userMessage += '\n'
+      })
+      userMessage += `These images show the desired look and feel for the location/environment.\n\n`
+    }
+
+    if (styleRefs.length > 0) {
+      userMessage += `Style References:\n`
+      styleRefs.forEach(asset => {
+        userMessage += `- ${asset.name}`
+        if (asset.description) userMessage += `: ${asset.description}`
+        userMessage += '\n'
+      })
+      userMessage += `Match the visual style, tone, and aesthetic shown in these references.\n\n`
+    }
+
+    if (others.length > 0) {
+      userMessage += `Additional References:\n`
+      others.forEach(asset => {
+        userMessage += `- ${asset.name}`
+        if (asset.description) userMessage += `: ${asset.description}`
+        userMessage += '\n'
+      })
+      userMessage += '\n'
+    }
+  }
 
   const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
@@ -200,58 +320,87 @@ async function synthesizeRoundtable(data: {
   suggestedShots: Shot[]
 }> {
   const synthesisPrompt = `
-You are synthesizing a creative film crew roundtable discussion into structured video prompt outputs.
+You are synthesizing production team input into a CINEMATIC NARRATIVE PROMPT for Sora2 video generation.
 
-CRITICAL COPYRIGHT SAFETY RULES:
-- REMOVE all copyrighted brand names, product names, celebrity names, character names
-- REMOVE all references to specific movies, TV shows, songs, artists, albums
-- REMOVE all trademarked terms, logos, or IP references
-- REPLACE with GENERIC descriptions: "luxury car" not "Ferrari", "action hero" not "Iron Man"
-- ENSURE the final Sora prompt is 100% copyright-safe and will not trigger violations
-- If discussion contains copyrighted content, translate to generic equivalents
+CRITICAL OUTPUT REQUIREMENTS:
+- NATURAL LANGUAGE cinematography - like briefing a cinematographer, not writing code
+- BLEND storytelling with technical direction (50% narrative / 50% technical)
+- TARGET: 800-1000 characters in flowing prose
+- STYLE: Director's shot notes - specific but readable
+- NO ABBREVIATIONS - use professional cinematography terminology
 
-DISCUSSION SUMMARY:
+CINEMATIC NARRATIVE STRUCTURE:
+Weave agent contributions into flowing prose with these integrated sections:
+
+1. SCENE SETUP (2-3 sentences): Environment, time, mood, atmosphere
+2. SUBJECT ACTION (3-4 sentences with timing): Who, what they're doing, emotional beats with timing markers like (0-2s), (2-5s), (5-7s)
+3. CAMERA DIRECTION (2-3 sentences): Shot type, lens, movement, composition using terms like "medium shot", "50mm lens", "locked on tripod", "rule of thirds"
+4. LIGHTING & ATMOSPHERE (2 sentences): Light quality, direction, color palette - descriptive language, no Kelvin temperatures
+5. AUDIO CUE (1 sentence): Sound design, foley, ambient tone
+6. PLATFORM NOTE (appended): Aspect ratio and framing like "Vertical 9:16 frame"
+
+COPYRIGHT SAFETY:
+- Generic subjects only: "person", "hands", "product", "professional"
+- No brands, IPs, celebrities, copyrighted music
+- Descriptive without brand references
+
+AGENT CONTRIBUTIONS:
 ${JSON.stringify(data, null, 2)}
 
 Generate THREE outputs:
 
-1. DETAILED BREAKDOWN (structured sections):
-- Scene Structure (with timestamps)
-- Visual Specifications (aspect ratio, lighting, camera, color)
-- Audio Direction (GENERIC music moods/styles ONLY - NO specific songs/artists)
-- Platform Optimization (${data.platform}-specific)
-- Recommended Hashtags (5-10 tags, NO branded hashtags without permission)
+1. DETAILED BREAKDOWN (natural language sections):
+- Subject Direction: Subject identity, action choreography, performance quality, emotional context
+- Scene Structure: Setting, mood, atmosphere, narrative framing
+- Camera Specifications: Shot types, lens choices, movements, framing in readable terms
+- Lighting Setup: Light sources, direction, quality, color palette
+- Composition Rules: Framing rules, subject placement, visual hierarchy
+- Platform Specs: Aspect ratio, safe zones, platform context
 
-2. OPTIMIZED SORA2 PROMPT (character-limited, under 500 chars):
-- Concise, technical, Sora-optimized format
-- Preserve critical visual/narrative elements
-- Remove redundancy
-- MUST BE 100% COPYRIGHT-SAFE (no brands, IPs, celebrities, songs)
+2. CINEMATIC NARRATIVE PROMPT (800-1000 characters, natural prose):
 
-3. SUGGESTED SHOT LIST (3-6 shots based on discussion):
-- Break down the video into specific shots with timing
-- Include description, camera movement, and lighting for each shot
+EXAMPLE FORMAT:
+"A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional.
+
+A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They unwrap white tissue paper, revealing a luxury serum bottle (2-5s). The hands lift the bottle to eye level with quiet confidence (5-7s).
+
+Medium shot with a 50mm lens at eye level, camera locked on tripod. Composition follows the rule of thirds. Background falls into bokeh at f/2.8.
+
+Soft window light from 45 degrees creates gentle shadows. Warm amber tones evoke morning luxury.
+
+Gentle tissue rustling and ambient room tone. Vertical 9:16 frame with product in upper two-thirds."
+
+- MUST be natural language (no abbreviations like "MS", "K45°R", "DELIB")
+- MUST be 800-1000 characters
+- MUST blend storytelling with cinematography
+- Specific but readable - professional film terminology
+
+3. SUGGESTED SHOT LIST (3-6 shots with natural language specs):
+- Use readable cinematography terminology
+- Exact timestamps for each shot
+- Camera, lighting, composition in natural language
 - Order shots sequentially from 1 to N
 
 Return JSON:
 {
   "breakdown": {
-    "scene_structure": "...",
-    "visual_specs": "...",
-    "audio": "... (GENERIC music description only)",
-    "platform_optimization": "...",
-    "hashtags": ["tag1", "tag2", ...]
+    "subject_direction": "Natural language: subject identity, choreography, performance, context",
+    "scene_structure": "Natural language: setting, mood, atmosphere",
+    "camera_specs": "Natural language: shot types, lenses, movements, framing",
+    "lighting_setup": "Natural language: light sources, direction, quality, color",
+    "composition_rules": "Natural language: framing rules, placement, hierarchy",
+    "platform_specs": "Natural language: aspect ratio, safe zones"
   },
-  "optimized_prompt": "... (COPYRIGHT-SAFE prompt)",
-  "character_count": 437,
+  "optimized_prompt": "A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional. A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They unwrap white tissue paper, revealing a luxury serum bottle (2-5s). The hands lift the bottle to eye level with quiet confidence (5-7s). Medium shot with a 50mm lens at eye level, camera locked on tripod. Composition follows the rule of thirds. Background falls into bokeh at f/2.8. Soft window light from 45 degrees creates gentle shadows. Warm amber tones evoke morning luxury. Gentle tissue rustling and ambient room tone. Vertical 9:16 frame with product in upper two-thirds. [~850 chars]",
+  "character_count": 850,
   "suggested_shots": [
     {
       "timing": "0-3s",
-      "description": "Wide establishing shot description",
-      "camera": "Slow dolly in, eye level",
+      "description": "Medium shot at eye level, hands enter from left and begin unwrapping",
+      "camera": "Medium shot with 50mm lens, locked on tripod",
       "order": 1,
-      "lighting": "Natural, warm tones",
-      "notes": "Optional specific details"
+      "lighting": "Soft window light from 45 degrees with gentle shadows",
+      "notes": "Rule of thirds composition, hands in lower left"
     }
   ]
 }
@@ -263,7 +412,7 @@ Return JSON:
     messages: [
       {
         role: 'system',
-        content: 'You are an expert at distilling creative discussions into structured, COPYRIGHT-SAFE video prompts. You MUST remove all copyrighted content and replace with generic descriptions.',
+        content: 'You are a CINEMATIC NARRATIVE SYNTHESIZER for Sora2 video generation. You transform production team contributions into NATURAL LANGUAGE prompts that blend storytelling with cinematography (50/50 balance). Target: 800-1000 characters in flowing prose. Style: Director\'s shot notes - specific but readable. NO ABBREVIATIONS - use professional film terminology. Weave scene setup, subject action, camera direction, lighting atmosphere, audio, and platform specs into cohesive narrative prose.',
       },
       { role: 'user', content: synthesisPrompt },
     ],
@@ -300,7 +449,7 @@ Return JSON:
 }
 
 export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Promise<RoundtableResult> {
-  const { brief, platform, visualTemplate, userPromptEdits, shotList, additionalGuidance } = input
+  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, userPromptEdits, shotList, additionalGuidance } = input
 
   // Build enhanced brief with additional guidance and shot list context
   let enhancedBrief = brief
@@ -327,10 +476,11 @@ export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Pro
     'platform_expert',
     'social_media_marketer',
     'music_producer',
+    'subject_director',
   ]
 
   const round1Promises = agents.map(agent =>
-    callAgent(agent, enhancedBrief, platform, visualTemplate)
+    callAgent(agent, enhancedBrief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets)
   )
 
   const round1Responses = await Promise.all(round1Promises)
@@ -413,65 +563,125 @@ async function synthesizeAdvancedRoundtable(data: {
   suggestedShots: Shot[]
 }> {
   const synthesisPrompt = `
-You are synthesizing a creative film crew roundtable discussion into structured video prompt outputs.
+You are synthesizing production team input into a CINEMATIC NARRATIVE PROMPT for Sora2 video generation.
 
-CRITICAL COPYRIGHT SAFETY RULES:
-- REMOVE all copyrighted brand names, product names, celebrity names, character names
-- REMOVE all references to specific movies, TV shows, songs, artists, albums
-- REMOVE all trademarked terms, logos, or IP references
-- REPLACE with GENERIC descriptions: "luxury car" not "Ferrari", "action hero" not "Iron Man"
-- ENSURE the final Sora prompt is 100% copyright-safe and will not trigger violations
-- If discussion contains copyrighted content, translate to generic equivalents
+CRITICAL OUTPUT REQUIREMENTS:
+- NATURAL LANGUAGE cinematography - like briefing a cinematographer, not writing code
+- BLEND storytelling with technical direction (50% narrative / 50% technical)
+- TARGET: 800-1000 characters in flowing prose
+- STYLE: Director's shot notes - specific but readable
+- NO ABBREVIATIONS - use professional cinematography terminology
 
-${data.userPromptEdits ? `USER'S DIRECT PROMPT EDITS:\n${data.userPromptEdits}\n\nIMPORTANT: Respect the user's edits while ensuring copyright safety.\n` : ''}
+CINEMATIC NARRATIVE STRUCTURE:
+The final prompt should flow as natural prose with 5 integrated sections:
 
-${data.shotList && data.shotList.length > 0 ? `USER'S REQUESTED SHOT LIST:\n${data.shotList.map(s => `Shot ${s.order} (${s.timing}): ${s.description}${s.camera ? ` | Camera: ${s.camera}` : ''}${s.lighting ? ` | Lighting: ${s.lighting}` : ''}`).join('\n')}\n\nIMPORTANT: Incorporate this shot structure into the final prompt.\n` : ''}
+1. SCENE SETUP (2-3 sentences): Environment, time, mood, atmosphere
+   - Natural prose setting the scene
+   - Physics-aware language (how light behaves, spatial relationships)
+   - Evocative but specific
 
-DISCUSSION SUMMARY:
+2. SUBJECT ACTION (3-4 sentences with timing): Who, what they're doing, emotional beats
+   - Subject identity and action choreography
+   - Timing beats integrated naturally: "(0-2s)", "(2-5s)", "(5-7s)"
+   - Performance quality: "deliberate and unhurried", "confident movements", "subtle and restrained"
+
+3. CAMERA DIRECTION (2-3 sentences): Shot type, lens, movement, composition
+   - Professional terms: "medium shot", "50mm lens", "locked on tripod"
+   - Composition rules: "following the rule of thirds", "positioned in upper right intersection"
+   - Depth of field: "background falls into bokeh at f/2.8"
+
+4. LIGHTING & ATMOSPHERE (2 sentences): Light quality, direction, color palette
+   - Descriptive: "soft directional light from 45 degrees"
+   - Color mood: "warm color palette with amber tones"
+   - NO Kelvin temperatures or technical notation
+
+5. AUDIO CUE (1 sentence): Sound design, foley, ambient tone
+   - Brief and specific: "gentle foley of tissue rustling"
+
+6. PLATFORM NOTE (appended): Aspect ratio and framing
+   - "Vertical 9:16 frame with subject positioned in upper two-thirds"
+
+COPYRIGHT SAFETY:
+- Generic subjects only: "person", "hands", "product", "professional"
+- No brands, IPs, celebrities, copyrighted music
+- Descriptive without brand references
+
+${data.userPromptEdits ? `USER'S DIRECT PROMPT EDITS:\n${data.userPromptEdits}\n\nIMPORTANT: Integrate user edits into natural cinematography language.\n` : ''}
+
+${data.shotList && data.shotList.length > 0 ? `USER'S REQUESTED SHOT LIST:\n${data.shotList.map(s => `Shot ${s.order} (${s.timing}): ${s.description}${s.camera ? ` | Camera: ${s.camera}` : ''}${s.lighting ? ` | Lighting: ${s.lighting}` : ''}`).join('\n')}\n\nIMPORTANT: Incorporate shot structure into narrative prompt.\n` : ''}
+
+AGENT CONTRIBUTIONS:
 ${JSON.stringify({ round1: data.round1, round2: data.round2 }, null, 2)}
 
 Generate THREE outputs:
 
-1. DETAILED BREAKDOWN (structured sections):
-- Scene Structure (with timestamps${data.shotList ? ' - MATCH USER SHOT LIST' : ''})
-- Visual Specifications (aspect ratio, lighting, camera, color)
-- Audio Direction (GENERIC music moods/styles ONLY - NO specific songs/artists)
-- Platform Optimization (${data.platform}-specific)
-- Recommended Hashtags (5-10 tags, NO branded hashtags without permission)
+1. DETAILED BREAKDOWN (natural language sections):
+- Subject Direction: Subject identity, action choreography, performance quality, emotional context
+- Scene Structure: Setting, mood, atmosphere, narrative framing
+- Camera Specifications: Shot types, lens choices, movements, framing in readable terms
+- Lighting Setup: Light sources, direction, quality, color palette
+- Composition Rules: Framing rules, subject placement, visual hierarchy
+- Platform Specs: Aspect ratio, safe zones, platform context
 
-2. OPTIMIZED SORA2 PROMPT (character-limited, under 500 chars):
-- Concise, technical, Sora-optimized format
-- Preserve critical visual/narrative elements
-- Remove redundancy
-- MUST BE 100% COPYRIGHT-SAFE (no brands, IPs, celebrities, songs)
-${data.userPromptEdits ? '- INCORPORATE user prompt edits while maintaining quality' : ''}
-${data.shotList ? '- REFLECT shot list structure in prompt' : ''}
+2. CINEMATIC NARRATIVE PROMPT (800-1000 characters, natural prose):
 
-3. SUGGESTED SHOT LIST (3-6 shots based on discussion):
-${data.shotList ? '- REFINE and improve the user-provided shot list' : '- Generate new shot list based on discussion'}
-- Break down the video into specific shots with timing
-- Include description, camera movement, and lighting for each shot
+Weave all agent contributions into flowing prose that reads like director's shot notes. Structure:
+
+[Scene Setup - 2-3 sentences setting environment and mood]
+
+[Subject Action - 3-4 sentences with timing beats (0-2s), (2-5s), (5-7s) describing choreography and performance]
+
+[Camera Direction - 2-3 sentences with shot type, lens, movement, composition rules]
+
+[Lighting & Atmosphere - 2 sentences describing light and color]
+
+[Audio - 1 sentence with sound design] [Platform - 1 sentence with aspect ratio]
+
+EXAMPLE FORMAT:
+"A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional, like the opening moments of a daily ritual.
+
+A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They begin unwrapping white tissue paper, each fold revealing the luxury product beneath (2-5s). The hands lift a serum bottle to eye level, holding it steady with quiet confidence (5-7s).
+
+Medium shot captured with a 50mm lens at eye level, camera locked on a tripod. The composition follows the rule of thirds—product positioned in the upper right intersection, hands framing the lower left quadrant. Background falls into bokeh at f/2.8.
+
+Soft directional window light from 45 degrees creates gentle shadows, with subtle fill from the left. The warm color palette with amber tones evokes morning luxury.
+
+Gentle foley of tissue rustling and glass touching skin, with ambient room tone. Vertical 9:16 frame with product in upper two-thirds."
+
+- MUST be natural language (no abbreviations like "MS", "K45°R", "DELIB")
+- MUST be 800-1000 characters
+- MUST blend storytelling with cinematography
+- Specific but readable - professional film terminology
+${data.userPromptEdits ? '- INCORPORATE user edits naturally' : ''}
+${data.shotList ? '- REFLECT shot list structure in narrative flow' : ''}
+
+3. SUGGESTED SHOT LIST (3-6 shots with natural language specs):
+${data.shotList ? '- REFINE user shot list with readable cinematography terms' : '- Generate new shot list with natural language specs'}
+- Use readable cinematography terminology
+- Exact timestamps for each shot
+- Camera, lighting, composition in natural language
 - Order shots sequentially from 1 to N
 
 Return JSON:
 {
   "breakdown": {
-    "scene_structure": "...",
-    "visual_specs": "...",
-    "audio": "... (GENERIC music description only)",
-    "platform_optimization": "...",
-    "hashtags": ["tag1", "tag2", ...]
+    "subject_direction": "Natural language: subject identity, choreography, performance, context",
+    "scene_structure": "Natural language: setting, mood, atmosphere",
+    "camera_specs": "Natural language: shot types, lenses, movements, framing",
+    "lighting_setup": "Natural language: light sources, direction, quality, color",
+    "composition_rules": "Natural language: framing rules, placement, hierarchy",
+    "platform_specs": "Natural language: aspect ratio, safe zones"
   },
-  "optimized_prompt": "... (COPYRIGHT-SAFE prompt)",
-  "character_count": 437,
+  "optimized_prompt": "A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional. A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They unwrap white tissue paper, revealing a luxury serum bottle (2-5s). The hands lift the bottle to eye level with quiet confidence (5-7s). Medium shot with a 50mm lens at eye level, camera locked on tripod. Composition follows the rule of thirds. Background falls into bokeh at f/2.8. Soft window light from 45 degrees creates gentle shadows. Warm amber tones evoke morning luxury. Gentle tissue rustling and ambient room tone. Vertical 9:16 frame with product in upper two-thirds. [~850 chars]",
+  "character_count": 850,
   "suggested_shots": [
     {
       "timing": "0-3s",
-      "description": "Wide establishing shot description",
-      "camera": "Slow dolly in, eye level",
+      "description": "Medium shot at eye level, hands enter from left and begin unwrapping",
+      "camera": "Medium shot with 50mm lens, locked on tripod",
       "order": 1,
-      "lighting": "Natural, warm tones",
-      "notes": "Optional specific details"
+      "lighting": "Soft window light from 45 degrees with gentle shadows",
+      "notes": "Rule of thirds composition, hands in lower left"
     }
   ]
 }
@@ -483,7 +693,7 @@ Return JSON:
     messages: [
       {
         role: 'system',
-        content: 'You are an expert at distilling creative discussions into structured, COPYRIGHT-SAFE video prompts. You MUST remove all copyrighted content and replace with generic descriptions. When users provide edits or shot lists, respect their creative vision while ensuring copyright safety.',
+        content: 'You are a CINEMATIC NARRATIVE SYNTHESIZER for Sora2 video generation. You transform production team contributions into NATURAL LANGUAGE prompts that blend storytelling with cinematography (50/50 balance). Target: 800-1000 characters in flowing prose. Style: Director\'s shot notes - specific but readable. NO ABBREVIATIONS - use professional film terminology. Weave scene setup, subject action, camera direction, lighting atmosphere, audio, and platform specs into cohesive narrative prose. When users provide edits or shot lists, integrate them naturally into the cinematic narrative.',
       },
       { role: 'user', content: synthesisPrompt },
     ],

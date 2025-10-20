@@ -9,11 +9,17 @@ import { cn } from '@/lib/utils'
 
 interface PromptOutputProps {
   detailedBreakdown: {
+    subject_direction?: string
     scene_structure: string
-    visual_specs: string
-    audio: string
-    platform_optimization: string
-    hashtags: string[]
+    camera_specs?: string
+    lighting_setup?: string
+    composition_rules?: string
+    platform_specs?: string
+    // Legacy fields for backward compatibility
+    visual_specs?: string
+    audio?: string
+    platform_optimization?: string
+    hashtags?: string[]
   }
   optimizedPrompt: string
   characterCount: number
@@ -41,16 +47,16 @@ export function PromptOutput({
     setTimeout(() => setCopiedHashtags(false), 2000)
   }
 
-  // Calculate character count color
+  // Calculate character count color (800-1000 char target for cinematic narrative)
   const getCharacterColor = () => {
-    if (characterCount <= 500) return 'text-green-600'
-    if (characterCount <= 700) return 'text-yellow-600'
+    if (characterCount >= 800 && characterCount <= 1000) return 'text-green-600'
+    if (characterCount >= 700 && characterCount <= 1100) return 'text-yellow-600'
     return 'text-red-600'
   }
 
   const getCharacterBgColor = () => {
-    if (characterCount <= 500) return 'bg-green-100'
-    if (characterCount <= 700) return 'bg-yellow-100'
+    if (characterCount >= 800 && characterCount <= 1000) return 'bg-green-100'
+    if (characterCount >= 700 && characterCount <= 1100) return 'bg-yellow-100'
     return 'bg-red-100'
   }
 
@@ -91,16 +97,22 @@ export function PromptOutput({
             {/* Character Counter */}
             <div className="flex items-center gap-3">
               <div className={cn('px-3 py-1 rounded-md text-sm font-medium', getCharacterBgColor(), getCharacterColor())}>
-                {characterCount} characters
+                {characterCount} / 800-1000 characters
               </div>
-              {characterCount <= 500 && (
-                <span className="text-xs text-muted-foreground">Optimal length for Sora</span>
+              {characterCount >= 800 && characterCount <= 1000 && (
+                <span className="text-xs text-muted-foreground">Optimal cinematic narrative length</span>
               )}
-              {characterCount > 500 && characterCount <= 700 && (
-                <span className="text-xs text-muted-foreground">Good length, consider trimming</span>
+              {characterCount >= 700 && characterCount < 800 && (
+                <span className="text-xs text-muted-foreground">Good, could add more narrative detail</span>
               )}
-              {characterCount > 700 && (
-                <span className="text-xs text-muted-foreground">May be too long, recommend editing</span>
+              {characterCount > 1000 && characterCount <= 1100 && (
+                <span className="text-xs text-muted-foreground">Good, slightly verbose but acceptable</span>
+              )}
+              {characterCount < 700 && (
+                <span className="text-xs text-muted-foreground">Too short, expand scene and action descriptions</span>
+              )}
+              {characterCount > 1100 && (
+                <span className="text-xs text-muted-foreground">Too long, focus on essential cinematography</span>
               )}
             </div>
 
@@ -158,55 +170,124 @@ export function PromptOutput({
       {/* Detailed Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Production Breakdown</CardTitle>
+          <CardTitle>Technical Production Specifications</CardTitle>
           <CardDescription>
-            Technical specifications from the AI film crew
+            Detailed breakdown with abbreviation reference
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Subject Direction */}
+          {detailedBreakdown.subject_direction && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#6B8E9C]" />
+                Subject Direction & Action
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                {detailedBreakdown.subject_direction}
+              </p>
+            </div>
+          )}
+
           {/* Scene Structure */}
           <div>
             <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#3B4A5C]" />
-              Scene Structure
+              Scene Structure & Timing
             </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed font-mono">
               {detailedBreakdown.scene_structure}
             </p>
           </div>
 
-          {/* Visual Specifications */}
-          <div>
-            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#7C9473]" />
-              Visual Specifications
-            </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {detailedBreakdown.visual_specs}
-            </p>
-          </div>
+          {/* Camera Specifications */}
+          {detailedBreakdown.camera_specs && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#7C9473]" />
+                Camera Specifications
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                {detailedBreakdown.camera_specs}
+              </p>
+            </div>
+          )}
 
-          {/* Audio */}
-          <div>
-            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#8B7C6B]" />
-              Audio Direction
-            </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {detailedBreakdown.audio}
-            </p>
-          </div>
+          {/* Lighting Setup */}
+          {detailedBreakdown.lighting_setup && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#C97064]" />
+                Lighting Setup
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                {detailedBreakdown.lighting_setup}
+              </p>
+            </div>
+          )}
 
-          {/* Platform Optimization */}
-          <div>
-            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#5A6D52]" />
-              Platform Optimization
-            </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {detailedBreakdown.platform_optimization}
-            </p>
-          </div>
+          {/* Composition Rules */}
+          {detailedBreakdown.composition_rules && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#8B7C6B]" />
+                Composition Rules
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                {detailedBreakdown.composition_rules}
+              </p>
+            </div>
+          )}
+
+          {/* Platform Specs */}
+          {detailedBreakdown.platform_specs && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#5A6D52]" />
+                Platform Specifications
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                {detailedBreakdown.platform_specs}
+              </p>
+            </div>
+          )}
+
+          {/* Legacy fields for backward compatibility */}
+          {detailedBreakdown.visual_specs && !detailedBreakdown.camera_specs && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#7C9473]" />
+                Visual Specifications
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {detailedBreakdown.visual_specs}
+              </p>
+            </div>
+          )}
+
+          {detailedBreakdown.audio && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#8B7C6B]" />
+                Audio Direction
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {detailedBreakdown.audio}
+              </p>
+            </div>
+          )}
+
+          {detailedBreakdown.platform_optimization && !detailedBreakdown.platform_specs && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#5A6D52]" />
+                Platform Optimization
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {detailedBreakdown.platform_optimization}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

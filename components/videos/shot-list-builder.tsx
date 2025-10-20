@@ -55,50 +55,50 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-base font-semibold">Shot List</Label>
+    <div className="space-y-3 md:space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <Label className="text-sm md:text-base font-semibold">Shot List</Label>
         {onAISuggest && (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onAISuggest}
-            className="text-xs"
+            className="text-xs w-full sm:w-auto"
           >
             AI Suggest Shots
           </Button>
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         {shots.length === 0 ? (
-          <Card className="p-6 text-center border-dashed">
-            <p className="text-sm text-muted-foreground mb-3">
+          <Card className="p-4 md:p-6 text-center border-dashed">
+            <p className="text-xs md:text-sm text-muted-foreground mb-3">
               No shots added yet. Click &quot;Add Shot&quot; to build your shot list.
             </p>
-            <Button type="button" onClick={addShot} variant="outline" size="sm">
+            <Button type="button" onClick={addShot} variant="outline" size="sm" className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Add First Shot
             </Button>
           </Card>
         ) : (
           shots.map((shot, index) => (
-            <Card key={index} className="p-4">
-              <div className="space-y-3">
+            <Card key={index} className="p-3 md:p-4">
+              <div className="space-y-2 md:space-y-3">
                 {/* Shot header with controls */}
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Shot {shot.order}</span>
-                  <div className="flex items-center gap-1">
+                  <span className="font-medium text-xs md:text-sm">Shot {shot.order}</span>
+                  <div className="flex items-center gap-0.5 md:gap-1">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => moveShot(index, 'up')}
                       disabled={index === 0}
-                      className="h-7 w-7 p-0"
+                      className="h-6 w-6 md:h-7 md:w-7 p-0"
                     >
-                      <ChevronUp className="h-4 w-4" />
+                      <ChevronUp className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
                     <Button
                       type="button"
@@ -106,18 +106,18 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
                       size="sm"
                       onClick={() => moveShot(index, 'down')}
                       disabled={index === shots.length - 1}
-                      className="h-7 w-7 p-0"
+                      className="h-6 w-6 md:h-7 md:w-7 p-0"
                     >
-                      <ChevronDown className="h-4 w-4" />
+                      <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => removeShot(index)}
-                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      className="h-6 w-6 md:h-7 md:w-7 p-0 text-destructive hover:text-destructive"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
                   </div>
                 </div>
@@ -133,7 +133,7 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
                     value={shot.timing}
                     onChange={(e) => updateShot(index, 'timing', e.target.value)}
                     placeholder="0-3s"
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    className="flex h-8 md:h-9 w-full rounded-md border border-input bg-background px-2 md:px-3 py-1 text-xs md:text-sm"
                   />
                 </div>
 
@@ -147,7 +147,7 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
                     value={shot.description}
                     onChange={(e) => updateShot(index, 'description', e.target.value)}
                     placeholder="Wide establishing shot, golden hour lighting..."
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="flex min-h-[50px] md:min-h-[60px] w-full rounded-md border border-input bg-background px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm"
                   />
                 </div>
 
@@ -162,7 +162,7 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
                     value={shot.camera}
                     onChange={(e) => updateShot(index, 'camera', e.target.value)}
                     placeholder="Slow dolly in, eye level..."
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    className="flex h-8 md:h-9 w-full rounded-md border border-input bg-background px-2 md:px-3 py-1 text-xs md:text-sm"
                   />
                 </div>
 
@@ -177,7 +177,7 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
                     value={shot.lighting || ''}
                     onChange={(e) => updateShot(index, 'lighting', e.target.value)}
                     placeholder="Natural, warm, soft shadows..."
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    className="flex h-8 md:h-9 w-full rounded-md border border-input bg-background px-2 md:px-3 py-1 text-xs md:text-sm"
                   />
                 </div>
 
@@ -191,7 +191,7 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
                     value={shot.notes || ''}
                     onChange={(e) => updateShot(index, 'notes', e.target.value)}
                     placeholder="Any specific visual details..."
-                    className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="flex min-h-[40px] md:min-h-[50px] w-full rounded-md border border-input bg-background px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm"
                   />
                 </div>
               </div>
@@ -201,7 +201,7 @@ export function ShotListBuilder({ shots, onChange, onAISuggest }: ShotListBuilde
       </div>
 
       {shots.length > 0 && (
-        <Button type="button" onClick={addShot} variant="outline" className="w-full">
+        <Button type="button" onClick={addShot} variant="outline" className="w-full" size="sm">
           <Plus className="mr-2 h-4 w-4" />
           Add Shot
         </Button>

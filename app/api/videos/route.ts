@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
     const {
       projectId,
       seriesId,
+      selectedCharacters,
+      selectedSettings,
       title,
       userBrief,
       agentDiscussion,
@@ -63,6 +65,8 @@ export async function POST(request: NextRequest) {
       .insert({
         project_id: projectId,
         series_id: seriesId || null,
+        series_characters_used: selectedCharacters || [],
+        series_settings_used: selectedSettings || [],
         title,
         user_brief: userBrief,
         agent_discussion: agentDiscussion,

@@ -19,21 +19,21 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link href={`/dashboard/projects/${project.id}`}>
       <Card className="hover:border-sage-500 transition-colors cursor-pointer h-full">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <FolderKanban className="h-8 w-8 text-sage-500 mb-2" />
+            <FolderKanban className="h-7 w-7 md:h-8 md:w-8 text-sage-500 mb-2" />
             <Badge variant="secondary" className="text-xs">
               {project.video_count} {project.video_count === 1 ? 'video' : 'videos'}
             </Badge>
           </div>
-          <CardTitle className="text-xl">{project.name}</CardTitle>
-          <CardDescription className="line-clamp-2 min-h-[2.5rem]">
+          <CardTitle className="text-lg md:text-xl">{project.name}</CardTitle>
+          <CardDescription className="line-clamp-2 min-h-[2.5rem] text-sm">
             {project.description || 'No description'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-4">
+        <CardContent className="pt-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 md:gap-4">
               <div className="flex items-center gap-1">
                 <Film className="h-4 w-4" />
                 <span>{project.video_count}</span>
