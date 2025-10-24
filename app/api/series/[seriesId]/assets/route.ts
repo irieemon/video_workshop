@@ -28,20 +28,22 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify series ownership
+    // Verify series ownership through direct user_id (decoupled model)
     const { data: series, error: seriesError } = await supabase
       .from('series')
-      .select('id, project:projects!inner(id, user_id)')
+      .select('id, user_id')
       .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
-    if (seriesError || !series) {
-      return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+      }
+      throw seriesError
     }
 
-    // Type assertion for the joined project data
-    const project = Array.isArray(series.project) ? series.project[0] : series.project
-    if (project.user_id !== user.id) {
+    if (!series) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -95,20 +97,22 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify series ownership
+    // Verify series ownership through direct user_id (decoupled model)
     const { data: series, error: seriesError } = await supabase
       .from('series')
-      .select('id, project:projects!inner(id, user_id)')
+      .select('id, user_id')
       .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
-    if (seriesError || !series) {
-      return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+      }
+      throw seriesError
     }
 
-    // Type assertion for the joined project data
-    const project = Array.isArray(series.project) ? series.project[0] : series.project
-    if (project.user_id !== user.id) {
+    if (!series) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

@@ -61,6 +61,7 @@ export interface Database {
           user_id: string
           name: string
           description: string | null
+          default_series_id: string | null
           created_at: string
           updated_at: string
         }
@@ -69,6 +70,7 @@ export interface Database {
           user_id: string
           name: string
           description?: string | null
+          default_series_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -77,6 +79,7 @@ export interface Database {
           user_id?: string
           name?: string
           description?: string | null
+          default_series_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -84,37 +87,55 @@ export interface Database {
       series: {
         Row: {
           id: string
-          project_id: string
+          user_id: string
+          project_id: string | null
           name: string
           description: string | null
           genre: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
           visual_template: VisualTemplate
           enforce_continuity: boolean
           allow_continuity_breaks: boolean
+          sora_camera_style: string | null
+          sora_lighting_mood: string | null
+          sora_color_palette: string | null
+          sora_overall_tone: string | null
+          sora_narrative_prefix: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          project_id: string
+          user_id: string
+          project_id?: string | null
           name: string
           description?: string | null
           genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
           visual_template?: Json
           enforce_continuity?: boolean
           allow_continuity_breaks?: boolean
+          sora_camera_style?: string | null
+          sora_lighting_mood?: string | null
+          sora_color_palette?: string | null
+          sora_overall_tone?: string | null
+          sora_narrative_prefix?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          project_id?: string
+          user_id?: string
+          project_id?: string | null
           name?: string
           description?: string | null
           genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
           visual_template?: Json
           enforce_continuity?: boolean
           allow_continuity_breaks?: boolean
+          sora_camera_style?: string | null
+          sora_lighting_mood?: string | null
+          sora_color_palette?: string | null
+          sora_overall_tone?: string | null
+          sora_narrative_prefix?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -130,6 +151,11 @@ export interface Database {
           performance_style: string | null
           introduced_episode_id: string | null
           evolution_timeline: Json
+          visual_reference_url: string | null
+          visual_cues: Json
+          visual_fingerprint: Json | null
+          voice_profile: Json | null
+          sora_prompt_template: string | null
           created_at: string
           updated_at: string
         }
@@ -143,6 +169,11 @@ export interface Database {
           performance_style?: string | null
           introduced_episode_id?: string | null
           evolution_timeline?: Json
+          visual_reference_url?: string | null
+          visual_cues?: Json
+          visual_fingerprint?: Json
+          voice_profile?: Json
+          sora_prompt_template?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -156,6 +187,11 @@ export interface Database {
           performance_style?: string | null
           introduced_episode_id?: string | null
           evolution_timeline?: Json
+          visual_reference_url?: string | null
+          visual_cues?: Json
+          visual_fingerprint?: Json
+          voice_profile?: Json
+          sora_prompt_template?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -318,10 +354,64 @@ export interface Database {
           created_at?: string
         }
       }
+      character_relationships: {
+        Row: {
+          id: string
+          series_id: string
+          character_a_id: string
+          character_b_id: string
+          relationship_type: RelationshipType
+          custom_label: string | null
+          is_symmetric: boolean
+          description: string | null
+          intensity: number | null
+          established_in_episode_id: string | null
+          evolution_notes: string | null
+          attributes: Json
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          series_id: string
+          character_a_id: string
+          character_b_id: string
+          relationship_type: RelationshipType
+          custom_label?: string | null
+          is_symmetric?: boolean
+          description?: string | null
+          intensity?: number | null
+          established_in_episode_id?: string | null
+          evolution_notes?: string | null
+          attributes?: Json
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          series_id?: string
+          character_a_id?: string
+          character_b_id?: string
+          relationship_type?: RelationshipType
+          custom_label?: string | null
+          is_symmetric?: boolean
+          description?: string | null
+          intensity?: number | null
+          established_in_episode_id?: string | null
+          evolution_notes?: string | null
+          attributes?: Json
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       videos: {
         Row: {
           id: string
-          project_id: string
+          user_id: string
+          project_id: string | null
           series_id: string | null
           title: string
           user_brief: string
@@ -338,7 +428,8 @@ export interface Database {
         }
         Insert: {
           id?: string
-          project_id: string
+          user_id: string
+          project_id?: string | null
           series_id?: string | null
           title: string
           user_brief: string
@@ -355,7 +446,8 @@ export interface Database {
         }
         Update: {
           id?: string
-          project_id?: string
+          user_id?: string
+          project_id?: string | null
           series_id?: string | null
           title?: string
           user_brief?: string
@@ -546,4 +638,74 @@ export interface UserEdits {
     shot_list?: Shot[]
     character_count: number
   }
+}
+
+// Character Relationship Types
+export type RelationshipType =
+  | 'friends'
+  | 'rivals'
+  | 'romantic'
+  | 'family'
+  | 'allies'
+  | 'enemies'
+  | 'mentor_student'
+  | 'custom'
+
+export interface RelationshipAttributes {
+  familiarity?: number // 0-100
+  trust?: number // 0-100
+  affection?: number // 0-100
+  power_dynamic?: number // -100 to 100 (negative = A dominated by B)
+}
+
+export interface CharacterRelationshipWithDetails {
+  id: string
+  series_id: string
+  character_a_id: string
+  character_b_id: string
+  character_a: {
+    id: string
+    name: string
+  }
+  character_b: {
+    id: string
+    name: string
+  }
+  relationship_type: RelationshipType
+  custom_label: string | null
+  is_symmetric: boolean
+  description: string | null
+  intensity: number | null
+  established_in_episode_id: string | null
+  evolution_notes: string | null
+  attributes: RelationshipAttributes
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface RelationshipGraphNode {
+  id: string
+  name: string
+  role?: 'protagonist' | 'supporting' | 'background' | 'other'
+}
+
+export interface RelationshipGraphLink {
+  source: string
+  target: string
+  relationshipType: RelationshipType
+  customLabel?: string
+  isSymmetric: boolean
+  description?: string
+  intensity?: number
+}
+
+// Visual Cues Types
+export type VisualCueType = 'full-body' | 'face' | 'costume' | 'expression' | 'other'
+
+export interface VisualCue {
+  url: string
+  caption: string
+  type: VisualCueType
+  uploaded_at: string
 }

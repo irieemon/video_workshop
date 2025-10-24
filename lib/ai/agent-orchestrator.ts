@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { AgentName, AgentResponse, AgentDiscussion, DetailedBreakdown, VisualTemplate, Shot } from '../types/database.types'
 import { agentSystemPrompts } from './agent-prompts'
+import { getModelForFeature } from './config'
 
 // Lazy initialization to avoid build-time API key requirement
 function getOpenAI() {
@@ -15,6 +16,11 @@ interface SeriesCharacter {
   description: string
   role: string | null
   performance_style: string | null
+  visual_reference_url?: string | null
+  visual_cues?: any
+  visual_fingerprint?: any
+  voice_profile?: any
+  sora_prompt_template?: string | null
 }
 
 interface SeriesSetting {
@@ -37,6 +43,26 @@ interface VisualAsset {
   height: number | null
 }
 
+interface CharacterRelationship {
+  id: string
+  character_a_id: string
+  character_b_id: string
+  character_a: { id: string; name: string }
+  character_b: { id: string; name: string }
+  relationship_type: string
+  custom_label: string | null
+  is_symmetric: boolean
+  description: string | null
+}
+
+interface SeriesSoraSettings {
+  sora_camera_style?: string | null
+  sora_lighting_mood?: string | null
+  sora_color_palette?: string | null
+  sora_overall_tone?: string | null
+  sora_narrative_prefix?: string | null
+}
+
 interface RoundtableInput {
   brief: string
   platform: 'tiktok' | 'instagram'
@@ -44,6 +70,9 @@ interface RoundtableInput {
   seriesCharacters?: SeriesCharacter[]
   seriesSettings?: SeriesSetting[]
   visualAssets?: VisualAsset[]
+  characterRelationships?: CharacterRelationship[]
+  seriesSoraSettings?: SeriesSoraSettings
+  characterContext?: string
   userId: string
 }
 
@@ -63,7 +92,7 @@ interface RoundtableResult {
 }
 
 export async function runAgentRoundtable(input: RoundtableInput): Promise<RoundtableResult> {
-  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets } = input
+  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext } = input
 
   // Round 1: Parallel agent responses
   const agents: AgentName[] = [
@@ -76,7 +105,7 @@ export async function runAgentRoundtable(input: RoundtableInput): Promise<Roundt
   ]
 
   const round1Promises = agents.map(agent =>
-    callAgent(agent, brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets)
+    callAgent(agent, brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext)
   )
 
   const round1Responses = await Promise.all(round1Promises)
@@ -127,6 +156,8 @@ export async function runAgentRoundtable(input: RoundtableInput): Promise<Roundt
     platform,
     round1: round1Responses,
     round2: round2Responses,
+    seriesSoraSettings,
+    characterContext,
   })
 
   return {
@@ -149,14 +180,48 @@ async function callAgent(
   visualTemplate?: VisualTemplate,
   seriesCharacters?: SeriesCharacter[],
   seriesSettings?: SeriesSetting[],
-  visualAssets?: VisualAsset[]
+  visualAssets?: VisualAsset[],
+  characterRelationships?: CharacterRelationship[],
+  seriesSoraSettings?: SeriesSoraSettings,
+  characterContext?: string
 ): Promise<AgentResponse> {
   const systemPrompt = agentSystemPrompts[agentName]
 
   let userMessage = `Brief: ${brief}\nPlatform: ${platform}`
 
+  // Inject character consistency context BEFORE user brief
+  if (characterContext) {
+    userMessage += characterContext
+  }
+
   if (visualTemplate) {
     userMessage += `\nSeries Template: ${JSON.stringify(visualTemplate)}`
+  }
+
+  // Inject Sora 2 best practices settings for visual consistency
+  if (seriesSoraSettings) {
+    const hasSettings = Object.values(seriesSoraSettings).some(val => val)
+    if (hasSettings) {
+      userMessage += `\n\nSERIES VISUAL CONSISTENCY (Sora 2 Best Practices):\n`
+
+      if (seriesSoraSettings.sora_narrative_prefix) {
+        userMessage += `Narrative Prefix: ${seriesSoraSettings.sora_narrative_prefix}\n`
+      }
+      if (seriesSoraSettings.sora_overall_tone) {
+        userMessage += `Overall Tone: ${seriesSoraSettings.sora_overall_tone}\n`
+      }
+      if (seriesSoraSettings.sora_camera_style) {
+        userMessage += `Camera Style: ${seriesSoraSettings.sora_camera_style}\n`
+      }
+      if (seriesSoraSettings.sora_lighting_mood) {
+        userMessage += `Lighting Mood: ${seriesSoraSettings.sora_lighting_mood}\n`
+      }
+      if (seriesSoraSettings.sora_color_palette) {
+        userMessage += `Color Palette: ${seriesSoraSettings.sora_color_palette}\n`
+      }
+
+      userMessage += `\nIMPORTANT: These settings ensure visual consistency across all episodes. Incorporate them into your creative direction.\n`
+    }
   }
 
   if (seriesCharacters && seriesCharacters.length > 0) {
@@ -165,8 +230,43 @@ async function callAgent(
       userMessage += `- ${char.name}: ${char.description}`
       if (char.role) userMessage += ` (Role: ${char.role})`
       if (char.performance_style) userMessage += ` | Performance Style: ${char.performance_style}`
+
+      // Add visual reference context for Sora 2 reference-based generation
+      if (char.visual_reference_url) {
+        userMessage += `\n  PRIMARY VISUAL REFERENCE: Character appearance and style should match reference image`
+      }
+
+      // Add visual cues for specific aspects
+      if (char.visual_cues && Array.isArray(char.visual_cues) && char.visual_cues.length > 0) {
+        userMessage += `\n  VISUAL DETAILS:`
+        char.visual_cues.forEach((cue: any) => {
+          const cueLabel = cue.type === 'full-body' ? 'Full Body' :
+                          cue.type === 'face' ? 'Face/Portrait' :
+                          cue.type === 'costume' ? 'Costume' :
+                          cue.type === 'expression' ? 'Expression' : 'Other'
+          userMessage += `\n    - ${cueLabel}${cue.caption ? `: ${cue.caption}` : ''}`
+        })
+      }
+
       userMessage += '\n'
     })
+    userMessage += `\nIMPORTANT: Maintain visual consistency with character reference images and described visual details.\n`
+  }
+
+  // Add character relationships context
+  if (characterRelationships && characterRelationships.length > 0) {
+    userMessage += `\n\nCHARACTER RELATIONSHIPS IN THIS SERIES:\n`
+    characterRelationships.forEach(rel => {
+      const arrow = rel.is_symmetric ? ' ↔ ' : ' → '
+      const label = rel.relationship_type === 'custom' && rel.custom_label
+        ? rel.custom_label
+        : rel.relationship_type.replace('_', ' ')
+
+      userMessage += `- ${rel.character_a.name}${arrow}${rel.character_b.name}: ${label}`
+      if (rel.description) userMessage += ` (${rel.description})`
+      userMessage += '\n'
+    })
+    userMessage += `\nIMPORTANT: When these characters interact, maintain consistency with established relationship dynamics.\n`
   }
 
   if (seriesSettings && seriesSettings.length > 0) {
@@ -244,7 +344,7 @@ async function callAgent(
 
   const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o', // Will use GPT-5 when available
+    model: getModelForFeature('agent'),
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage },
@@ -287,7 +387,7 @@ async function callAgentWithContext(
 
   const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: getModelForFeature('agent'),
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: `Brief: ${brief}\nPlatform: ${platform}` },
@@ -312,6 +412,8 @@ async function synthesizeRoundtable(data: {
   platform: string
   round1: AgentResponse[]
   round2: AgentResponse[]
+  seriesSoraSettings?: SeriesSoraSettings
+  characterContext?: string
 }): Promise<{
   breakdown: DetailedBreakdown
   prompt: string
@@ -319,88 +421,241 @@ async function synthesizeRoundtable(data: {
   hashtags: string[]
   suggestedShots: Shot[]
 }> {
+  // Build Sora settings context
+  let soraSettingsContext = ''
+  if (data.seriesSoraSettings) {
+    const hasSettings = Object.values(data.seriesSoraSettings).some(val => val)
+    if (hasSettings) {
+      soraSettingsContext = `\n\nSERIES VISUAL CONSISTENCY REQUIREMENTS (Sora 2 Best Practices):\n`
+      soraSettingsContext += `These settings MUST be integrated into the final prompt to maintain visual consistency across episodes:\n\n`
+
+      if (data.seriesSoraSettings.sora_narrative_prefix) {
+        soraSettingsContext += `- Narrative Prefix: Start the prompt with "${data.seriesSoraSettings.sora_narrative_prefix}"\n`
+      }
+      if (data.seriesSoraSettings.sora_overall_tone) {
+        soraSettingsContext += `- Overall Tone: ${data.seriesSoraSettings.sora_overall_tone}\n`
+      }
+      if (data.seriesSoraSettings.sora_camera_style) {
+        soraSettingsContext += `- Camera Style: ${data.seriesSoraSettings.sora_camera_style}\n`
+      }
+      if (data.seriesSoraSettings.sora_lighting_mood) {
+        soraSettingsContext += `- Lighting Mood: ${data.seriesSoraSettings.sora_lighting_mood}\n`
+      }
+      if (data.seriesSoraSettings.sora_color_palette) {
+        soraSettingsContext += `- Color Palette: ${data.seriesSoraSettings.sora_color_palette}\n`
+      }
+
+      soraSettingsContext += `\nCRITICAL: Weave these elements naturally into your narrative prompt. Don't list them separately - blend them into the scene description, camera direction, and lighting sections.\n`
+    }
+  }
+
   const synthesisPrompt = `
-You are synthesizing production team input into a CINEMATIC NARRATIVE PROMPT for Sora2 video generation.
+You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Sora2 video generation.
 
 CRITICAL OUTPUT REQUIREMENTS:
-- NATURAL LANGUAGE cinematography - like briefing a cinematographer, not writing code
-- BLEND storytelling with technical direction (50% narrative / 50% technical)
-- TARGET: 800-1000 characters in flowing prose
-- STYLE: Director's shot notes - specific but readable
-- NO ABBREVIATIONS - use professional cinematography terminology
+- ULTRA-DETAILED TECHNICAL SPECIFICATIONS - professional cinematographer-level detail
+- STRUCTURED SECTIONS with clear headers like a production document
+- TARGET: 2000-3000 characters with comprehensive technical specifications
+- STYLE: Professional cinematography documentation - highly detailed and precise
+- USE PROFESSIONAL TERMINOLOGY - full technical specifications, measurements, equipment names
 
-CINEMATIC NARRATIVE STRUCTURE:
-Weave agent contributions into flowing prose with these integrated sections:
+ULTRA-DETAILED PROMPT STRUCTURE:
+Generate a highly detailed, structured prompt with these sections:
 
-1. SCENE SETUP (2-3 sentences): Environment, time, mood, atmosphere
-2. SUBJECT ACTION (3-4 sentences with timing): Who, what they're doing, emotional beats with timing markers like (0-2s), (2-5s), (5-7s)
-3. CAMERA DIRECTION (2-3 sentences): Shot type, lens, movement, composition using terms like "medium shot", "50mm lens", "locked on tripod", "rule of thirds"
-4. LIGHTING & ATMOSPHERE (2 sentences): Light quality, direction, color palette - descriptive language, no Kelvin temperatures
-5. AUDIO CUE (1 sentence): Sound design, foley, ambient tone
-6. PLATFORM NOTE (appended): Aspect ratio and framing like "Vertical 9:16 frame"
+FORMAT & LOOK:
+- Duration (4s, 8s, or 12s based on ${data.platform})
+- Shutter angle (180° standard, 90° for action, 270° for motion blur)
+- Capture format (digital capture emulating 35mm/65mm photochemical)
+- Grain quality (fine grain, medium grain, heavy grain)
+- Optical effects (halation on speculars, gate weave, lens breathing)
 
+LENSES & FILTRATION:
+- Specific lens choices (32mm, 50mm, 85mm spherical/anamorphic primes)
+- Filtration (Black Pro-Mist 1/8-1/2, CPL rotation for reflections, ND filters)
+- Technical notes (focus distance, aperture settings if relevant)
+
+GRADE / PALETTE:
+- Highlights: color treatment and lift
+- Mids: tonal balance and color cast
+- Blacks: density, lift, and haze retention
+
+LIGHTING & ATMOSPHERE:
+- Key light: source, direction with time/angle (e.g., "natural sunlight camera left, low angle 07:30 AM")
+- Fill light: source and placement (e.g., "4×4 ultrabounce silver from trackside")
+- Negative fill: placement for contrast control
+- Practicals: any practical lights in scene with intensity
+- Atmosphere: mist, haze, smoke, particles, weather
+
+LOCATION & FRAMING:
+- Location description with time of day
+- Foreground elements (specific objects, lines, markers)
+- Midground action/subjects
+- Background elements
+- Avoidances (signage, branding, specific elements to exclude)
+
+WARDROBE / PROPS / EXTRAS:
+- CRITICAL: Character descriptions MUST include ethnicity and skin tone
+  Format: "[Name]: [ethnicity] [age] with [skin tone], [clothing], [physical details]"
+  Example: "Lyle: Black young child with deep brown skin, denim shirt, short textured black hair, warm brown eyes"
+- CRITICAL: If character voice/vocal characteristics are provided in character descriptions, you MUST include them in the SOUND section
+- Main subject details if no named characters
+- Extras descriptions
+- Key props list
+
+SOUND:
+- Type: diegetic, non-diegetic, or mixed
+- CRITICAL: Extract and include character vocal characteristics from character descriptions
+  - Look for "Voice:" sections in character templates
+  - Format: "Character vocals: [Name]: [voice details from template]; [Name]: [voice details]."
+  - Example: "Character vocals: Lyle: sounds young child, playful tone, high pitch; Dad: warm baritone, neutral American accent."
+  - If no voice data in templates, skip this line
+- Specific audio elements with levels if relevant (e.g., "-20 LUFS")
+- Exclusions (no score, no added foley, etc.)
+
+OPTIMIZED SHOT LIST (2-6 shots):
+For each shot:
+- Timing (e.g., "0.00-2.40")
+- Shot title/name
+- Lens choice
+- Camera movement description
+- Detailed action/composition description
+- Purpose/intent of shot
+
+CAMERA NOTES (Why It Reads):
+- Eyeline positioning
+- Allowed/desired optical effects (flares, aberrations)
+- Handheld quality or stabilization notes
+- Exposure guidance for key moments
+
+FINISHING:
+- Grain overlay specifications
+- Halation treatment
+- LUT or color treatment description
+- Audio mix priorities
+- Poster frame suggestion
+${soraSettingsContext}${data.characterContext || ''}
 COPYRIGHT SAFETY:
-- Generic subjects only: "person", "hands", "product", "professional"
-- No brands, IPs, celebrities, copyrighted music
-- Descriptive without brand references
+- NO brands, IPs, celebrities, or copyrighted music
+- Use descriptive language without brand references
+- EXCEPTION: When character descriptions are provided above, you MUST use those exact descriptions in the prompt
 
 AGENT CONTRIBUTIONS:
 ${JSON.stringify(data, null, 2)}
 
 Generate THREE outputs:
 
-1. DETAILED BREAKDOWN (natural language sections):
-- Subject Direction: Subject identity, action choreography, performance quality, emotional context
-- Scene Structure: Setting, mood, atmosphere, narrative framing
-- Camera Specifications: Shot types, lens choices, movements, framing in readable terms
-- Lighting Setup: Light sources, direction, quality, color palette
-- Composition Rules: Framing rules, subject placement, visual hierarchy
-- Platform Specs: Aspect ratio, safe zones, platform context
+1. DETAILED BREAKDOWN (structured technical sections):
+- Format & Look: Duration, shutter, capture format, grain, optical effects
+- Lenses & Filtration: Specific lenses, filters, technical notes
+- Grade/Palette: Highlights, mids, blacks color treatment
+- Lighting & Atmosphere: Key, fill, negative fill, practicals, atmosphere
+- Location & Framing: Location, foreground, midground, background, avoidances
+- Wardrobe/Props/Extras: Characters (with ethnicity/skin tone), extras, props
+- Sound: Type, elements, levels, exclusions
+- Shot List: Each shot with timing, title, lens, movement, description, purpose
+- Camera Notes: Eyeline, optical effects, handheld quality, exposure
+- Finishing: Grain, halation, LUT, mix, poster frame
 
-2. CINEMATIC NARRATIVE PROMPT (800-1000 characters, natural prose):
+2. ULTRA-DETAILED STRUCTURED PROMPT (2000-3000 characters):
 
 EXAMPLE FORMAT:
-"A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional.
+"Format & Look
+Duration 4s; 180° shutter; digital capture emulating 65mm photochemical contrast; fine grain; subtle halation on speculars; no gate weave.
 
-A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They unwrap white tissue paper, revealing a luxury serum bottle (2-5s). The hands lift the bottle to eye level with quiet confidence (5-7s).
+Lenses & Filtration
+32mm / 50mm spherical primes; Black Pro-Mist 1/4; slight CPL rotation to manage reflections.
 
-Medium shot with a 50mm lens at eye level, camera locked on tripod. Composition follows the rule of thirds. Background falls into bokeh at f/2.8.
+Grade / Palette
+Highlights: clean morning sunlight with amber lift.
+Mids: balanced neutrals with slight teal cast in shadows.
+Blacks: soft, neutral with mild lift for haze retention.
 
-Soft window light from 45 degrees creates gentle shadows. Warm amber tones evoke morning luxury.
+Lighting & Atmosphere
+Natural sunlight from camera left, low angle (07:30 AM).
+Bounce: 4×4 ultrabounce silver from trackside.
+Negative fill from opposite wall.
+Practical: sodium platform lights on dim fade.
+Atmos: gentle mist; light beam diffusion.
 
-Gentle tissue rustling and ambient room tone. Vertical 9:16 frame with product in upper two-thirds."
+Location & Framing
+Urban commuter platform, dawn.
+Foreground: yellow safety line, coffee cup.
+Midground: waiting passengers silhouetted in haze.
+Background: arriving train braking to stop.
+Avoid signage or corporate branding.
 
-- MUST be natural language (no abbreviations like "MS", "K45°R", "DELIB")
-- MUST be 800-1000 characters
-- MUST blend storytelling with cinematography
-- Specific but readable - professional film terminology
+Wardrobe / Props / Extras
+Lyle: Black young child with deep brown skin, denim shirt, short textured black hair, warm brown eyes.
+Tom: White early teen with fair neutral skin, light brown hair, blue eyes, gray sweater vest.
+Props: soda bottles, mentos packages, paper cups.
 
-3. SUGGESTED SHOT LIST (3-6 shots with natural language specs):
-- Use readable cinematography terminology
-- Exact timestamps for each shot
-- Camera, lighting, composition in natural language
+Sound
+Diegetic only: fizzing soda, laughter, gentle breeze through trees (-18 LUFS).
+No score or added foley.
+
+Optimized Shot List (3 shots / 8s total)
+
+0.00-3.00 — "Setup" (24mm, handheld)
+Wide shot captures backyard setup; Lyle and Tom arranging bottles on grass. Sunlight glints off bottles. Purpose: establish playful energy.
+
+3.00-5.50 — "Preparation" (50mm, locked)
+Medium shot of hands shaking soda bottle and dropping mentos. Focus on character expressions of anticipation. Purpose: build tension.
+
+5.50-8.00 — "Explosion" (24mm, slow motion)
+Wide shot as soda erupts into fizzy geyser; both children react with joy. Sunlight backlights spray. Purpose: climactic payoff.
+
+Camera Notes (Why It Reads)
+Handheld energy for playful feel in shots 1 and 3.
+Allow natural lens flare from sunlight on bottle glass.
+Maintain clear silhouettes against bright background.
+
+Finishing
+Fine-grain overlay for organic feel; subtle halation on bottle highlights; vibrant LUT enhancing blues and greens.
+Mix: prioritize fizzing sound and laughter over ambient.
+Poster frame: moment of explosion with both children mid-laugh."
+
+- MUST be structured with clear section headers
+- MUST be 2000-3000 characters with comprehensive detail
+- MUST include specific technical specifications
+- Professional cinematography documentation style
+
+3. SUGGESTED SHOT LIST (2-6 shots with full technical specs):
+- Shot timing with decimals (e.g., "0.00-2.40")
+- Shot title/name
+- Specific lens choice
+- Camera movement description
+- Detailed composition and action
+- Purpose/intent statement
 - Order shots sequentially from 1 to N
 
 Return JSON:
 {
   "breakdown": {
-    "subject_direction": "Natural language: subject identity, choreography, performance, context",
-    "scene_structure": "Natural language: setting, mood, atmosphere",
-    "camera_specs": "Natural language: shot types, lenses, movements, framing",
-    "lighting_setup": "Natural language: light sources, direction, quality, color",
-    "composition_rules": "Natural language: framing rules, placement, hierarchy",
-    "platform_specs": "Natural language: aspect ratio, safe zones"
+    "format_and_look": "Duration, shutter, capture format, grain, optical effects",
+    "lenses_and_filtration": "Specific lenses, filters, technical notes",
+    "grade_palette": "Highlights, mids, blacks treatment",
+    "lighting_atmosphere": "Key, fill, negative fill, practicals, atmosphere",
+    "location_framing": "Location, foreground, midground, background, avoidances",
+    "wardrobe_props_extras": "Characters with ethnicity/skin tone, extras, props",
+    "sound": "Type, elements, levels, exclusions",
+    "shot_list_summary": "Number of shots and total duration",
+    "camera_notes": "Eyeline, optical effects, handheld quality, exposure",
+    "finishing": "Grain, halation, LUT, mix, poster frame"
   },
-  "optimized_prompt": "A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional. A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They unwrap white tissue paper, revealing a luxury serum bottle (2-5s). The hands lift the bottle to eye level with quiet confidence (5-7s). Medium shot with a 50mm lens at eye level, camera locked on tripod. Composition follows the rule of thirds. Background falls into bokeh at f/2.8. Soft window light from 45 degrees creates gentle shadows. Warm amber tones evoke morning luxury. Gentle tissue rustling and ambient room tone. Vertical 9:16 frame with product in upper two-thirds. [~850 chars]",
-  "character_count": 850,
+  "optimized_prompt": "Format & Look\\nDuration 8s; 180° shutter; digital capture emulating 35mm photochemical; fine grain; subtle halation on speculars.\\n\\nLenses & Filtration\\n24mm / 50mm spherical primes; Black Pro-Mist 1/8.\\n\\n... [FULL ULTRA-DETAILED PROMPT 2000-3000 chars]",
+  "character_count": 2450,
   "suggested_shots": [
     {
-      "timing": "0-3s",
-      "description": "Medium shot at eye level, hands enter from left and begin unwrapping",
-      "camera": "Medium shot with 50mm lens, locked on tripod",
+      "timing": "0.00-3.00",
+      "title": "Setup",
+      "description": "Wide shot captures backyard setup; Lyle and Tom arranging bottles on grass",
+      "camera": "24mm handheld for playful energy",
+      "lens": "24mm",
+      "movement": "handheld",
       "order": 1,
-      "lighting": "Soft window light from 45 degrees with gentle shadows",
-      "notes": "Rule of thirds composition, hands in lower left"
+      "lighting": "Natural sunlight creating glints on bottles",
+      "notes": "Purpose: establish playful energy",
+      "purpose": "establish playful energy and scene context"
     }
   ]
 }
@@ -408,15 +663,15 @@ Return JSON:
 
   const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: getModelForFeature('synthesis'),
     messages: [
       {
         role: 'system',
-        content: 'You are a CINEMATIC NARRATIVE SYNTHESIZER for Sora2 video generation. You transform production team contributions into NATURAL LANGUAGE prompts that blend storytelling with cinematography (50/50 balance). Target: 800-1000 characters in flowing prose. Style: Director\'s shot notes - specific but readable. NO ABBREVIATIONS - use professional film terminology. Weave scene setup, subject action, camera direction, lighting atmosphere, audio, and platform specs into cohesive narrative prose.',
+        content: 'You are an ULTRA-DETAILED CINEMATOGRAPHY SYNTHESIZER for Sora2 video generation. You transform production team contributions into HIGHLY DETAILED PROFESSIONAL CINEMATOGRAPHY DOCUMENTATION with comprehensive technical specifications. Target: 2000-3000 characters with structured sections and precise technical details. Style: Professional cinematography documentation - detailed shot specs, lighting design, technical parameters. USE FULL PROFESSIONAL TERMINOLOGY - specific equipment, measurements, technical specifications. Format with clear section headers: Format & Look, Lenses & Filtration, Grade/Palette, Lighting & Atmosphere, Location & Framing, Wardrobe/Props/Extras, Sound, Optimized Shot List, Camera Notes, Finishing.',
       },
       { role: 'user', content: synthesisPrompt },
     ],
-    temperature: 0.5,
+    temperature: 0.3,
     response_format: { type: 'json_object' },
   })
 
@@ -449,7 +704,7 @@ Return JSON:
 }
 
 export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Promise<RoundtableResult> {
-  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, userPromptEdits, shotList, additionalGuidance } = input
+  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext, userPromptEdits, shotList, additionalGuidance } = input
 
   // Build enhanced brief with additional guidance and shot list context
   let enhancedBrief = brief
@@ -480,7 +735,7 @@ export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Pro
   ]
 
   const round1Promises = agents.map(agent =>
-    callAgent(agent, enhancedBrief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets)
+    callAgent(agent, enhancedBrief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext)
   )
 
   const round1Responses = await Promise.all(round1Promises)
@@ -533,6 +788,7 @@ export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Pro
     round2: round2Responses,
     userPromptEdits,
     shotList,
+    seriesSoraSettings,
   })
 
   return {
@@ -555,6 +811,7 @@ async function synthesizeAdvancedRoundtable(data: {
   round2: AgentResponse[]
   userPromptEdits?: string
   shotList?: Shot[]
+  seriesSoraSettings?: SeriesSoraSettings
 }): Promise<{
   breakdown: DetailedBreakdown
   prompt: string
@@ -562,126 +819,195 @@ async function synthesizeAdvancedRoundtable(data: {
   hashtags: string[]
   suggestedShots: Shot[]
 }> {
+  // Build Sora settings context
+  let soraSettingsContext = ''
+  if (data.seriesSoraSettings) {
+    const hasSettings = Object.values(data.seriesSoraSettings).some(val => val)
+    if (hasSettings) {
+      soraSettingsContext = `\nSERIES VISUAL CONSISTENCY REQUIREMENTS (Sora 2 Best Practices):\n`
+      soraSettingsContext += `These settings MUST be integrated into the final prompt to maintain visual consistency across episodes:\n\n`
+
+      if (data.seriesSoraSettings.sora_narrative_prefix) {
+        soraSettingsContext += `- Narrative Prefix: Start the prompt with "${data.seriesSoraSettings.sora_narrative_prefix}"\n`
+      }
+      if (data.seriesSoraSettings.sora_overall_tone) {
+        soraSettingsContext += `- Overall Tone: ${data.seriesSoraSettings.sora_overall_tone}\n`
+      }
+      if (data.seriesSoraSettings.sora_camera_style) {
+        soraSettingsContext += `- Camera Style: ${data.seriesSoraSettings.sora_camera_style}\n`
+      }
+      if (data.seriesSoraSettings.sora_lighting_mood) {
+        soraSettingsContext += `- Lighting Mood: ${data.seriesSoraSettings.sora_lighting_mood}\n`
+      }
+      if (data.seriesSoraSettings.sora_color_palette) {
+        soraSettingsContext += `- Color Palette: ${data.seriesSoraSettings.sora_color_palette}\n`
+      }
+
+      soraSettingsContext += `\nCRITICAL: Weave these elements naturally into your narrative prompt. Don't list them separately - blend them into the scene description, camera direction, and lighting sections.\n`
+    }
+  }
+
   const synthesisPrompt = `
-You are synthesizing production team input into a CINEMATIC NARRATIVE PROMPT for Sora2 video generation.
+You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Sora2 video generation.
 
 CRITICAL OUTPUT REQUIREMENTS:
-- NATURAL LANGUAGE cinematography - like briefing a cinematographer, not writing code
-- BLEND storytelling with technical direction (50% narrative / 50% technical)
-- TARGET: 800-1000 characters in flowing prose
-- STYLE: Director's shot notes - specific but readable
-- NO ABBREVIATIONS - use professional cinematography terminology
+- ULTRA-DETAILED TECHNICAL SPECIFICATIONS - professional cinematographer-level detail
+- STRUCTURED SECTIONS with clear headers like a production document
+- TARGET: 2000-3000 characters with comprehensive technical specifications
+- STYLE: Professional cinematography documentation - highly detailed and precise
+- USE PROFESSIONAL TERMINOLOGY - full technical specifications, measurements, equipment names
 
-CINEMATIC NARRATIVE STRUCTURE:
-The final prompt should flow as natural prose with 5 integrated sections:
+ULTRA-DETAILED PROMPT STRUCTURE:
+Generate a highly detailed, structured prompt with these sections:
 
-1. SCENE SETUP (2-3 sentences): Environment, time, mood, atmosphere
-   - Natural prose setting the scene
-   - Physics-aware language (how light behaves, spatial relationships)
-   - Evocative but specific
+FORMAT & LOOK:
+- Duration (4s, 8s, or 12s based on ${data.platform})
+- Shutter angle (180° standard, 90° for action, 270° for motion blur)
+- Capture format (digital capture emulating 35mm/65mm photochemical)
+- Grain quality (fine grain, medium grain, heavy grain)
+- Optical effects (halation on speculars, gate weave, lens breathing)
 
-2. SUBJECT ACTION (3-4 sentences with timing): Who, what they're doing, emotional beats
-   - Subject identity and action choreography
-   - Timing beats integrated naturally: "(0-2s)", "(2-5s)", "(5-7s)"
-   - Performance quality: "deliberate and unhurried", "confident movements", "subtle and restrained"
+LENSES & FILTRATION:
+- Specific lens choices (32mm, 50mm, 85mm spherical/anamorphic primes)
+- Filtration (Black Pro-Mist 1/8-1/2, CPL rotation for reflections, ND filters)
+- Technical notes (focus distance, aperture settings if relevant)
 
-3. CAMERA DIRECTION (2-3 sentences): Shot type, lens, movement, composition
-   - Professional terms: "medium shot", "50mm lens", "locked on tripod"
-   - Composition rules: "following the rule of thirds", "positioned in upper right intersection"
-   - Depth of field: "background falls into bokeh at f/2.8"
+GRADE / PALETTE:
+- Highlights: color treatment and lift
+- Mids: tonal balance and color cast
+- Blacks: density, lift, and haze retention
 
-4. LIGHTING & ATMOSPHERE (2 sentences): Light quality, direction, color palette
-   - Descriptive: "soft directional light from 45 degrees"
-   - Color mood: "warm color palette with amber tones"
-   - NO Kelvin temperatures or technical notation
+LIGHTING & ATMOSPHERE:
+- Key light: source, direction with time/angle (e.g., "natural sunlight camera left, low angle 07:30 AM")
+- Fill light: source and placement (e.g., "4×4 ultrabounce silver from trackside")
+- Negative fill: placement for contrast control
+- Practicals: any practical lights in scene with intensity
+- Atmosphere: mist, haze, smoke, particles, weather
 
-5. AUDIO CUE (1 sentence): Sound design, foley, ambient tone
-   - Brief and specific: "gentle foley of tissue rustling"
+LOCATION & FRAMING:
+- Location description with time of day
+- Foreground elements (specific objects, lines, markers)
+- Midground action/subjects
+- Background elements
+- Avoidances (signage, branding, specific elements to exclude)
 
-6. PLATFORM NOTE (appended): Aspect ratio and framing
-   - "Vertical 9:16 frame with subject positioned in upper two-thirds"
+WARDROBE / PROPS / EXTRAS:
+- CRITICAL: Character descriptions MUST include ethnicity and skin tone
+  Format: "[Name]: [ethnicity] [age] with [skin tone], [clothing], [physical details]"
+  Example: "Lyle: Black young child with deep brown skin, denim shirt, short textured black hair, warm brown eyes"
+- CRITICAL: If character voice/vocal characteristics are provided in character descriptions, you MUST include them in the SOUND section
+- Main subject details if no named characters
+- Extras descriptions
+- Key props list
+
+SOUND:
+- Type: diegetic, non-diegetic, or mixed
+- CRITICAL: Extract and include character vocal characteristics from character descriptions
+  - Look for "Voice:" sections in character templates
+  - Format: "Character vocals: [Name]: [voice details from template]; [Name]: [voice details]."
+  - Example: "Character vocals: Lyle: sounds young child, playful tone, high pitch; Dad: warm baritone, neutral American accent."
+  - If no voice data in templates, skip this line
+- Specific audio elements with levels if relevant (e.g., "-20 LUFS")
+- Exclusions (no score, no added foley, etc.)
+
+OPTIMIZED SHOT LIST (2-6 shots):
+For each shot:
+- Timing (e.g., "0.00-2.40")
+- Shot title/name
+- Lens choice
+- Camera movement description
+- Detailed action/composition description
+- Purpose/intent of shot
+
+CAMERA NOTES (Why It Reads):
+- Eyeline positioning
+- Allowed/desired optical effects (flares, aberrations)
+- Handheld quality or stabilization notes
+- Exposure guidance for key moments
+
+FINISHING:
+- Grain overlay specifications
+- Halation treatment
+- LUT or color treatment description
+- Audio mix priorities
+- Poster frame suggestion
 
 COPYRIGHT SAFETY:
-- Generic subjects only: "person", "hands", "product", "professional"
-- No brands, IPs, celebrities, copyrighted music
-- Descriptive without brand references
+- NO brands, IPs, celebrities, or copyrighted music
+- Use descriptive language without brand references
+- EXCEPTION: When character descriptions are provided, you MUST use those exact descriptions
+${soraSettingsContext}
 
-${data.userPromptEdits ? `USER'S DIRECT PROMPT EDITS:\n${data.userPromptEdits}\n\nIMPORTANT: Integrate user edits into natural cinematography language.\n` : ''}
+${data.userPromptEdits ? `USER'S DIRECT PROMPT EDITS:\n${data.userPromptEdits}\n\nIMPORTANT: Integrate user edits into the ultra-detailed structure.\n` : ''}
 
-${data.shotList && data.shotList.length > 0 ? `USER'S REQUESTED SHOT LIST:\n${data.shotList.map(s => `Shot ${s.order} (${s.timing}): ${s.description}${s.camera ? ` | Camera: ${s.camera}` : ''}${s.lighting ? ` | Lighting: ${s.lighting}` : ''}`).join('\n')}\n\nIMPORTANT: Incorporate shot structure into narrative prompt.\n` : ''}
+${data.shotList && data.shotList.length > 0 ? `USER'S REQUESTED SHOT LIST:\n${data.shotList.map(s => `Shot ${s.order} (${s.timing}): ${s.description}${s.camera ? ` | Camera: ${s.camera}` : ''}${s.lighting ? ` | Lighting: ${s.lighting}` : ''}`).join('\n')}\n\nIMPORTANT: Incorporate shot structure into ultra-detailed format.\n` : ''}
 
 AGENT CONTRIBUTIONS:
 ${JSON.stringify({ round1: data.round1, round2: data.round2 }, null, 2)}
 
 Generate THREE outputs:
 
-1. DETAILED BREAKDOWN (natural language sections):
-- Subject Direction: Subject identity, action choreography, performance quality, emotional context
-- Scene Structure: Setting, mood, atmosphere, narrative framing
-- Camera Specifications: Shot types, lens choices, movements, framing in readable terms
-- Lighting Setup: Light sources, direction, quality, color palette
-- Composition Rules: Framing rules, subject placement, visual hierarchy
-- Platform Specs: Aspect ratio, safe zones, platform context
+1. DETAILED BREAKDOWN (structured technical sections):
+- Format & Look: Duration, shutter, capture format, grain, optical effects
+- Lenses & Filtration: Specific lenses, filters, technical notes
+- Grade/Palette: Highlights, mids, blacks color treatment
+- Lighting & Atmosphere: Key, fill, negative fill, practicals, atmosphere
+- Location & Framing: Location, foreground, midground, background, avoidances
+- Wardrobe/Props/Extras: Characters (with ethnicity/skin tone), extras, props
+- Sound: Type, elements, levels, exclusions
+- Shot List: Each shot with timing, title, lens, movement, description, purpose
+- Camera Notes: Eyeline, optical effects, handheld quality, exposure
+- Finishing: Grain, halation, LUT, mix, poster frame
 
-2. CINEMATIC NARRATIVE PROMPT (800-1000 characters, natural prose):
+2. ULTRA-DETAILED STRUCTURED PROMPT (2000-3000 characters):
 
-Weave all agent contributions into flowing prose that reads like director's shot notes. Structure:
+[Follow the exact structure as shown in the user's example with all section headers and comprehensive details]
 
-[Scene Setup - 2-3 sentences setting environment and mood]
+- MUST be structured with clear section headers
+- MUST be 2000-3000 characters with comprehensive detail
+- MUST include specific technical specifications
+- Professional cinematography documentation style
+${data.userPromptEdits ? '- INCORPORATE user edits into appropriate sections' : ''}
+${data.shotList ? '- REFLECT shot list structure in Optimized Shot List section' : ''}
 
-[Subject Action - 3-4 sentences with timing beats (0-2s), (2-5s), (5-7s) describing choreography and performance]
-
-[Camera Direction - 2-3 sentences with shot type, lens, movement, composition rules]
-
-[Lighting & Atmosphere - 2 sentences describing light and color]
-
-[Audio - 1 sentence with sound design] [Platform - 1 sentence with aspect ratio]
-
-EXAMPLE FORMAT:
-"A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional, like the opening moments of a daily ritual.
-
-A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They begin unwrapping white tissue paper, each fold revealing the luxury product beneath (2-5s). The hands lift a serum bottle to eye level, holding it steady with quiet confidence (5-7s).
-
-Medium shot captured with a 50mm lens at eye level, camera locked on a tripod. The composition follows the rule of thirds—product positioned in the upper right intersection, hands framing the lower left quadrant. Background falls into bokeh at f/2.8.
-
-Soft directional window light from 45 degrees creates gentle shadows, with subtle fill from the left. The warm color palette with amber tones evokes morning luxury.
-
-Gentle foley of tissue rustling and glass touching skin, with ambient room tone. Vertical 9:16 frame with product in upper two-thirds."
-
-- MUST be natural language (no abbreviations like "MS", "K45°R", "DELIB")
-- MUST be 800-1000 characters
-- MUST blend storytelling with cinematography
-- Specific but readable - professional film terminology
-${data.userPromptEdits ? '- INCORPORATE user edits naturally' : ''}
-${data.shotList ? '- REFLECT shot list structure in narrative flow' : ''}
-
-3. SUGGESTED SHOT LIST (3-6 shots with natural language specs):
-${data.shotList ? '- REFINE user shot list with readable cinematography terms' : '- Generate new shot list with natural language specs'}
-- Use readable cinematography terminology
-- Exact timestamps for each shot
-- Camera, lighting, composition in natural language
+3. SUGGESTED SHOT LIST (2-6 shots with full technical specs):
+${data.shotList ? '- REFINE user shot list with ultra-detailed cinematography specs' : '- Generate new ultra-detailed shot list'}
+- Shot timing with decimals (e.g., "0.00-2.40")
+- Shot title/name
+- Specific lens choice
+- Camera movement description
+- Detailed composition and action
+- Purpose/intent statement
 - Order shots sequentially from 1 to N
 
 Return JSON:
 {
   "breakdown": {
-    "subject_direction": "Natural language: subject identity, choreography, performance, context",
-    "scene_structure": "Natural language: setting, mood, atmosphere",
-    "camera_specs": "Natural language: shot types, lenses, movements, framing",
-    "lighting_setup": "Natural language: light sources, direction, quality, color",
-    "composition_rules": "Natural language: framing rules, placement, hierarchy",
-    "platform_specs": "Natural language: aspect ratio, safe zones"
+    "format_and_look": "Duration, shutter, capture format, grain, optical effects",
+    "lenses_and_filtration": "Specific lenses, filters, technical notes",
+    "grade_palette": "Highlights, mids, blacks treatment",
+    "lighting_atmosphere": "Key, fill, negative fill, practicals, atmosphere",
+    "location_framing": "Location, foreground, midground, background, avoidances",
+    "wardrobe_props_extras": "Characters with ethnicity/skin tone, extras, props",
+    "sound": "Type, elements, levels, exclusions",
+    "shot_list_summary": "Number of shots and total duration",
+    "camera_notes": "Eyeline, optical effects, handheld quality, exposure",
+    "finishing": "Grain, halation, LUT, mix, poster frame"
   },
-  "optimized_prompt": "A minimalist desk sits beneath a tall window in a sun-drenched room, morning light streaming through translucent curtains. The space feels quiet and intentional. A pair of hands enters the frame from the left, fingers moving with deliberate care (0-2s). They unwrap white tissue paper, revealing a luxury serum bottle (2-5s). The hands lift the bottle to eye level with quiet confidence (5-7s). Medium shot with a 50mm lens at eye level, camera locked on tripod. Composition follows the rule of thirds. Background falls into bokeh at f/2.8. Soft window light from 45 degrees creates gentle shadows. Warm amber tones evoke morning luxury. Gentle tissue rustling and ambient room tone. Vertical 9:16 frame with product in upper two-thirds. [~850 chars]",
-  "character_count": 850,
+  "optimized_prompt": "Format & Look\\nDuration 8s; 180° shutter; digital capture emulating 35mm photochemical; fine grain; subtle halation on speculars.\\n\\nLenses & Filtration\\n24mm / 50mm spherical primes; Black Pro-Mist 1/8.\\n\\n... [FULL ULTRA-DETAILED PROMPT 2000-3000 chars]",
+  "character_count": 2450,
   "suggested_shots": [
     {
-      "timing": "0-3s",
-      "description": "Medium shot at eye level, hands enter from left and begin unwrapping",
-      "camera": "Medium shot with 50mm lens, locked on tripod",
+      "timing": "0.00-3.00",
+      "title": "Setup",
+      "description": "Wide shot captures backyard setup; Lyle and Tom arranging bottles on grass",
+      "camera": "24mm handheld for playful energy",
+      "lens": "24mm",
+      "movement": "handheld",
       "order": 1,
-      "lighting": "Soft window light from 45 degrees with gentle shadows",
-      "notes": "Rule of thirds composition, hands in lower left"
+      "lighting": "Natural sunlight creating glints on bottles",
+      "notes": "Purpose: establish playful energy",
+      "purpose": "establish playful energy and scene context"
     }
   ]
 }
@@ -689,15 +1015,15 @@ Return JSON:
 
   const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: getModelForFeature('synthesis'),
     messages: [
       {
         role: 'system',
-        content: 'You are a CINEMATIC NARRATIVE SYNTHESIZER for Sora2 video generation. You transform production team contributions into NATURAL LANGUAGE prompts that blend storytelling with cinematography (50/50 balance). Target: 800-1000 characters in flowing prose. Style: Director\'s shot notes - specific but readable. NO ABBREVIATIONS - use professional film terminology. Weave scene setup, subject action, camera direction, lighting atmosphere, audio, and platform specs into cohesive narrative prose. When users provide edits or shot lists, integrate them naturally into the cinematic narrative.',
+        content: 'You are an ULTRA-DETAILED CINEMATOGRAPHY SYNTHESIZER for Sora2 video generation. You transform production team contributions into HIGHLY DETAILED PROFESSIONAL CINEMATOGRAPHY DOCUMENTATION with comprehensive technical specifications. Target: 2000-3000 characters with structured sections and precise technical details. Style: Professional cinematography documentation - detailed shot specs, lighting design, technical parameters. USE FULL PROFESSIONAL TERMINOLOGY - specific equipment, measurements, technical specifications. Format with clear section headers: Format & Look, Lenses & Filtration, Grade/Palette, Lighting & Atmosphere, Location & Framing, Wardrobe/Props/Extras, Sound, Optimized Shot List, Camera Notes, Finishing. When users provide edits or shot lists, integrate them into the appropriate ultra-detailed sections.',
       },
       { role: 'user', content: synthesisPrompt },
     ],
-    temperature: 0.5,
+    temperature: 0.3,
     response_format: { type: 'json_object' },
   })
 

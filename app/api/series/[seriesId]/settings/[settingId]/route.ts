@@ -18,18 +18,25 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch setting with ownership verification
+    // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
+      }
+      throw seriesError
+    }
+
+    // Fetch setting
     const { data: setting, error } = await supabase
       .from('series_settings')
-      .select(
-        `
-        *,
-        series:series!inner(
-          id,
-          project:projects!inner(id, user_id)
-        )
-      `
-      )
+      .select('*')
       .eq('id', settingId)
       .eq('series_id', seriesId)
       .single()
@@ -41,15 +48,7 @@ export async function GET(
       throw error
     }
 
-    const seriesData = Array.isArray(setting.series) ? setting.series[0] : setting.series
-    const project = Array.isArray(seriesData.project) ? seriesData.project[0] : seriesData.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    // Remove series from response
-    const { series, ...settingData } = setting
-    return NextResponse.json(settingData)
+    return NextResponse.json(setting)
   } catch (error: any) {
     console.error('Setting fetch error:', error)
     return NextResponse.json(
@@ -76,33 +75,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership
-    const { data: setting, error: setError } = await supabase
-      .from('series_settings')
-      .select(
-        `
-        id,
-        series:series!inner(
-          id,
-          project:projects!inner(id, user_id)
-        )
-      `
-      )
-      .eq('id', settingId)
-      .eq('series_id', seriesId)
+    // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
-    if (setError) {
-      if (setError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Setting not found' }, { status: 404 })
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
-      throw setError
-    }
-
-    const seriesData = Array.isArray(setting.series) ? setting.series[0] : setting.series
-    const project = Array.isArray(seriesData.project) ? seriesData.project[0] : seriesData.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      throw seriesError
     }
 
     // Parse request body
@@ -191,33 +176,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership
-    const { data: setting, error: setError } = await supabase
-      .from('series_settings')
-      .select(
-        `
-        id,
-        series:series!inner(
-          id,
-          project:projects!inner(id, user_id)
-        )
-      `
-      )
-      .eq('id', settingId)
-      .eq('series_id', seriesId)
+    // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
-    if (setError) {
-      if (setError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Setting not found' }, { status: 404 })
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
-      throw setError
-    }
-
-    const seriesData = Array.isArray(setting.series) ? setting.series[0] : setting.series
-    const project = Array.isArray(seriesData.project) ? seriesData.project[0] : seriesData.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      throw seriesError
     }
 
     // Delete setting

@@ -18,23 +18,19 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership through project
+    // Verify series ownership
     const { data: series, error: seriesError } = await supabase
       .from('series')
-      .select('id, project:projects!inner(id, user_id)')
+      .select('id, user_id')
       .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
     if (seriesError) {
       if (seriesError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
       throw seriesError
-    }
-
-    const project = Array.isArray(series.project) ? series.project[0] : series.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Fetch settings
@@ -74,23 +70,19 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership through project
+    // Verify series ownership
     const { data: series, error: seriesError } = await supabase
       .from('series')
-      .select('id, project:projects!inner(id, user_id)')
+      .select('id, user_id')
       .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
     if (seriesError) {
       if (seriesError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
       throw seriesError
-    }
-
-    const project = Array.isArray(series.project) ? series.project[0] : series.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Parse request body

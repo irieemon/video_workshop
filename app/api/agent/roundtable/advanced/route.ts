@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { runAdvancedRoundtable } from '@/lib/ai/agent-orchestrator'
+import { generateCharacterPromptBlock } from '@/lib/types/character-consistency'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,14 +41,29 @@ export async function POST(request: NextRequest) {
     let seriesCharacters = null
     let seriesSettings = null
     let visualAssets = null
+    let characterRelationships = null
+    let seriesSoraSettings = null
+    let characterContext = ''
 
     if (seriesId) {
       const { data: series } = await supabase
         .from('series')
-        .select('visual_template')
+        .select('visual_template, sora_camera_style, sora_lighting_mood, sora_color_palette, sora_overall_tone, sora_narrative_prefix')
         .eq('id', seriesId)
         .single()
+
       visualTemplate = series?.visual_template
+
+      // Extract Sora settings
+      if (series) {
+        seriesSoraSettings = {
+          sora_camera_style: series.sora_camera_style,
+          sora_lighting_mood: series.sora_lighting_mood,
+          sora_color_palette: series.sora_color_palette,
+          sora_overall_tone: series.sora_overall_tone,
+          sora_narrative_prefix: series.sora_narrative_prefix,
+        }
+      }
 
       // Fetch selected characters
       if (selectedCharacters && selectedCharacters.length > 0) {
@@ -56,6 +72,26 @@ export async function POST(request: NextRequest) {
           .select('*')
           .in('id', selectedCharacters)
         seriesCharacters = characters
+
+        // Generate character consistency blocks
+        if (characters && characters.length > 0) {
+          const characterBlocks = characters.map(char =>
+            char.sora_prompt_template || generateCharacterPromptBlock(char)
+          )
+          characterContext = `\n\nCHARACTERS IN THIS VIDEO:\n${characterBlocks.join('\n\n')}\n\nIMPORTANT: The character descriptions above are LOCKED. Use them exactly as provided for consistency across videos.\n\n`
+        }
+
+        // Fetch character relationships for selected characters
+        const { data: relationships } = await supabase
+          .from('character_relationships')
+          .select(`
+            *,
+            character_a:series_characters!character_relationships_character_a_id_fkey(id, name),
+            character_b:series_characters!character_relationships_character_b_id_fkey(id, name)
+          `)
+          .eq('series_id', seriesId)
+          .or(`character_a_id.in.(${selectedCharacters.join(',')}),character_b_id.in.(${selectedCharacters.join(',')})`)
+        characterRelationships = relationships
       }
 
       // Fetch selected settings
@@ -84,6 +120,9 @@ export async function POST(request: NextRequest) {
       seriesCharacters: seriesCharacters || undefined,
       seriesSettings: seriesSettings || undefined,
       visualAssets: visualAssets || undefined,
+      characterRelationships: characterRelationships || undefined,
+      seriesSoraSettings: seriesSoraSettings || undefined,
+      characterContext: characterContext || undefined,
       userId: user.id,
       userPromptEdits,
       shotList,

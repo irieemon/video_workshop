@@ -18,23 +18,19 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership through project
+    // Verify ownership - series has user_id directly
     const { data: series, error: seriesError } = await supabase
       .from('series')
-      .select('id, project:projects!inner(id, user_id)')
+      .select('id, user_id')
       .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
     if (seriesError) {
       if (seriesError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
       throw seriesError
-    }
-
-    const project = Array.isArray(series.project) ? series.project[0] : series.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Fetch characters
@@ -73,23 +69,19 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership through project
+    // Verify ownership - series has user_id directly
     const { data: series, error: seriesError } = await supabase
       .from('series')
-      .select('id, project:projects!inner(id, user_id)')
+      .select('id, user_id')
       .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
     if (seriesError) {
       if (seriesError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Series not found' }, { status: 404 })
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
       throw seriesError
-    }
-
-    const project = Array.isArray(series.project) ? series.project[0] : series.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Parse request body
@@ -101,7 +93,9 @@ export async function POST(
       appearance_details,
       performance_style,
       introduced_episode_id,
-      evolution_timeline
+      evolution_timeline,
+      visual_fingerprint,
+      voice_profile
     } = body
 
     if (!name || name.trim().length === 0) {
@@ -153,9 +147,11 @@ export async function POST(
         appearance_details: appearance_details || {},
         performance_style: performance_style?.trim() || null,
         introduced_episode_id: introduced_episode_id || null,
-        evolution_timeline: evolution_timeline || []
+        evolution_timeline: evolution_timeline || [],
+        visual_fingerprint: visual_fingerprint || {},
+        voice_profile: voice_profile || {}
       })
-      .select()
+      .select('*')
       .single()
 
     if (error) throw error

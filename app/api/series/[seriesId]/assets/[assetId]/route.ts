@@ -18,20 +18,31 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify series ownership and get asset
+    // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
+      }
+      throw seriesError
+    }
+
+    // Get asset
     const { data: asset, error: assetError } = await supabase
       .from('series_visual_assets')
-      .select('*, series:series!inner(id, project:projects!inner(id, user_id))')
+      .select('*')
       .eq('id', assetId)
       .eq('series_id', seriesId)
       .single()
 
     if (assetError || !asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 })
-    }
-
-    if (asset.series.project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Delete from storage
@@ -80,19 +91,30 @@ export async function PATCH(
     }
 
     // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
+      }
+      throw seriesError
+    }
+
+    // Get asset
     const { data: asset, error: assetError } = await supabase
       .from('series_visual_assets')
-      .select('*, series:series!inner(id, project:projects!inner(id, user_id))')
+      .select('*')
       .eq('id', assetId)
       .eq('series_id', seriesId)
       .single()
 
     if (assetError || !asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 })
-    }
-
-    if (asset.series.project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Parse request body

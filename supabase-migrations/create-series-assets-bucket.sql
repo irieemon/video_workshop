@@ -3,13 +3,20 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES (
   'series-assets',
   'series-assets',
-  false, -- Private bucket
+  true, -- Public bucket for image optimization
   10485760, -- 10MB limit
   ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Storage policies for series-assets bucket
+
+-- Allow public read access to all files (required for Next.js Image optimization)
+CREATE POLICY "Public read access for series assets"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'series-assets');
 
 -- Allow authenticated users to upload files to their own user folder
 CREATE POLICY "Users can upload their own series assets"

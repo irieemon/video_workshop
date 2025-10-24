@@ -47,18 +47,7 @@ export function PromptOutput({
     setTimeout(() => setCopiedHashtags(false), 2000)
   }
 
-  // Calculate character count color (800-1000 char target for cinematic narrative)
-  const getCharacterColor = () => {
-    if (characterCount >= 800 && characterCount <= 1000) return 'text-green-600'
-    if (characterCount >= 700 && characterCount <= 1100) return 'text-yellow-600'
-    return 'text-red-600'
-  }
-
-  const getCharacterBgColor = () => {
-    if (characterCount >= 800 && characterCount <= 1000) return 'bg-green-100'
-    if (characterCount >= 700 && characterCount <= 1100) return 'bg-yellow-100'
-    return 'bg-red-100'
-  }
+  // Simple character count display - no strict validation needed with updated prompt structure
 
   return (
     <div className="space-y-6">
@@ -94,28 +83,6 @@ export function PromptOutput({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Character Counter */}
-            <div className="flex items-center gap-3">
-              <div className={cn('px-3 py-1 rounded-md text-sm font-medium', getCharacterBgColor(), getCharacterColor())}>
-                {characterCount} / 800-1000 characters
-              </div>
-              {characterCount >= 800 && characterCount <= 1000 && (
-                <span className="text-xs text-muted-foreground">Optimal cinematic narrative length</span>
-              )}
-              {characterCount >= 700 && characterCount < 800 && (
-                <span className="text-xs text-muted-foreground">Good, could add more narrative detail</span>
-              )}
-              {characterCount > 1000 && characterCount <= 1100 && (
-                <span className="text-xs text-muted-foreground">Good, slightly verbose but acceptable</span>
-              )}
-              {characterCount < 700 && (
-                <span className="text-xs text-muted-foreground">Too short, expand scene and action descriptions</span>
-              )}
-              {characterCount > 1100 && (
-                <span className="text-xs text-muted-foreground">Too long, focus on essential cinematography</span>
-              )}
-            </div>
-
             {/* Prompt Text */}
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">

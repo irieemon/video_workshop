@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         `
         *,
         videos:videos(count),
-        series:series(count)
+        series:series!series_project_id_fkey(count)
       `
       )
       .eq('user_id', user.id)

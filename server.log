@@ -1,0 +1,82 @@
+
+> sora-video-generator@1.0.0 dev
+> next dev
+
+   ▲ Next.js 15.5.6
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.7.192:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.3s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 658ms (187 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 4.1s (606 modules)
+ ✓ Compiled in 1591ms (237 modules)
+ GET / 200 in 5801ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 3.3s (1132 modules)
+ GET /dashboard 200 in 4873ms
+ ○ Compiling /dashboard/projects/[id] ...
+ ✓ Compiled /dashboard/projects/[id] in 1075ms (1136 modules)
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 3613ms
+ ○ Compiling /dashboard/projects/[id]/videos/new ...
+ ✓ Compiled /dashboard/projects/[id]/videos/new in 2.4s (1227 modules)
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6/videos/new 200 in 3826ms
+ ○ Compiling /api/projects/[id] ...
+ ✓ Compiled /api/projects/[id] in 1234ms (1247 modules)
+ GET /api/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 3015ms
+ GET /api/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 338ms
+ ○ Compiling /api/series/[seriesId]/context ...
+ ✓ Compiled /api/series/[seriesId]/context in 5.1s (1249 modules)
+ GET /api/series/d395be70-f4d1-4259-98d8-8820ba8d6536/context 200 in 8341ms
+ GET /api/series/d395be70-f4d1-4259-98d8-8820ba8d6536/context 200 in 405ms
+ ○ Compiling /api/agent/roundtable/stream ...
+ ✓ Compiled /api/agent/roundtable/stream in 4.3s (1361 modules)
+ POST /api/agent/roundtable/stream 200 in 79616ms
+ POST /api/agent/roundtable/stream 200 in 88341ms
+ ○ Compiling /api/videos ...
+ ✓ Compiled /api/videos in 3.2s (1247 modules)
+🔍 Profile check: { tier: 'free', currentVideos: 10, maxVideos: 10 }
+ POST /api/videos 429 in 4303ms
+🔍 Profile check: { tier: 'free', currentVideos: 10, maxVideos: 10 }
+ POST /api/videos 429 in 575ms
+ ✓ Compiled in 3.1s (1242 modules)
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6/videos/new 200 in 685ms
+ ○ Compiling /api/videos ...
+ ✓ Compiled /api/videos in 4.2s (785 modules)
+🔍 Profile check: { tier: 'free', currentVideos: 10, maxVideos: 10 }
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6/videos/new 200 in 591ms
+ POST /api/videos 200 in 7855ms
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 585ms
+ ✓ Compiled in 6s (1242 modules)
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 2669ms
+ ✓ Compiled in 3.6s (1242 modules)
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 513ms
+ ✓ Compiled in 2.4s (1242 modules)
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 569ms
+ ✓ Compiled in 4.4s (1242 modules)
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 498ms
+ GET / 200 in 1401ms
+ GET /dashboard 200 in 883ms
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 1346ms
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6/videos/new 200 in 297ms
+ ○ Compiling /api/projects/[id] ...
+ ✓ Compiled /api/projects/[id] in 9.8s (785 modules)
+ GET /api/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 15434ms
+ GET /api/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 429ms
+ ○ Compiling /api/series/[seriesId]/context ...
+ ✓ Compiled /api/series/[seriesId]/context in 4.1s (787 modules)
+ GET /api/series/d395be70-f4d1-4259-98d8-8820ba8d6536/context 200 in 5865ms
+ GET /api/series/d395be70-f4d1-4259-98d8-8820ba8d6536/context 200 in 707ms
+ ○ Compiling /api/agent/roundtable/stream ...
+ ✓ Compiled /api/agent/roundtable/stream in 5.1s (899 modules)
+ POST /api/agent/roundtable/stream 200 in 88749ms
+ POST /api/agent/roundtable/stream 200 in 94077ms
+ ○ Compiling /api/videos ...
+ ✓ Compiled /api/videos in 3.2s (785 modules)
+🔍 Profile check: { tier: 'free', currentVideos: 11, maxVideos: 10 }
+ POST /api/videos 200 in 4617ms
+ GET /dashboard/projects/58537696-1f74-4518-9576-ed3a89a09eb6 200 in 982ms
+ ✓ Compiled in 2.4s (476 modules)

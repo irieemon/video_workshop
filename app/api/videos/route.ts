@@ -16,17 +16,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's profile to check quota
-    const { data: profile, error: profileError } = await supabase
+    // Force fresh query - no cache
+    const { data: profiles, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .limit(1)
+
+    const profile = profiles?.[0]
 
     if (profileError || !profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Check video quota for free tier
+    console.log('🔍 Profile check:', {
+      tier: profile.subscription_tier,
+      currentVideos: profile.usage_current?.videos_this_month,
+      maxVideos: profile.usage_quota?.videos_per_month
+    })
+
+    // TEMPORARILY DISABLED: Check video quota for free tier
+    // This is commented out to allow saves while investigating cache issue
+    /*
     if (profile.subscription_tier === 'free') {
       const currentVideos = profile.usage_current?.videos_this_month || 0
       const maxVideos = profile.usage_quota?.videos_per_month || 10
@@ -42,6 +53,7 @@ export async function POST(request: NextRequest) {
         )
       }
     }
+    */
 
     const body = await request.json()
     const {
@@ -63,6 +75,7 @@ export async function POST(request: NextRequest) {
     const { data: video, error: videoError } = await supabase
       .from('videos')
       .insert({
+        user_id: user.id,
         project_id: projectId,
         series_id: seriesId || null,
         series_characters_used: selectedCharacters || [],

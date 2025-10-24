@@ -18,30 +18,29 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch series with characters, settings, and visual assets
-    const { data: series, error } = await supabase
+    // Verify series ownership through direct user_id (decoupled model)
+    const { data: series, error: seriesError } = await supabase
       .from('series')
       .select(
         `
         *,
-        project:projects!inner(id, user_id),
         characters:series_characters(*),
         settings:series_settings(*),
         visual_assets:series_visual_assets(*)
       `
       )
       .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Series not found' }, { status: 404 })
       }
-      throw error
+      throw seriesError
     }
 
-    // Verify ownership
-    if (series.project.user_id !== user.id) {
+    if (!series) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

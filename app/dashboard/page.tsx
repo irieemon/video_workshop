@@ -14,7 +14,7 @@ export default async function DashboardPage() {
       `
       *,
       videos:videos(count),
-      series:series(count)
+      series:series!series_project_id_fkey(count)
     `
     )
     .order('updated_at', { ascending: false })

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Settings } from 'lucide-react'
 import Link from 'next/link'
-import { CharacterManager, SettingManager, VisualAssetManager } from '@/components/series'
+import { CharacterManager, SettingManager, VisualAssetManager, RelationshipManager, SoraSettingsManager } from '@/components/series'
 import { Separator } from '@/components/ui/separator'
 
 export default async function SeriesDetailPage({
@@ -16,13 +16,14 @@ export default async function SeriesDetailPage({
   const supabase = await createClient()
 
   // Fetch series with full context
+  // Use explicit FK name to avoid ambiguity with projects.default_series_id
   const { data: series, error } = await supabase
     .from('series')
     .select(
       `
       *,
-      project:projects!inner(id, name),
-      characters:series_characters(*),
+      project:projects!series_project_id_fkey(id, name),
+      characters:series_characters(*, visual_fingerprint, voice_profile, sora_prompt_template),
       settings:series_settings(*)
     `
     )
@@ -93,6 +94,20 @@ export default async function SeriesDetailPage({
 
       {/* Content Sections */}
       <div className="space-y-8 md:space-y-10">
+        <SoraSettingsManager
+          seriesId={seriesId}
+          seriesName={series.name}
+          settings={{
+            sora_camera_style: series.sora_camera_style,
+            sora_lighting_mood: series.sora_lighting_mood,
+            sora_color_palette: series.sora_color_palette,
+            sora_overall_tone: series.sora_overall_tone,
+            sora_narrative_prefix: series.sora_narrative_prefix,
+          }}
+        />
+
+        <Separator />
+
         <CharacterManager
           seriesId={seriesId}
           characters={series.characters || []}
@@ -108,6 +123,13 @@ export default async function SeriesDetailPage({
         <Separator />
 
         <VisualAssetManager seriesId={seriesId} />
+
+        <Separator />
+
+        <RelationshipManager
+          seriesId={seriesId}
+          characters={series.characters || []}
+        />
       </div>
     </div>
   )

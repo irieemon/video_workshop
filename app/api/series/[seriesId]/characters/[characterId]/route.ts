@@ -18,18 +18,25 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch character with ownership verification
+    // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
+      }
+      throw seriesError
+    }
+
+    // Fetch character
     const { data: character, error } = await supabase
       .from('series_characters')
-      .select(
-        `
-        *,
-        series:series!inner(
-          id,
-          project:projects!inner(id, user_id)
-        )
-      `
-      )
+      .select('*')
       .eq('id', characterId)
       .eq('series_id', seriesId)
       .single()
@@ -41,15 +48,7 @@ export async function GET(
       throw error
     }
 
-    const seriesData = Array.isArray(character.series) ? character.series[0] : character.series
-    const project = Array.isArray(seriesData.project) ? seriesData.project[0] : seriesData.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    // Remove series from response
-    const { series, ...characterData } = character
-    return NextResponse.json(characterData)
+    return NextResponse.json(character)
   } catch (error: any) {
     console.error('Character fetch error:', error)
     return NextResponse.json(
@@ -76,33 +75,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership
-    const { data: character, error: charError } = await supabase
-      .from('series_characters')
-      .select(
-        `
-        id,
-        series:series!inner(
-          id,
-          project:projects!inner(id, user_id)
-        )
-      `
-      )
-      .eq('id', characterId)
-      .eq('series_id', seriesId)
+    // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
-    if (charError) {
-      if (charError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Character not found' }, { status: 404 })
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
-      throw charError
-    }
-
-    const seriesData = Array.isArray(character.series) ? character.series[0] : character.series
-    const project = Array.isArray(seriesData.project) ? seriesData.project[0] : seriesData.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      throw seriesError
     }
 
     // Parse request body
@@ -189,33 +174,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership
-    const { data: character, error: charError } = await supabase
-      .from('series_characters')
-      .select(
-        `
-        id,
-        series:series!inner(
-          id,
-          project:projects!inner(id, user_id)
-        )
-      `
-      )
-      .eq('id', characterId)
-      .eq('series_id', seriesId)
+    // Verify series ownership
+    const { data: series, error: seriesError } = await supabase
+      .from('series')
+      .select('id, user_id')
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
       .single()
 
-    if (charError) {
-      if (charError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Character not found' }, { status: 404 })
+    if (seriesError) {
+      if (seriesError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Series not found or access denied' }, { status: 404 })
       }
-      throw charError
-    }
-
-    const seriesData = Array.isArray(character.series) ? character.series[0] : character.series
-    const project = Array.isArray(seriesData.project) ? seriesData.project[0] : seriesData.project
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      throw seriesError
     }
 
     // Delete character

@@ -15,18 +15,29 @@ interface AgentRoundtableProps {
       buildingOn?: string[]
     }>
   }
+  onReviewClick?: () => void
 }
 
-export function AgentRoundtable({ discussion }: AgentRoundtableProps) {
+export function AgentRoundtable({ discussion, onReviewClick }: AgentRoundtableProps) {
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Round 1: Initial Analysis */}
-      <Card>
+      <Card
+        className={onReviewClick ? "cursor-pointer hover:border-sage-400 transition-colors" : ""}
+        onClick={onReviewClick}
+      >
         <CardHeader className="pb-3 md:pb-6">
-          <CardTitle className="text-lg md:text-xl">Round 1: Initial Analysis</CardTitle>
-          <CardDescription className="text-sm">
-            Each expert analyzes your brief from their unique perspective
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg md:text-xl">Round 1: Initial Analysis</CardTitle>
+              <CardDescription className="text-sm">
+                Each expert analyzes your brief from their unique perspective
+              </CardDescription>
+            </div>
+            {onReviewClick && (
+              <span className="text-xs text-sage-600 font-medium">Click to review →</span>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
           <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2">
@@ -42,12 +53,22 @@ export function AgentRoundtable({ discussion }: AgentRoundtableProps) {
       </Card>
 
       {/* Round 2: Debate & Refinement */}
-      <Card>
+      <Card
+        className={onReviewClick ? "cursor-pointer hover:border-sage-400 transition-colors" : ""}
+        onClick={onReviewClick}
+      >
         <CardHeader className="pb-3 md:pb-6">
-          <CardTitle className="text-lg md:text-xl">Round 2: Collaborative Refinement</CardTitle>
-          <CardDescription className="text-sm">
-            Experts challenge, respond, and build on each other&apos;s ideas
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg md:text-xl">Round 2: Collaborative Refinement</CardTitle>
+              <CardDescription className="text-sm">
+                Experts challenge, respond, and build on each other&apos;s ideas
+              </CardDescription>
+            </div>
+            {onReviewClick && (
+              <span className="text-xs text-sage-600 font-medium">Click to review →</span>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-3 md:space-y-4">
           {discussion.round2.map((item, index) => (

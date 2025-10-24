@@ -23,7 +23,7 @@ export default async function VideoDetailPage({
       `
       *,
       project:projects(*),
-      series:series(*),
+      series:series!videos_series_id_fkey(*),
       hashtags:hashtags(tag)
     `
     )

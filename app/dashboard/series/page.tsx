@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ListVideo, FolderKanban } from 'lucide-react'
+import { ListVideo, FolderKanban, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { CreateSeriesDialog } from '@/components/series/create-series-dialog'
 
 export default async function AllSeriesPage() {
   const supabase = await createClient()
@@ -17,53 +18,50 @@ export default async function AllSeriesPage() {
     redirect('/login')
   }
 
-  // First, fetch all user's projects to get their IDs
+  // Fetch all user's projects for the create dialog
   const { data: projects } = await supabase
     .from('projects')
-    .select('id')
+    .select('id, name')
     .eq('user_id', user.id)
+    .order('name', { ascending: true })
 
-  const projectIds = projects?.map((p) => p.id) || []
+  // Fetch all series for the user (now queries by user_id directly)
+  // Use explicit FK to avoid ambiguity with projects.default_series_id
+  const { data, error: seriesError } = await supabase
+    .from('series')
+    .select('*, project:projects!series_project_id_fkey(id, name)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
 
-  // Fetch all series for the user's projects with context
+  if (seriesError) {
+    console.error('Error fetching series:', seriesError)
+  }
+
+  // Fetch counts separately for each series
   let allSeries = null
+  if (data) {
+    const seriesWithCounts = await Promise.all(
+      data.map(async (s: any) => {
+        const [{ count: characterCount }, { count: settingCount }] =
+          await Promise.all([
+            supabase
+              .from('series_characters')
+              .select('*', { count: 'exact', head: true })
+              .eq('series_id', s.id),
+            supabase
+              .from('series_settings')
+              .select('*', { count: 'exact', head: true })
+              .eq('series_id', s.id),
+          ])
 
-  if (projectIds.length > 0) {
-    const { data, error: seriesError } = await supabase
-      .from('series')
-      .select('*, project:projects(id, name)')
-      .in('project_id', projectIds)
-      .order('created_at', { ascending: false })
-
-    if (seriesError) {
-      console.error('Error fetching series:', seriesError)
-    }
-
-    // Fetch counts separately for each series
-    if (data) {
-      const seriesWithCounts = await Promise.all(
-        data.map(async (s: any) => {
-          const [{ count: characterCount }, { count: settingCount }] =
-            await Promise.all([
-              supabase
-                .from('series_characters')
-                .select('*', { count: 'exact', head: true })
-                .eq('series_id', s.id),
-              supabase
-                .from('series_settings')
-                .select('*', { count: 'exact', head: true })
-                .eq('series_id', s.id),
-            ])
-
-          return {
-            ...s,
-            character_count: characterCount || 0,
-            setting_count: settingCount || 0,
-          }
-        })
-      )
-      allSeries = seriesWithCounts
-    }
+        return {
+          ...s,
+          character_count: characterCount || 0,
+          setting_count: settingCount || 0,
+        }
+      })
+    )
+    allSeries = seriesWithCounts
   }
 
   const series = allSeries || []
@@ -80,9 +78,14 @@ export default async function AllSeriesPage() {
     <div className="p-4 md:p-8">
       {/* Header */}
       <div className="mb-6 md:mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <ListVideo className="h-6 w-6 md:h-8 md:w-8 text-sage-500" />
-          <h1 className="text-2xl md:text-3xl font-bold">All Series</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+          <div className="flex items-center gap-2">
+            <ListVideo className="h-6 w-6 md:h-8 md:w-8 text-sage-500" />
+            <h1 className="text-2xl md:text-3xl font-bold">All Series</h1>
+          </div>
+          {(projects && projects.length > 0) && (
+            <CreateSeriesDialog projects={projects} />
+          )}
         </div>
         <p className="text-sm md:text-base text-muted-foreground">
           Manage video series continuity across all your projects
@@ -103,25 +106,36 @@ export default async function AllSeriesPage() {
               Create your first series to maintain character and setting
               continuity across video episodes.
             </p>
-            <Button
-              size="sm"
-              className="bg-sage-500 hover:bg-sage-700 w-full sm:w-auto"
-              asChild
-            >
-              <Link href="/dashboard">
-                <FolderKanban className="mr-2 h-4 w-4" />
-                Go to Projects
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              {(projects && projects.length > 0) && (
+                <CreateSeriesDialog projects={projects} />
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full sm:w-auto"
+                asChild
+              >
+                <Link href="/dashboard">
+                  <FolderKanban className="mr-2 h-4 w-4" />
+                  Go to Projects
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {series.map((item: any) => {
+            // Determine the link based on project association
+            const linkHref = item.project
+              ? `/dashboard/projects/${item.project.id}/series/${item.id}`
+              : `/dashboard/series/${item.id}`
+
             return (
               <Link
                 key={item.id}
-                href={`/dashboard/projects/${item.project.id}/series/${item.id}`}
+                href={linkHref}
                 className="rounded-lg border p-4 hover:border-sage-500 transition-colors cursor-pointer block"
               >
                 <div className="flex items-start justify-between mb-3">
@@ -131,7 +145,7 @@ export default async function AllSeriesPage() {
                     </h3>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
                       <FolderKanban className="h-3 w-3" />
-                      <span>{item.project.name}</span>
+                      <span>{item.project?.name || 'Standalone Series'}</span>
                     </div>
                   </div>
                   {item.genre && (

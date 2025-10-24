@@ -15,7 +15,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Users, Edit, Trash2 } from 'lucide-react'
+import { Plus, Users, Edit, Trash2, Image as ImageIcon } from 'lucide-react'
+import { CharacterVisualCues } from './character-visual-cues'
+import { VisualCue } from '@/lib/types/database.types'
+import { CharacterConsistencyForm } from './character-consistency-form'
+import type { VisualFingerprint, VoiceProfile } from '@/lib/types/character-consistency'
 
 interface Character {
   id: string
@@ -23,6 +27,11 @@ interface Character {
   description: string
   role: 'protagonist' | 'supporting' | 'background' | 'other' | null
   performance_style: string | null
+  visual_reference_url?: string | null
+  visual_cues?: VisualCue[]
+  visual_fingerprint?: any
+  voice_profile?: any
+  sora_prompt_template?: string | null
 }
 
 interface CharacterManagerProps {
@@ -37,6 +46,8 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedCharacterForVisuals, setSelectedCharacterForVisuals] = useState<Character | null>(null)
+  const [showVisualCues, setShowVisualCues] = useState(false)
 
   type CharacterRole = 'protagonist' | 'supporting' | 'background' | 'other'
 
@@ -45,11 +56,15 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
     description: string
     role: CharacterRole
     performance_style: string
+    visual_fingerprint: Partial<VisualFingerprint>
+    voice_profile: Partial<VoiceProfile>
   }>({
     name: '',
     description: '',
     role: 'protagonist',
     performance_style: '',
+    visual_fingerprint: {},
+    voice_profile: {},
   })
 
   const resetForm = () => {
@@ -58,6 +73,8 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
       description: '',
       role: 'protagonist',
       performance_style: '',
+      visual_fingerprint: {},
+      voice_profile: {},
     })
     setEditingCharacter(null)
     setError(null)
@@ -70,8 +87,21 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
       description: character.description,
       role: character.role || 'protagonist',
       performance_style: character.performance_style || '',
+      visual_fingerprint: character.visual_fingerprint || {},
+      voice_profile: character.voice_profile || {},
     })
     setShowForm(true)
+  }
+
+  const handleConsistencyChange = (data: {
+    visualFingerprint: Partial<VisualFingerprint>
+    voiceProfile: Partial<VoiceProfile>
+  }) => {
+    setFormData(prev => ({
+      ...prev,
+      visual_fingerprint: data.visualFingerprint,
+      voice_profile: data.voiceProfile,
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +215,17 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => {
+                        setSelectedCharacterForVisuals(character)
+                        setShowVisualCues(true)
+                      }}
+                      title="Manage visual references"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleEdit(character)}
                     >
                       <Edit className="h-4 w-4" />
@@ -215,7 +256,7 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
       )}
 
       <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) resetForm() }}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingCharacter ? 'Edit Character' : 'Add Character'}</DialogTitle>
             <DialogDescription>
@@ -223,8 +264,8 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="space-y-4 py-4 overflow-y-auto flex-1">
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded text-sm">
                   {error}
@@ -279,9 +320,20 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
                   placeholder="e.g., deliberate and unhurried, energetic"
                 />
               </div>
+
+              {/* Character Consistency Section */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-medium mb-4">Character Consistency (for Sora)</h3>
+                <CharacterConsistencyForm
+                  visualFingerprint={formData.visual_fingerprint}
+                  voiceProfile={formData.voice_profile}
+                  generatedTemplate={editingCharacter?.sora_prompt_template || null}
+                  onChange={handleConsistencyChange}
+                />
+              </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-shrink-0 pt-4 mt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -295,6 +347,51 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Visual Cues Dialog */}
+      <Dialog open={showVisualCues} onOpenChange={(open) => {
+        setShowVisualCues(open)
+        if (!open) setSelectedCharacterForVisuals(null)
+      }}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Visual References - {selectedCharacterForVisuals?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Upload visual references to maintain appearance consistency for this character
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedCharacterForVisuals && (() => {
+            // Get fresh character data from state to ensure props are always current
+            const currentCharacter = characters.find(c => c.id === selectedCharacterForVisuals.id) || selectedCharacterForVisuals
+
+            return (
+              <CharacterVisualCues
+                seriesId={seriesId}
+                characterId={currentCharacter.id}
+                characterName={currentCharacter.name}
+                primaryImageUrl={currentCharacter.visual_reference_url}
+                visualCues={currentCharacter.visual_cues}
+                onUpdate={() => {
+                  router.refresh()
+                  // Refetch character data to update local state
+                  fetch(`/api/series/${seriesId}/characters/${currentCharacter.id}`)
+                    .then(res => res.json())
+                    .then(updatedChar => {
+                      setCharacters(characters.map(c =>
+                        c.id === updatedChar.id ? updatedChar : c
+                      ))
+                      // Also update the selected character reference
+                      setSelectedCharacterForVisuals(updatedChar)
+                    })
+                }}
+              />
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>

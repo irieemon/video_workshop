@@ -20,7 +20,7 @@ export default async function ProjectDetailPage({
       `
       *,
       videos:videos(*),
-      series:series(*)
+      series:series!series_project_id_fkey(*)
     `
     )
     .eq('id', id)
