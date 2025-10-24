@@ -236,16 +236,16 @@ export function CharacterVisualCues({
                 <div className="pt-3 border-t">
                   <span className="font-medium text-muted-foreground mb-2 block">Extracted Features:</span>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    {Object.entries(analysisResult.character.visual_fingerprint).map(([key, value]) => (
-                      value && (
+                    {Object.entries(analysisResult.character.visual_fingerprint)
+                      .filter(([_, value]) => value)
+                      .map(([key, value]) => (
                         <div key={key} className="flex flex-col">
                           <span className="text-muted-foreground capitalize">
                             {key.replace(/_/g, ' ')}:
                           </span>
                           <span className="font-medium">{String(value)}</span>
                         </div>
-                      )
-                    ))}
+                      ))}
                   </div>
                 </div>
               )}

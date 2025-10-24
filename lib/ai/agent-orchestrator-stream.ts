@@ -242,10 +242,12 @@ export async function streamAgentRoundtable(
 
     try {
       // Generate conversational response
-      const conversationalPrompt =
-        agentKey === 'platform_expert'
-          ? agent.conversationalPrompt(brief, platform, completedAgents)
-          : agent.conversationalPrompt(brief, completedAgents)
+      let conversationalPrompt: string
+      if (agentKey === 'platform_expert') {
+        conversationalPrompt = agents.platform_expert.conversationalPrompt(brief, platform, completedAgents)
+      } else {
+        conversationalPrompt = (agent as any).conversationalPrompt(brief, completedAgents)
+      }
 
       const conversationalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
@@ -296,10 +298,12 @@ export async function streamAgentRoundtable(
       }
 
       // Generate technical analysis (non-streaming, hidden from UI)
-      const technicalPrompt =
-        agentKey === 'platform_expert'
-          ? agent.technicalPrompt(brief, platform)
-          : agent.technicalPrompt(brief)
+      let technicalPrompt: string
+      if (agentKey === 'platform_expert') {
+        technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
+      } else {
+        technicalPrompt = (agent as any).technicalPrompt(brief)
+      }
 
       const technicalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {

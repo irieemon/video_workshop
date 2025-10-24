@@ -612,9 +612,14 @@ export interface DetailedBreakdown {
 
 // Advanced Mode Types
 export interface Shot {
+  id?: string
+  shotNumber?: number
   timing: string
   description: string
   camera: string
+  cameraAngle?: string
+  cameraMovement?: string
+  duration?: string
   order: number
   lighting?: string
   notes?: string

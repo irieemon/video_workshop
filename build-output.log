@@ -1,0 +1,29 @@
+
+> sora-video-generator@1.0.0 build
+> next build
+
+   ▲ Next.js 15.5.6
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 5.0s
+   Linting and checking validity of types ...
+Failed to compile.
+
+./components/series/character-visual-cues.tsx:239:21
+Type error: Type 'unknown[]' is not assignable to type 'ReactNode'.
+  Type 'unknown[]' is not assignable to type 'Iterable<ReactNode>'.
+    The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.
+      Type 'IteratorResult<unknown, undefined>' is not assignable to type 'IteratorResult<ReactNode, any>'.
+        Type 'IteratorYieldResult<unknown>' is not assignable to type 'IteratorResult<ReactNode, any>'.
+          Type 'IteratorYieldResult<unknown>' is not assignable to type 'IteratorYieldResult<ReactNode>'.
+            Type 'unknown' is not assignable to type 'ReactNode'.
+
+[0m [90m 237 |[39m                   [33m<[39m[33mspan[39m className[33m=[39m[32m"font-medium text-muted-foreground mb-2 block"[39m[33m>[39m[33mExtracted[39m [33mFeatures[39m[33m:[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m
+ [90m 238 |[39m                   [33m<[39m[33mdiv[39m className[33m=[39m[32m"grid grid-cols-2 gap-2 text-xs"[39m[33m>[39m
+[31m[1m>[22m[39m[90m 239 |[39m                     {[33mObject[39m[33m.[39mentries(analysisResult[33m.[39mcharacter[33m.[39mvisual_fingerprint)[33m.[39mmap(([key[33m,[39m value]) [33m=>[39m (
+ [90m     |[39m                     [31m[1m^[22m[39m
+ [90m 240 |[39m                       value [33m&&[39m (
+ [90m 241 |[39m                         [33m<[39m[33mdiv[39m key[33m=[39m{key} className[33m=[39m[32m"flex flex-col"[39m[33m>[39m
+ [90m 242 |[39m                           [33m<[39m[33mspan[39m className[33m=[39m[32m"text-muted-foreground capitalize"[39m[33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: null
