@@ -4,10 +4,11 @@ import OpenAI from 'openai'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  organization: 'org-JK5lVhiqePvkP3UHeLcABv0p',
 })
 
 interface SoraGenerationSettings {
-  duration?: number // in seconds (4-20s)
+  duration?: number // in seconds (4, 8, or 12 for Sora 2)
   aspect_ratio?: '16:9' | '9:16' | '1:1'
   resolution?: '1080p' | '720p'
   model?: 'sora-2' | 'sora-2-pro'
@@ -39,9 +40,16 @@ export async function POST(
     const { id: videoId } = await params
     const body: SoraGenerationRequest = await request.json()
 
+    // Validate and normalize duration to Sora 2 supported values (4, 8, 12)
+    const requestedDuration = body.settings?.duration || 4
+    let duration = 4 // default
+    if (requestedDuration >= 12) duration = 12
+    else if (requestedDuration >= 8) duration = 8
+    else duration = 4
+
     // Default settings
     const settings: SoraGenerationSettings = {
-      duration: body.settings?.duration || 5,
+      duration,
       aspect_ratio: body.settings?.aspect_ratio || '9:16',
       resolution: body.settings?.resolution || '1080p',
       model: body.settings?.model || 'sora-2',
@@ -62,50 +70,66 @@ export async function POST(
       )
     }
 
-    // Check if video has a final prompt
-    if (!video.final_prompt) {
+    // Check if video has an optimized prompt
+    console.log('Video data:', { id: video.id, optimized_prompt: video.optimized_prompt, title: video.title })
+    if (!video.optimized_prompt) {
       return NextResponse.json(
         { error: 'Video must have a final prompt before generation' },
         { status: 400 }
       )
     }
 
-    // Check if already generating
+    // Check if already generating (allow retry if stuck for > 15 minutes)
     if (video.sora_generation_status === 'queued' || video.sora_generation_status === 'in_progress') {
-      return NextResponse.json(
-        { error: 'Video generation already in progress' },
-        { status: 409 }
-      )
+      // Check if generation has been stuck for more than 15 minutes
+      if (video.sora_started_at) {
+        const startedAt = new Date(video.sora_started_at)
+        const now = new Date()
+        const minutesElapsed = (now.getTime() - startedAt.getTime()) / (1000 * 60)
+
+        if (minutesElapsed < 15) {
+          return NextResponse.json(
+            { error: 'Video generation already in progress' },
+            { status: 409 }
+          )
+        }
+
+        // If stuck for > 15 minutes, allow retry
+        console.log(`Generation stuck for ${minutesElapsed.toFixed(0)} minutes, allowing retry`)
+      } else {
+        // No start time, shouldn't happen but allow retry
+        console.log('No start time found, allowing retry')
+      }
     }
 
     // Calculate estimated cost
     const estimatedCost = calculateCost(settings.duration || 5, settings.resolution || '1080p')
 
-    // Create Sora generation job
+    // Create Sora generation job using OpenAI SDK
     let soraJobId: string
     try {
-      const response = await fetch('https://api.openai.com/v1/video/generations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: settings.model,
-          prompt: video.final_prompt,
-          duration: settings.duration,
-          aspect_ratio: settings.aspect_ratio,
-          resolution: settings.resolution,
-        }),
+      const size = convertAspectRatioToSize(
+        settings.aspect_ratio || '9:16',
+        settings.resolution || '1080p'
+      )
+
+      console.log('Creating Sora video with settings:', {
+        model: settings.model,
+        duration: settings.duration,
+        size,
+        aspect_ratio: settings.aspect_ratio,
+        resolution: settings.resolution,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error?.message || 'Sora API request failed')
-      }
+      const videoGeneration = await openai.videos.create({
+        model: settings.model as 'sora-2' | 'sora-2-pro',
+        prompt: video.optimized_prompt,
+        seconds: settings.duration?.toString() || '5',
+        size: size,
+      })
 
-      const data = await response.json()
-      soraJobId = data.id
+      console.log('Sora video generation started:', videoGeneration)
+      soraJobId = videoGeneration.id
     } catch (apiError: any) {
       console.error('Sora API error:', apiError)
       return NextResponse.json(
@@ -152,16 +176,42 @@ export async function POST(
 }
 
 /**
+ * Convert aspect ratio and resolution to Sora API size parameter
+ */
+function convertAspectRatioToSize(
+  aspectRatio: '16:9' | '9:16' | '1:1',
+  resolution: '1080p' | '720p'
+): string {
+  const resHeight = resolution === '1080p' ? 1080 : 720
+
+  switch (aspectRatio) {
+    case '16:9':
+      return resolution === '1080p' ? '1920x1080' : '1280x720'
+    case '9:16':
+      return resolution === '1080p' ? '1080x1920' : '720x1280'
+    case '1:1':
+      return `${resHeight}x${resHeight}`
+    default:
+      return '720x1280' // Default to 9:16 720p
+  }
+}
+
+/**
  * Calculate estimated cost for Sora video generation
+ * Based on duration tiers: 4s (base), 8s (2x), 12s (3x)
  */
 function calculateCost(duration: number, resolution: string): number {
-  const baseCost = 1.00 // Base cost per video
+  const baseCost = 1.00 // Base cost for 4 seconds
   let durationMultiplier = 1.0
   let resolutionMultiplier = 1.0
 
-  // Duration pricing (per second over base 5s)
-  if (duration > 5) {
-    durationMultiplier = 1.0 + ((duration - 5) * 0.1)
+  // Duration pricing tiers (4s, 8s, 12s)
+  if (duration >= 12) {
+    durationMultiplier = 3.0 // 12 seconds
+  } else if (duration >= 8) {
+    durationMultiplier = 2.0 // 8 seconds
+  } else {
+    durationMultiplier = 1.0 // 4 seconds
   }
 
   // Resolution pricing
@@ -171,9 +221,6 @@ function calculateCost(duration: number, resolution: string): number {
       break
     case '720p':
       resolutionMultiplier = 1.0
-      break
-    case '480p':
-      resolutionMultiplier = 0.7
       break
     default:
       resolutionMultiplier = 1.0

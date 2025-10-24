@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { AgentRoundtable } from '@/components/agents/agent-roundtable'
 import { PromptOutput } from '@/components/videos/prompt-output'
+import { SoraGenerationButton } from '@/components/videos/sora-generation-button'
 import { formatDistanceToNow } from 'date-fns'
 
 export default async function VideoDetailPage({
@@ -48,6 +49,14 @@ export default async function VideoDetailPage({
               <span className="sm:hidden">Back</span>
             </Link>
           </Button>
+
+          {video.optimized_prompt && (
+            <SoraGenerationButton
+              videoId={videoId}
+              videoTitle={video.title}
+              finalPrompt={video.optimized_prompt}
+            />
+          )}
         </div>
       </div>
 
@@ -84,6 +93,53 @@ export default async function VideoDetailPage({
         {video.agent_discussion && (
           <div className="mb-6 md:mb-8">
             <AgentRoundtable discussion={video.agent_discussion} />
+          </div>
+        )}
+
+        {/* Sora Generated Video */}
+        {video.sora_video_url && video.sora_generation_status === 'completed' && (
+          <div className="mb-6 md:mb-8">
+            <div className="bg-muted/50 rounded-lg p-4 border">
+              <h3 className="font-semibold text-lg mb-4">Generated Video</h3>
+              <div className="aspect-[9/16] max-w-md mx-auto bg-black rounded-lg overflow-hidden">
+                <video
+                  src={video.sora_video_url}
+                  controls
+                  className="w-full h-full"
+                  playsInline
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <div className="mt-4 flex justify-between items-center text-sm text-muted-foreground">
+                <span>Completed {formatDistanceToNow(new Date(video.sora_completed_at), { addSuffix: true })}</span>
+                {video.sora_generation_cost && (
+                  <span>Cost: ${video.sora_generation_cost.toFixed(2)}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sora Generation Status */}
+        {video.sora_generation_status && video.sora_generation_status !== 'completed' && (
+          <div className="mb-6 md:mb-8">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-sm mb-2">Video Generation Status</h3>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="capitalize">
+                  {video.sora_generation_status}
+                </Badge>
+                {video.sora_generation_status === 'failed' && video.sora_error_message && (
+                  <span className="text-sm text-red-600">{video.sora_error_message}</span>
+                )}
+              </div>
+              {(video.sora_generation_status === 'queued' || video.sora_generation_status === 'in_progress') && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your video is being generated. This may take a few minutes. Refresh the page to check status.
+                </p>
+              )}
+            </div>
           </div>
         )}
 

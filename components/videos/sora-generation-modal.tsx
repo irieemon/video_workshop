@@ -32,7 +32,7 @@ export function SoraGenerationModal({
 }: SoraGenerationModalProps) {
   const [step, setStep] = useState<'settings' | 'generating' | 'completed' | 'failed'>('settings')
   const [settings, setSettings] = useState<SoraGenerationSettings>({
-    duration: 5,
+    duration: 4,
     aspect_ratio: '9:16',
     resolution: '1080p',
     model: 'sora-2',
@@ -132,13 +132,19 @@ export function SoraGenerationModal({
 
   const handleDownload = () => {
     if (videoUrl) {
-      window.open(videoUrl, '_blank')
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a')
+      link.href = videoUrl
+      link.download = `${videoTitle.replace(/[^a-z0-9]/gi, '_')}_sora_video.mp4`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="h-5 w-5" />
@@ -164,11 +170,8 @@ export function SoraGenerationModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="4">4 seconds</SelectItem>
-                  <SelectItem value="5">5 seconds (recommended)</SelectItem>
                   <SelectItem value="8">8 seconds</SelectItem>
-                  <SelectItem value="10">10 seconds</SelectItem>
-                  <SelectItem value="15">15 seconds</SelectItem>
-                  <SelectItem value="20">20 seconds</SelectItem>
+                  <SelectItem value="12">12 seconds</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -275,8 +278,8 @@ export function SoraGenerationModal({
 
         {/* Completed Step */}
         {step === 'completed' && (
-          <div className="flex flex-col items-center justify-center space-y-4 py-8">
-            <CheckCircle2 className="h-16 w-16 text-green-500" />
+          <div className="flex flex-col items-center justify-center space-y-4 py-4">
+            <CheckCircle2 className="h-12 w-12 text-green-500" />
             <div className="text-center">
               <h3 className="text-lg font-semibold">Video Generated Successfully!</h3>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -285,13 +288,16 @@ export function SoraGenerationModal({
             </div>
             {videoUrl && (
               <div className="w-full space-y-2">
-                <video
-                  src={videoUrl}
-                  controls
-                  className="w-full rounded-lg"
-                  autoPlay
-                  loop
-                />
+                <div className="aspect-[9/16] max-w-[300px] mx-auto bg-black rounded-lg overflow-hidden">
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full h-full object-contain"
+                    autoPlay
+                    loop
+                    playsInline
+                  />
+                </div>
               </div>
             )}
           </div>

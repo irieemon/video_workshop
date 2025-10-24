@@ -25,12 +25,13 @@ export default async function ProjectSeriesPage({
   }
 
   // Fetch series with counts
+  const cookieStore = await (await import('next/headers')).cookies()
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/api/projects/${id}/series`,
     {
       cache: 'no-store',
       headers: {
-        Cookie: (await import('next/headers')).cookies().toString(),
+        Cookie: cookieStore.toString(),
       },
     }
   )

@@ -3,6 +3,7 @@ import { getModelForFeature } from './config'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  timeout: 60000, // 60 second timeout for API calls
 })
 
 // Agent definitions with distinct personalities
@@ -241,7 +242,7 @@ export async function streamAgentRoundtable(
     })
 
     try {
-      // Generate conversational response
+      // Generate conversational response with timeout protection
       let conversationalPrompt: string
       if (agentKey === 'platform_expert') {
         conversationalPrompt = agents.platform_expert.conversationalPrompt(brief, platform, completedAgents)
@@ -256,13 +257,22 @@ export async function streamAgentRoundtable(
         },
       ]
 
-      const conversationalStream = await openai.chat.completions.create({
-        model: getModelForFeature('agent'),
-        messages: conversationalMessages,
-        temperature: 0.8, // Higher temp for more natural conversation
-        max_tokens: 300,
-        stream: true,
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`${agent.name} response timed out after 60 seconds`)), 60000)
       })
+
+      // Race between API call and timeout
+      const conversationalStream = await Promise.race([
+        openai.chat.completions.create({
+          model: getModelForFeature('agent'),
+          messages: conversationalMessages,
+          temperature: 0.8, // Higher temp for more natural conversation
+          max_tokens: 300,
+          stream: true,
+        }),
+        timeoutPromise
+      ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
 
       let conversationalResponse = ''
       let sentenceBuffer = ''
@@ -343,11 +353,19 @@ export async function streamAgentRoundtable(
         technical: technicalAnalysis,
       })
     } catch (error: any) {
+      console.error(`Error in ${agent.name} (${agentKey}):`, error)
       sendEvent('agent_error', {
         agent: agentKey,
         name: agent.name,
         error: error.message || 'Failed to get response',
       })
+
+      // Send typing stop even on error
+      sendEvent('typing_stop', {
+        agent: agentKey,
+        name: agent.name,
+      })
+
       round1Results.push({ agent: agentKey, conversational: '', technical: '', error: error.message })
     }
   }

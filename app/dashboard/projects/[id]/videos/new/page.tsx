@@ -79,6 +79,7 @@ export default function NewVideoPage() {
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveProgress, setSaveProgress] = useState<string>('')
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const [soraModalOpen, setSoraModalOpen] = useState(false)
   const [savedVideoId, setSavedVideoId] = useState<string | null>(null)
   const [savedVideoTitle, setSavedVideoTitle] = useState<string>('')
@@ -371,9 +372,15 @@ export default function NewVideoPage() {
 
       // Step 3: Success
       setSaveProgress('Video saved successfully!')
-      await new Promise(resolve => setTimeout(resolve, 500)) // Show success briefly
+      await new Promise(resolve => setTimeout(resolve, 800)) // Show success briefly
 
-      router.push(`/dashboard/projects/${projectId}`)
+      // Don't redirect - stay on page to show "Generate with Sora" button
+      setSaving(false)
+      setSaveProgress('')
+      setSaveSuccess(true)
+
+      // Hide success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err: any) {
       setError(err.message || 'Failed to save video')
       setSaving(false)
@@ -383,6 +390,13 @@ export default function NewVideoPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Success Banner */}
+      {saveSuccess && (
+        <div className="bg-green-500 text-white px-4 py-2 text-center text-sm font-medium">
+          ✓ Video saved successfully! Click "Generate with Sora" to create your video.
+        </div>
+      )}
+
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
         <div className="container flex h-14 md:h-16 items-center justify-between px-4 md:px-8">
           <Button variant="ghost" size="sm" asChild>

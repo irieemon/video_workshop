@@ -4,6 +4,7 @@ import OpenAI from 'openai'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  organization: 'org-JK5lVhiqePvkP3UHeLcABv0p',
 })
 
 /**
@@ -68,43 +69,40 @@ export async function GET(
       })
     }
 
-    // Poll Sora API for job status
+    // Poll Sora API for job status using OpenAI SDK
     let soraStatus: any
     try {
-      const response = await fetch(
-        `https://api.openai.com/v1/video/generations/${video.sora_job_id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          },
-        }
-      )
-
-      if (!response.ok) {
-        // If job not found, mark as failed
-        if (response.status === 404) {
-          await supabase
-            .from('videos')
-            .update({
-              sora_generation_status: 'failed',
-              sora_error_message: 'Job not found in Sora API',
-              sora_completed_at: new Date().toISOString(),
-            })
-            .eq('id', videoId)
-
-          return NextResponse.json({
-            status: 'failed',
-            error: 'Job not found in Sora API',
-          })
-        }
-
-        const errorData = await response.json()
-        throw new Error(errorData.error?.message || 'Status check failed')
-      }
-
-      soraStatus = await response.json()
+      soraStatus = await openai.videos.retrieve(video.sora_job_id)
+      console.log('Sora status check:', soraStatus)
     } catch (apiError: any) {
       console.error('Sora API status check error:', apiError)
+
+      // If job not found, mark as failed
+      if (apiError.status === 404) {
+        await supabase
+          .from('videos')
+          .update({
+            sora_generation_status: 'failed',
+            sora_error_message: 'Job not found in Sora API',
+            sora_completed_at: new Date().toISOString(),
+          })
+          .eq('id', videoId)
+
+        return NextResponse.json({
+          status: 'failed',
+          error: 'Job not found in Sora API',
+        })
+      }
+
+      // If 503 server error, return current status without marking as failed
+      // This is a temporary API issue, video may still be processing
+      if (apiError.status === 503) {
+        console.log('Sora API temporarily unavailable (503), will retry on next poll')
+        return NextResponse.json({
+          status: video.sora_generation_status || 'queued',
+          message: 'Checking status...',
+        })
+      }
 
       return NextResponse.json(
         { error: 'Failed to check generation status', details: apiError.message },
@@ -113,30 +111,62 @@ export async function GET(
     }
 
     // Extract status from Sora response
-    const currentStatus = soraStatus.status || soraStatus.state
+    const currentStatus = soraStatus.status
 
     // Update database based on status
     if (currentStatus === 'completed' || currentStatus === 'succeeded') {
-      // Extract video URL from response
-      // @ts-ignore
-      const videoUrl = soraStatus.video_url || soraStatus.output?.url
+      console.log('Video generation completed, downloading content...')
 
-      if (videoUrl) {
-        // Option: Download and store in Supabase Storage
-        // For now, just store the OpenAI URL
-        await supabase
+      // Download the video content and create a data URL
+      try {
+        const videoContent = await openai.videos.downloadContent(video.sora_job_id)
+        console.log('Video content downloaded successfully')
+
+        // Convert the binary content to a data URL
+        const buffer = Buffer.from(await videoContent.arrayBuffer())
+        const base64Video = buffer.toString('base64')
+        const videoDataUrl = `data:video/mp4;base64,${base64Video}`
+        console.log(`Video converted to base64, size: ${base64Video.length} characters`)
+
+        // Store in database
+        const { error: updateError } = await supabase
           .from('videos')
           .update({
             sora_generation_status: 'completed',
-            sora_video_url: videoUrl,
+            sora_video_url: videoDataUrl,
+            sora_completed_at: new Date().toISOString(),
+          })
+          .eq('id', videoId)
+
+        if (updateError) {
+          console.error('Failed to update database with video URL:', updateError)
+          throw new Error(`Database update failed: ${updateError.message}`)
+        }
+
+        console.log('Video URL saved to database successfully')
+
+        return NextResponse.json({
+          status: 'completed',
+          videoUrl: videoDataUrl,
+          cost: video.sora_generation_cost,
+          completedAt: new Date().toISOString(),
+        })
+      } catch (downloadError: any) {
+        console.error('Failed to download video:', downloadError)
+
+        // Mark as failed if we can't download
+        await supabase
+          .from('videos')
+          .update({
+            sora_generation_status: 'failed',
+            sora_error_message: `Video generated but failed to download: ${downloadError.message}`,
             sora_completed_at: new Date().toISOString(),
           })
           .eq('id', videoId)
 
         return NextResponse.json({
-          status: 'completed',
-          videoUrl,
-          cost: video.sora_generation_cost,
+          status: 'failed',
+          error: `Failed to download video: ${downloadError.message}`,
           completedAt: new Date().toISOString(),
         })
       }

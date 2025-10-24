@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Plus, Film, ListVideo } from 'lucide-react'
 import Link from 'next/link'
+import { VideoCard } from '@/components/projects/video-card'
 
 export default async function ProjectDetailPage({
   params,
@@ -112,19 +113,11 @@ export default async function ProjectDetailPage({
           ) : (
             <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {project.videos?.slice(0, 6).map((video: any) => (
-                <Link
+                <VideoCard
                   key={video.id}
-                  href={`/dashboard/projects/${id}/videos/${video.id}`}
-                  className="rounded-lg border p-3 md:p-4 hover:border-sage-500 transition-colors cursor-pointer block"
-                >
-                  <h4 className="font-medium mb-1 text-sm md:text-base">{video.title}</h4>
-                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
-                    {video.user_brief}
-                  </p>
-                  <Badge variant="outline" className="mt-2 text-xs">
-                    {video.platform}
-                  </Badge>
-                </Link>
+                  video={video}
+                  projectId={id}
+                />
               ))}
             </div>
           )}
