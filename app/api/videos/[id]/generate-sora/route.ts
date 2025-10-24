@@ -84,30 +84,28 @@ export async function POST(
     // Create Sora generation job
     let soraJobId: string
     try {
-      // ⚠️ PLACEHOLDER: This needs to be replaced with actual Sora API endpoint
-      // The actual Sora API uses: POST /v1/video/generations
-      // See SORA-INTEGRATION-COMPLETE.md for correct implementation
+      const response = await fetch('https://api.openai.com/v1/video/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: settings.model,
+          prompt: video.final_prompt,
+          duration: settings.duration,
+          aspect_ratio: settings.aspect_ratio,
+          resolution: settings.resolution,
+        }),
+      })
 
-      // For now, generate a mock job ID for development
-      soraJobId = `sora_mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error?.message || 'Sora API request failed')
+      }
 
-      // TODO: Replace with actual Sora API call:
-      // const response = await fetch('https://api.openai.com/v1/video/generations', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     model: settings.model,
-      //     prompt: video.final_prompt,
-      //     duration: settings.duration,
-      //     aspect_ratio: settings.aspect_ratio,
-      //     resolution: settings.resolution,
-      //   }),
-      // })
-      // const data = await response.json()
-      // soraJobId = data.id || data.job_id
+      const data = await response.json()
+      soraJobId = data.id
     } catch (apiError: any) {
       console.error('Sora API error:', apiError)
       return NextResponse.json(

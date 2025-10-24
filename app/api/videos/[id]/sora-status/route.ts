@@ -71,50 +71,40 @@ export async function GET(
     // Poll Sora API for job status
     let soraStatus: any
     try {
-      // ⚠️ PLACEHOLDER: This needs to be replaced with actual Sora API endpoint
-      // The actual Sora API uses: GET /v1/video/generations/{job_id}
-      // See SORA-INTEGRATION-COMPLETE.md for correct implementation
+      const response = await fetch(
+        `https://api.openai.com/v1/video/generations/${video.sora_job_id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+        }
+      )
 
-      // For development, simulate status progression
-      const mockStatuses = ['queued', 'in_progress', 'completed']
-      const randomStatus = mockStatuses[Math.floor(Math.random() * mockStatuses.length)]
+      if (!response.ok) {
+        // If job not found, mark as failed
+        if (response.status === 404) {
+          await supabase
+            .from('videos')
+            .update({
+              sora_generation_status: 'failed',
+              sora_error_message: 'Job not found in Sora API',
+              sora_completed_at: new Date().toISOString(),
+            })
+            .eq('id', videoId)
 
-      soraStatus = {
-        status: randomStatus,
-        video_url: randomStatus === 'completed'
-          ? 'https://example.com/mock-video.mp4'
-          : null,
+          return NextResponse.json({
+            status: 'failed',
+            error: 'Job not found in Sora API',
+          })
+        }
+
+        const errorData = await response.json()
+        throw new Error(errorData.error?.message || 'Status check failed')
       }
 
-      // TODO: Replace with actual Sora API call:
-      // const response = await fetch(
-      //   `https://api.openai.com/v1/video/generations/${video.sora_job_id}`,
-      //   {
-      //     headers: {
-      //       'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      //     },
-      //   }
-      // )
-      // soraStatus = await response.json()
+      soraStatus = await response.json()
     } catch (apiError: any) {
       console.error('Sora API status check error:', apiError)
-
-      // If job not found, mark as failed
-      if (apiError.status === 404) {
-        await supabase
-          .from('videos')
-          .update({
-            sora_generation_status: 'failed',
-            sora_error_message: 'Job not found in Sora API',
-            sora_completed_at: new Date().toISOString(),
-          })
-          .eq('id', videoId)
-
-        return NextResponse.json({
-          status: 'failed',
-          error: 'Job not found in Sora API',
-        })
-      }
 
       return NextResponse.json(
         { error: 'Failed to check generation status', details: apiError.message },
