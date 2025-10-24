@@ -17,6 +17,7 @@ import { EditablePromptField } from '@/components/videos/editable-prompt-field'
 import { ShotListBuilder } from '@/components/videos/shot-list-builder'
 import { AdditionalGuidance } from '@/components/videos/additional-guidance'
 import { SeriesContextSelector } from '@/components/videos/series-context-selector'
+import { SoraGenerationModal } from '@/components/videos/sora-generation-modal'
 import { Shot } from '@/lib/types/database.types'
 
 interface RoundtableResult {
@@ -78,6 +79,9 @@ export default function NewVideoPage() {
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveProgress, setSaveProgress] = useState<string>('')
+  const [soraModalOpen, setSoraModalOpen] = useState(false)
+  const [savedVideoId, setSavedVideoId] = useState<string | null>(null)
+  const [savedVideoTitle, setSavedVideoTitle] = useState<string>('')
 
   // Fetch series for this project
   useEffect(() => {
@@ -356,6 +360,15 @@ export default function NewVideoPage() {
         throw new Error('Failed to save video')
       }
 
+      const data = await response.json()
+      const videoId = data.video?.id
+
+      // Store video ID and title for Sora generation
+      if (videoId) {
+        setSavedVideoId(videoId)
+        setSavedVideoTitle(brief.slice(0, 100))
+      }
+
       // Step 3: Success
       setSaveProgress('Video saved successfully!')
       await new Promise(resolve => setTimeout(resolve, 500)) // Show success briefly
@@ -380,21 +393,34 @@ export default function NewVideoPage() {
             </Link>
           </Button>
           {result && (
-            <Button
-              onClick={handleSaveVideo}
-              size="sm"
-              className="bg-sage-500 hover:bg-sage-700"
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save'
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSaveVideo}
+                size="sm"
+                className="bg-sage-500 hover:bg-sage-700"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+              {savedVideoId && (
+                <Button
+                  onClick={() => setSoraModalOpen(true)}
+                  size="sm"
+                  variant="default"
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate with Sora
+                </Button>
               )}
-            </Button>
+            </div>
           )}
         </div>
       </div>
@@ -718,6 +744,17 @@ export default function NewVideoPage() {
           </div>
         </div>
       </div>
+
+      {/* Sora Generation Modal */}
+      {savedVideoId && (
+        <SoraGenerationModal
+          open={soraModalOpen}
+          onClose={() => setSoraModalOpen(false)}
+          videoId={savedVideoId}
+          videoTitle={savedVideoTitle}
+          finalPrompt={advancedMode ? editedPrompt : result?.optimizedPrompt}
+        />
+      )}
     </div>
   )
 }
