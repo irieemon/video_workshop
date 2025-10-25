@@ -65,7 +65,7 @@ export function CharacterConsistencyForm({
                 onChange={(e) => updateVisual('age', e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Specific age or range (e.g., "early 30s", "late 20s")
+                Specific age or range (e.g., &quot;early 30s&quot;, &quot;late 20s&quot;)
               </p>
             </div>
 
@@ -356,7 +356,7 @@ export function CharacterConsistencyForm({
         <Card className="border-sage-200 bg-sage-50">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-sage-500" />
+              <Sparkles className="h-5 w-5 text-scenra-amber" />
               Sora Prompt Template
             </CardTitle>
             <CardDescription>
@@ -382,7 +382,7 @@ export function CharacterConsistencyForm({
       <div className="text-sm text-muted-foreground space-y-2">
         <p className="font-medium">💡 Consistency Tips:</p>
         <ul className="list-disc list-inside space-y-1 ml-2">
-          <li>Be as specific as possible - "shoulder-length wavy black hair" is better than "dark hair"</li>
+          <li>Be as specific as possible - &quot;shoulder-length wavy black hair&quot; is better than &quot;dark hair&quot;</li>
           <li>Required fields (*) are essential for Sora to maintain consistency</li>
           <li>The generated template shows exactly what Sora will receive in every prompt</li>
           <li>Once set, these details remain locked across all videos in the series</li>

@@ -84,8 +84,8 @@ export function PromptOutput({
         <CardContent>
           <div className="space-y-4">
             {/* Prompt Text */}
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            <div className="p-4 bg-scenra-dark-panel border border-scenra-blue/20 rounded-lg">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-scenra-light">
                 {optimizedPrompt}
               </p>
             </div>

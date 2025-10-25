@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ListVideo, FolderKanban, Plus } from 'lucide-react'
+import { ListVideo, FolderKanban, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { CreateSeriesDialog } from '@/components/series/create-series-dialog'
+import { SeriesCard } from '@/components/series/series-card'
 
 export default async function AllSeriesPage() {
   const supabase = await createClient()
@@ -25,11 +25,17 @@ export default async function AllSeriesPage() {
     .eq('user_id', user.id)
     .order('name', { ascending: true })
 
-  // Fetch all series for the user (now queries by user_id directly)
-  // Use explicit FK to avoid ambiguity with projects.default_series_id
+  // Fetch all series for the user with counts in a single query
+  // Using Supabase's aggregation feature to avoid N+1 queries
   const { data, error: seriesError } = await supabase
     .from('series')
-    .select('*, project:projects!series_project_id_fkey(id, name)')
+    .select(`
+      *,
+      project:projects!series_project_id_fkey(id, name),
+      episodes:series_episodes(count),
+      characters:series_characters(count),
+      settings:series_settings(count)
+    `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -37,42 +43,20 @@ export default async function AllSeriesPage() {
     console.error('Error fetching series:', seriesError)
   }
 
-  // Fetch counts separately for each series
-  let allSeries = null
-  if (data) {
-    const seriesWithCounts = await Promise.all(
-      data.map(async (s: any) => {
-        const [{ count: characterCount }, { count: settingCount }] =
-          await Promise.all([
-            supabase
-              .from('series_characters')
-              .select('*', { count: 'exact', head: true })
-              .eq('series_id', s.id),
-            supabase
-              .from('series_settings')
-              .select('*', { count: 'exact', head: true })
-              .eq('series_id', s.id),
-          ])
-
-        return {
-          ...s,
-          character_count: characterCount || 0,
-          setting_count: settingCount || 0,
-        }
-      })
-    )
-    allSeries = seriesWithCounts
-  }
-
-  const series = allSeries || []
-
-  const genreColors: Record<string, string> = {
-    narrative: 'bg-blue-100 text-blue-800',
-    'product-showcase': 'bg-purple-100 text-purple-800',
-    educational: 'bg-green-100 text-green-800',
-    'brand-content': 'bg-orange-100 text-orange-800',
-    other: 'bg-gray-100 text-gray-800',
-  }
+  // Transform the data to include counts in a clean format
+  const series = data
+    ? data.map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        genre: s.genre,
+        character_count: (s.characters as any)?.[0]?.count || 0,
+        setting_count: (s.settings as any)?.[0]?.count || 0,
+        episode_count: (s.episodes as any)?.[0]?.count || 0,
+        updated_at: s.updated_at,
+        project_id: (s.project as any)?.id || null,
+      }))
+    : []
 
   return (
     <div className="p-4 md:p-8">
@@ -80,12 +64,20 @@ export default async function AllSeriesPage() {
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
           <div className="flex items-center gap-2">
-            <ListVideo className="h-6 w-6 md:h-8 md:w-8 text-sage-500" />
+            <ListVideo className="h-6 w-6 md:h-8 md:w-8 text-scenra-amber" />
             <h1 className="text-2xl md:text-3xl font-bold">All Series</h1>
           </div>
-          {(projects && projects.length > 0) && (
-            <CreateSeriesDialog projects={projects} />
-          )}
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/series/concept">
+                <Sparkles className="h-4 w-4 mr-2" />
+                AI-Assisted
+              </Link>
+            </Button>
+            {(projects && projects.length > 0) && (
+              <CreateSeriesDialog projects={projects} />
+            )}
+          </div>
         </div>
         <p className="text-sm md:text-base text-muted-foreground">
           Manage video series continuity across all your projects
@@ -107,69 +99,32 @@ export default async function AllSeriesPage() {
               continuity across video episodes.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              {(projects && projects.length > 0) && (
-                <CreateSeriesDialog projects={projects} />
-              )}
               <Button
                 size="sm"
                 variant="outline"
                 className="w-full sm:w-auto"
                 asChild
               >
-                <Link href="/dashboard">
-                  <FolderKanban className="mr-2 h-4 w-4" />
-                  Go to Projects
+                <Link href="/dashboard/series/concept">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  AI-Assisted Creation
                 </Link>
               </Button>
+              {(projects && projects.length > 0) && (
+                <CreateSeriesDialog projects={projects} />
+              )}
             </div>
           </div>
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {series.map((item: any) => {
-            // Determine the link based on project association
-            const linkHref = item.project
-              ? `/dashboard/projects/${item.project.id}/series/${item.id}`
-              : `/dashboard/series/${item.id}`
-
-            return (
-              <Link
-                key={item.id}
-                href={linkHref}
-                className="rounded-lg border p-4 hover:border-sage-500 transition-colors cursor-pointer block"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-base md:text-lg mb-1">
-                      {item.name}
-                    </h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                      <FolderKanban className="h-3 w-3" />
-                      <span>{item.project?.name || 'Standalone Series'}</span>
-                    </div>
-                  </div>
-                  {item.genre && (
-                    <Badge
-                      variant="secondary"
-                      className={`${genreColors[item.genre]} text-xs`}
-                    >
-                      {item.genre.replace('-', ' ')}
-                    </Badge>
-                  )}
-                </div>
-
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                  {item.description || 'No description'}
-                </p>
-
-                <div className="flex gap-3 text-xs text-muted-foreground">
-                  <span>{item.character_count} characters</span>
-                  <span>•</span>
-                  <span>{item.setting_count} settings</span>
-                </div>
-              </Link>
-            )
-          })}
+          {series.map((item: any) => (
+            <SeriesCard
+              key={item.id}
+              series={item}
+              projectId={item.project_id}
+            />
+          ))}
         </div>
       )}
     </div>

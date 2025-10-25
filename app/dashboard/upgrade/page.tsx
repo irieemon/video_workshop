@@ -44,7 +44,7 @@ export default function UpgradePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-sage-500">
+          <Card className="border-scenra-amber">
             <CardHeader>
               <CardTitle>Pro Plan</CardTitle>
               <CardDescription>For professional creators</CardDescription>
@@ -59,7 +59,7 @@ export default function UpgradePage() {
                   <li>✓ Priority support</li>
                   <li>✓ Series management</li>
                 </ul>
-                <Button className="w-full bg-sage-600 hover:bg-sage-700">
+                <Button className="w-full bg-sage-600 hover:bg-scenra-dark">
                   Upgrade to Pro
                 </Button>
               </div>

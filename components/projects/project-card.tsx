@@ -18,21 +18,23 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link href={`/dashboard/projects/${project.id}`}>
-      <Card className="hover:border-sage-500 transition-colors cursor-pointer h-full">
+      <Card className="scenra-card-hover cursor-pointer h-full group">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <FolderKanban className="h-7 w-7 md:h-8 md:w-8 text-sage-500 mb-2" />
-            <Badge variant="secondary" className="text-xs">
+            <FolderKanban className="h-7 w-7 md:h-8 md:w-8 text-scenra-amber mb-2 group-hover:scale-110 transition-transform duration-200" />
+            <Badge variant="secondary" className="text-xs bg-scenra-blue text-white">
               {project.video_count} {project.video_count === 1 ? 'video' : 'videos'}
             </Badge>
           </div>
-          <CardTitle className="text-lg md:text-xl">{project.name}</CardTitle>
-          <CardDescription className="line-clamp-2 min-h-[2.5rem] text-sm">
+          <CardTitle className="text-lg md:text-xl scenra-heading group-hover:text-scenra-amber transition-colors duration-200">
+            {project.name}
+          </CardTitle>
+          <CardDescription className="line-clamp-2 min-h-[2.5rem] text-sm scenra-text-muted">
             {project.description || 'No description'}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm scenra-text-muted">
             <div className="flex items-center gap-3 md:gap-4">
               <div className="flex items-center gap-1">
                 <Film className="h-4 w-4" />

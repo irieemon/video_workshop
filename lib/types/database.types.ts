@@ -413,6 +413,7 @@ export interface Database {
           user_id: string
           project_id: string | null
           series_id: string | null
+          episode_id: string | null
           title: string
           user_brief: string
           agent_discussion: AgentDiscussion
@@ -431,6 +432,7 @@ export interface Database {
           user_id: string
           project_id?: string | null
           series_id?: string | null
+          episode_id?: string | null
           title: string
           user_brief: string
           agent_discussion: Json
@@ -449,6 +451,7 @@ export interface Database {
           user_id?: string
           project_id?: string | null
           series_id?: string | null
+          episode_id?: string | null
           title?: string
           user_brief?: string
           agent_discussion?: Json
@@ -713,4 +716,82 @@ export interface VisualCue {
   caption: string
   type: VisualCueType
   uploaded_at: string
+}
+
+// Episode Types
+export type EpisodeStatus = 'concept' | 'draft' | 'in-progress' | 'complete'
+
+export interface Act {
+  act_number: number
+  title: string
+  description: string
+  scenes: string[] // scene IDs
+}
+
+export interface Scene {
+  scene_id: string
+  scene_number: number
+  location: string
+  time_of_day: 'INT' | 'EXT' | 'INT/EXT'
+  time_period: 'DAY' | 'NIGHT' | 'DAWN' | 'DUSK' | 'CONTINUOUS'
+  description: string
+  characters: string[]
+  dialogue?: {
+    character: string
+    lines: string[]
+  }[]
+  action: string[]
+  duration_estimate?: number // in seconds
+}
+
+export interface Beat {
+  beat_id: string
+  act_number: number
+  scene_id?: string
+  beat_type: 'plot' | 'character' | 'theme' | 'turning-point'
+  description: string
+  emotional_tone?: string
+}
+
+export interface StructuredScreenplay {
+  acts: Act[]
+  scenes: Scene[]
+  beats: Beat[]
+  notes?: string[]
+}
+
+export interface Episode {
+  id: string
+  series_id: string
+  user_id: string
+  season_number: number
+  episode_number: number
+  title: string
+  logline: string | null
+  screenplay_text: string | null
+  structured_screenplay: StructuredScreenplay | null
+  status: EpisodeStatus
+  current_session_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Project-Series Junction Table
+export interface ProjectSeries {
+  id: string
+  project_id: string
+  series_id: string
+  created_at: string
+  created_by: string
+}
+
+// Video Generation Source
+export type VideoGenerationSource = 'manual' | 'episode' | 'template'
+
+export interface VideoSourceMetadata {
+  episode_number?: number
+  season_number?: number
+  screenplay_version?: number
+  conversion_timestamp?: string
+  original_episode_id?: string
 }

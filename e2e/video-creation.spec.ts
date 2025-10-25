@@ -33,7 +33,7 @@ test.describe('Video Creation Flow', () => {
     )
 
     // Select platform (TikTok should be default)
-    await expect(page.locator('button:has-text("TikTok")')).toHaveClass(/bg-sage-500/)
+    await expect(page.locator('button:has-text("TikTok")')).toHaveClass(/bg-scenra-amber/)
 
     // Start roundtable
     await page.click('button:has-text("Start Roundtable")')

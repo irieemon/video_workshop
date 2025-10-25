@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -167,18 +168,20 @@ export function VisualAssetUploader({ seriesId, onUploadComplete }: VisualAssetU
 
           {/* Preview */}
           {preview && (
-            <div className="relative border rounded-lg overflow-hidden">
-              <img
+            <div className="relative border rounded-lg overflow-hidden h-48">
+              <Image
                 src={preview}
                 alt="Preview"
-                className="w-full h-48 object-contain bg-muted"
+                fill
+                className="object-contain bg-muted"
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
               <button
                 onClick={() => {
                   setFile(null)
                   setPreview(null)
                 }}
-                className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background"
+                className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background z-10"
                 disabled={uploading}
               >
                 <X className="h-4 w-4" />

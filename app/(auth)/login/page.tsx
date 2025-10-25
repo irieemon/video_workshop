@@ -61,7 +61,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
           <CardDescription>
-            Sign in to your Sora2 Prompt Studio account
+            Sign in to your Scenra Prompt Studio account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -83,7 +83,7 @@ export default function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-sage-700 hover:text-sage-500"
+                  className="text-sm text-scenra-dark hover:text-scenra-amber"
                 >
                   Forgot password?
                 </Link>
@@ -165,7 +165,7 @@ export default function LoginPage() {
         <CardFooter>
           <p className="text-sm text-center w-full text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-sage-700 hover:text-sage-500 font-medium">
+            <Link href="/signup" className="text-scenra-dark hover:text-scenra-amber font-medium">
               Sign up
             </Link>
           </p>

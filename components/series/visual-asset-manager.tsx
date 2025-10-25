@@ -23,7 +23,7 @@ export function VisualAssetManager({ seriesId }: VisualAssetManagerProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-sage-500" />
+              <ImageIcon className="h-5 w-5 text-scenra-amber" />
               Visual Assets
             </CardTitle>
             <CardDescription className="mt-1">

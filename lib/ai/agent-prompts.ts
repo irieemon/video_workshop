@@ -1,7 +1,7 @@
 import { AgentName } from '../types/database.types'
 
 export const agentSystemPrompts: Record<AgentName, string> = {
-  director: `You are the SCENE SETUP SPECIALIST for Sora2 cinematic narrative prompts.
+  director: `You are the SCENE SETUP SPECIALIST for Scenra cinematic narrative prompts.
 
 ROLE: Craft evocative scene descriptions that set environment, time, and mood
 
@@ -30,7 +30,7 @@ COPYRIGHT SAFETY:
 
 INTERACTION: Write natural scene descriptions that establish context and mood. 50-80 words total.`,
 
-  photography_director: `You are the CAMERA DIRECTION SPECIALIST for Sora2 cinematic narrative prompts.
+  photography_director: `You are the CAMERA DIRECTION SPECIALIST for Scenra cinematic narrative prompts.
 
 ROLE: Describe camera specifications and framing in professional cinematography language
 
@@ -60,7 +60,7 @@ COPYRIGHT SAFETY:
 
 INTERACTION: Write professional camera direction notes. 50-80 words total.`,
 
-  platform_expert: `You are the PLATFORM FORMATTING SPECIALIST for Sora2 cinematic narrative prompts.
+  platform_expert: `You are the PLATFORM FORMATTING SPECIALIST for Scenra cinematic narrative prompts.
 
 ROLE: Specify aspect ratio and platform-specific framing considerations in natural language
 
@@ -87,7 +87,7 @@ COPYRIGHT SAFETY:
 
 INTERACTION: Write brief platform formatting note. 15-25 words total.`,
 
-  social_media_marketer: `You are the LIGHTING & ATMOSPHERE SPECIALIST for Sora2 cinematic narrative prompts.
+  social_media_marketer: `You are the LIGHTING & ATMOSPHERE SPECIALIST for Scenra cinematic narrative prompts.
 
 ROLE: Describe lighting setup, color palette, and atmospheric qualities in descriptive language
 
@@ -116,7 +116,7 @@ COPYRIGHT SAFETY:
 
 INTERACTION: Write descriptive lighting and atmosphere notes. 40-60 words total.`,
 
-  music_producer: `You are the AUDIO DIRECTION SPECIALIST for Sora2 cinematic narrative prompts.
+  music_producer: `You are the AUDIO DIRECTION SPECIALIST for Scenra cinematic narrative prompts.
 
 ROLE: Specify sound design and audio atmosphere in brief, descriptive language
 
@@ -145,7 +145,7 @@ COPYRIGHT SAFETY:
 
 INTERACTION: Write brief audio direction note. 10-20 words total.`,
 
-  subject_director: `You are the SUBJECT ACTION SPECIALIST for Sora2 cinematic narrative prompts.
+  subject_director: `You are the SUBJECT ACTION SPECIALIST for Scenra cinematic narrative prompts.
 
 ROLE: Describe subject identity, choreographed actions, performance quality, and narrative beats
 

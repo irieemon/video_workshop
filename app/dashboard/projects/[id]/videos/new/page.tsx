@@ -18,6 +18,7 @@ import { ShotListBuilder } from '@/components/videos/shot-list-builder'
 import { AdditionalGuidance } from '@/components/videos/additional-guidance'
 import { SeriesContextSelector } from '@/components/videos/series-context-selector'
 import { SoraGenerationModal } from '@/components/videos/sora-generation-modal'
+import { EpisodeSelector } from '@/components/videos/episode-selector'
 import { Shot } from '@/lib/types/database.types'
 
 interface RoundtableResult {
@@ -55,6 +56,7 @@ export default function NewVideoPage() {
   const [brief, setBrief] = useState('')
   const [platform, setPlatform] = useState<'tiktok' | 'instagram'>('tiktok')
   const [seriesId, setSeriesId] = useState<string | null>(null)
+  const [episodeId, setEpisodeId] = useState<string | null>(null)
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
   const [selectedSettings, setSelectedSettings] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -84,15 +86,19 @@ export default function NewVideoPage() {
   const [savedVideoId, setSavedVideoId] = useState<string | null>(null)
   const [savedVideoTitle, setSavedVideoTitle] = useState<string>('')
 
-  // Fetch series for this project
+  // Fetch series associated with this project
   useEffect(() => {
     const fetchSeries = async () => {
       try {
-        const response = await fetch(`/api/projects/${projectId}`)
+        const response = await fetch(`/api/projects/${projectId}/series`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch series')
+        }
         const data = await response.json()
-        setSeries(data.series || [])
+        setSeries(Array.isArray(data) ? data : [])
       } catch (err) {
         console.error('Failed to fetch series:', err)
+        setSeries([])
       }
     }
     fetchSeries()
@@ -324,6 +330,7 @@ export default function NewVideoPage() {
         body: JSON.stringify({
           projectId,
           seriesId,
+          episodeId: episodeId || undefined,
           selectedCharacters,
           selectedSettings,
           title: brief.slice(0, 100),
@@ -334,6 +341,13 @@ export default function NewVideoPage() {
           characterCount: finalCharCount,
           platform,
           hashtags: result.hashtags,
+          generation_source: episodeId ? 'episode' : 'manual',
+          source_metadata: episodeId
+            ? {
+                original_episode_id: episodeId,
+                conversion_timestamp: new Date().toISOString(),
+              }
+            : {},
           user_edits: advancedMode
             ? {
                 mode: 'advanced',
@@ -393,7 +407,7 @@ export default function NewVideoPage() {
       {/* Success Banner */}
       {saveSuccess && (
         <div className="bg-green-500 text-white px-4 py-2 text-center text-sm font-medium">
-          ✓ Video saved successfully! Click "Generate with Sora" to create your video.
+          ✓ Video saved successfully! Click &quot;Generate with Sora&quot; to create your video.
         </div>
       )}
 
@@ -411,7 +425,7 @@ export default function NewVideoPage() {
               <Button
                 onClick={handleSaveVideo}
                 size="sm"
-                className="bg-sage-500 hover:bg-sage-700"
+                className="bg-scenra-amber hover:bg-scenra-dark"
                 disabled={saving}
               >
                 {saving ? (
@@ -446,13 +460,13 @@ export default function NewVideoPage() {
             <Card className="w-full max-w-md mx-4">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center justify-center py-8">
-                  <Loader2 className="h-12 w-12 animate-spin text-sage-500 mb-4" />
+                  <Loader2 className="h-12 w-12 animate-spin text-scenra-amber mb-4" />
                   <p className="text-lg font-medium mb-2">Saving Your Video</p>
                   <p className="text-sm text-muted-foreground text-center mb-4">
                     {saveProgress || 'Processing...'}
                   </p>
                   <div className="w-full bg-sage-100 rounded-full h-2 overflow-hidden">
-                    <div className="bg-sage-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }} />
+                    <div className="bg-scenra-amber h-2 rounded-full animate-pulse" style={{ width: '70%' }} />
                   </div>
                 </div>
               </CardContent>
@@ -466,7 +480,7 @@ export default function NewVideoPage() {
             <Card>
               <CardHeader className="pb-3 md:pb-6">
                 <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-sage-500" />
+                  <Sparkles className="h-5 w-5 text-scenra-amber" />
                   Video Brief
                 </CardTitle>
                 <CardDescription className="text-sm">
@@ -478,7 +492,7 @@ export default function NewVideoPage() {
                   <Label htmlFor="brief" className="text-sm">Brief Description *</Label>
                   <textarea
                     id="brief"
-                    className="flex min-h-[120px] md:min-h-[150px] w-full rounded-md border border-input bg-background px-2 md:px-3 py-2 text-xs md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[120px] md:min-h-[150px] w-full rounded-md border border-input bg-background px-2 md:px-3 py-2 text-xs md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scenra-amber focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Example: Unboxing video for luxury skincare serum, Gen Z audience, need high engagement..."
                     value={brief}
                     onChange={(e) => setBrief(e.target.value)}
@@ -498,7 +512,7 @@ export default function NewVideoPage() {
                       variant={platform === 'tiktok' ? 'default' : 'outline'}
                       onClick={() => setPlatform('tiktok')}
                       disabled={loading || !!result}
-                      className={platform === 'tiktok' ? 'bg-sage-500 hover:bg-sage-700' : ''}
+                      className={platform === 'tiktok' ? 'bg-scenra-amber hover:bg-scenra-dark' : ''}
                     >
                       TikTok
                     </Button>
@@ -508,7 +522,7 @@ export default function NewVideoPage() {
                       variant={platform === 'instagram' ? 'default' : 'outline'}
                       onClick={() => setPlatform('instagram')}
                       disabled={loading || !!result}
-                      className={platform === 'instagram' ? 'bg-sage-500 hover:bg-sage-700' : ''}
+                      className={platform === 'instagram' ? 'bg-scenra-amber hover:bg-scenra-dark' : ''}
                     >
                       Instagram
                     </Button>
@@ -520,7 +534,7 @@ export default function NewVideoPage() {
                     <Label htmlFor="series" className="text-sm">Series (Optional)</Label>
                     <select
                       id="series"
-                      className="flex h-9 md:h-10 w-full rounded-md border border-input bg-background px-2 md:px-3 py-2 text-xs md:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-9 md:h-10 w-full rounded-md border border-input bg-background px-2 md:px-3 py-2 text-xs md:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scenra-amber focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={seriesId || ''}
                       onChange={(e) => {
                         setSeriesId(e.target.value || null)
@@ -547,6 +561,26 @@ export default function NewVideoPage() {
               </CardContent>
             </Card>
 
+            {/* Episode Selection */}
+            {seriesId && (
+              <EpisodeSelector
+                projectId={projectId}
+                seriesId={seriesId}
+                selectedEpisodeId={episodeId}
+                onEpisodeSelect={setEpisodeId}
+                onEpisodeDataLoaded={(data) => {
+                  if (data) {
+                    // Auto-populate brief with converted prompt
+                    setBrief(data.convertedPrompt)
+                    // Auto-select characters and settings that appear in the episode
+                    setSelectedCharacters(data.suggestedCharacters)
+                    setSelectedSettings(data.suggestedSettings)
+                  }
+                }}
+                disabled={loading || !!result}
+              />
+            )}
+
             {/* Series Context Selection */}
             {seriesId && (
               <SeriesContextSelector
@@ -571,7 +605,7 @@ export default function NewVideoPage() {
                   <Button
                     onClick={handleStartRoundtable}
                     disabled={loading || !brief.trim()}
-                    className="w-full bg-sage-500 hover:bg-sage-700"
+                    className="w-full bg-scenra-amber hover:bg-scenra-dark"
                     size="default"
                   >
                     {loading ? (
@@ -660,7 +694,7 @@ export default function NewVideoPage() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center justify-center py-12">
-                    <Loader2 className="h-12 w-12 animate-spin text-sage-500 mb-4" />
+                    <Loader2 className="h-12 w-12 animate-spin text-scenra-amber mb-4" />
                     <p className="text-lg font-medium mb-2">AI Film Crew Collaborating</p>
                     <p className="text-sm text-muted-foreground">
                       Your creative team is discussing the best approach...
@@ -713,7 +747,7 @@ export default function NewVideoPage() {
                     <Button
                       onClick={handleRegenerateWithEdits}
                       disabled={regenerating}
-                      className="w-full bg-sage-500 hover:bg-sage-700"
+                      className="w-full bg-scenra-amber hover:bg-scenra-dark"
                       size="lg"
                     >
                       {regenerating ? (

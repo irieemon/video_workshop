@@ -2,29 +2,56 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { runAgentRoundtable } from '@/lib/ai/agent-orchestrator'
 import { generateCharacterPromptBlock } from '@/lib/types/character-consistency'
+import { createAPILogger, LOG_MESSAGES } from '@/lib/logger'
+import { checkRateLimit, createRateLimitKey, RATE_LIMITS, createRateLimitResponse, getRateLimitHeaders } from '@/lib/rate-limit'
+import { agentRoundtableSchema, validateRequest, createValidationError } from '@/lib/validation/schemas'
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  const logger = createAPILogger('/api/agent/roundtable', user?.id)
+
+  if (authError || !user) {
+    logger.warn(LOG_MESSAGES.AUTH_UNAUTHORIZED)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Rate limiting for expensive AI operations
+  const rateLimitKey = createRateLimitKey(user.id, 'ai:roundtable')
+  const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.AI_ROUNDTABLE)
+
+  if (!rateLimit.allowed) {
+    logger.warn(LOG_MESSAGES.API_RATE_LIMIT, {
+      remaining: rateLimit.remaining,
+      retryAfter: rateLimit.retryAfter
+    })
+    return NextResponse.json(
+      createRateLimitResponse(rateLimit),
+      {
+        status: 429,
+        headers: getRateLimitHeaders(rateLimit)
+      }
+    )
+  }
+
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    // Parse and validate request body
     const body = await request.json()
-    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings } = body
+    const validation = validateRequest(agentRoundtableSchema, body)
 
-    // Validate required fields
-    if (!brief || !platform || !projectId) {
+    if (!validation.success) {
+      logger.warn(LOG_MESSAGES.API_VALIDATION_ERROR, { error: validation.error })
       return NextResponse.json(
-        { error: 'Missing required fields: brief, platform, projectId' },
+        createValidationError(validation.error, validation.details),
         { status: 400 }
       )
     }
+
+    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings } = validation.data
 
     // Fetch series context if applicable
     let visualTemplate = null
@@ -103,22 +130,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Run agent roundtable (orchestration logic)
-    const result = await runAgentRoundtable({
-      brief,
-      platform,
-      visualTemplate: visualTemplate || undefined,
-      seriesCharacters: seriesCharacters || undefined,
-      seriesSettings: seriesSettings || undefined,
-      visualAssets: visualAssets || undefined,
-      characterRelationships: characterRelationships || undefined,
-      seriesSoraSettings: seriesSoraSettings || undefined,
-      characterContext: characterContext || undefined,
-      userId: user.id,
+    logger.info(LOG_MESSAGES.AI_ROUNDTABLE_START, {
+      seriesId,
+      characterCount: selectedCharacters?.length || 0,
+      settingCount: selectedSettings?.length || 0
     })
 
-    return NextResponse.json(result)
+    const result = await logger.timeAsync(
+      'Agent roundtable execution',
+      () => runAgentRoundtable({
+        brief,
+        platform,
+        visualTemplate: visualTemplate || undefined,
+        seriesCharacters: seriesCharacters || undefined,
+        seriesSettings: seriesSettings || undefined,
+        visualAssets: visualAssets || undefined,
+        characterRelationships: characterRelationships || undefined,
+        seriesSoraSettings: seriesSoraSettings || undefined,
+        characterContext: characterContext || undefined,
+        userId: user.id,
+      }),
+      { seriesId, platform }
+    )
+
+    logger.info(LOG_MESSAGES.AI_ROUNDTABLE_SUCCESS)
+
+    return NextResponse.json(result, {
+      headers: getRateLimitHeaders(rateLimit)
+    })
   } catch (error) {
-    console.error('Roundtable error:', error)
+    logger.error(LOG_MESSAGES.AI_REQUEST_ERROR, error as Error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

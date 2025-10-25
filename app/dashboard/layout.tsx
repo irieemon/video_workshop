@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { MobileNav } from '@/components/dashboard/mobile-nav'
 import { UserMenu } from '@/components/dashboard/user-menu'
-import { Sparkles } from 'lucide-react'
+import { ScenraLogo } from '@/components/brand'
 import Link from 'next/link'
 
 export default async function DashboardLayout({
@@ -50,9 +50,8 @@ export default async function DashboardLayout({
             />
 
             {/* Mobile Logo */}
-            <Link href="/dashboard" className="flex md:hidden items-center gap-2">
-              <Sparkles className="h-5 w-5 text-sage-500" />
-              <span className="font-bold text-base">Sora2</span>
+            <Link href="/dashboard" className="flex md:hidden">
+              <ScenraLogo size="sm" />
             </Link>
 
             {/* Desktop Title */}

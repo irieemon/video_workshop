@@ -22,7 +22,7 @@ export function VideoCard({ video, projectId }: VideoCardProps) {
   const [soraModalOpen, setSoraModalOpen] = useState(false)
 
   return (
-    <div className="rounded-lg border p-3 md:p-4 hover:border-sage-500 transition-colors">
+    <div className="rounded-lg border p-3 md:p-4 hover:border-scenra-amber transition-colors">
       <Link href={`/dashboard/projects/${projectId}/videos/${video.id}`}>
         <h4 className="font-medium mb-1 text-sm md:text-base hover:text-sage-600">
           {video.title}
@@ -42,7 +42,7 @@ export function VideoCard({ video, projectId }: VideoCardProps) {
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 text-xs px-2 text-sage-600 hover:text-sage-700 hover:bg-sage-50"
+            className="h-7 text-xs px-2 text-sage-600 hover:text-scenra-dark hover:bg-sage-50"
             onClick={(e) => {
               e.preventDefault()
               setSoraModalOpen(true)

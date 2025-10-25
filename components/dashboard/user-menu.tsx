@@ -45,7 +45,7 @@ export function UserMenu({ user }: UserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-sage-100 text-sage-900">
+            <AvatarFallback className="bg-scenra-amber text-scenra-dark font-semibold">
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -57,7 +57,7 @@ export function UserMenu({ user }: UserMenuProps) {
             <p className="text-sm font-medium leading-none">
               {user.full_name || 'User'}
             </p>
-            <p className="text-xs leading-none text-muted-foreground">
+            <p className="text-xs leading-none text-scenra-gray">
               {user.email}
             </p>
           </div>

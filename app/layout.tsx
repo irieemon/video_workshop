@@ -8,8 +8,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Sora2 Prompt Studio',
-  description: 'AI-powered creative production platform for social media video prompts',
+  title: 'Scenra Studio',
+  description: 'AI-powered creative production platform by Scenra',
 }
 
 export default function RootLayout({
@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} font-sans antialiased bg-scenra-dark text-scenra-light`}>
         {children}
       </body>
     </html>

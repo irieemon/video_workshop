@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { runAdvancedRoundtable } from '@/lib/ai/agent-orchestrator'
 import { NextRequest } from 'next/server'
+import { POST } from '@/app/api/agent/roundtable/advanced/route'
 
 jest.mock('@/lib/supabase/server')
 jest.mock('@/lib/ai/agent-orchestrator')

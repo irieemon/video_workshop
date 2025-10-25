@@ -93,7 +93,7 @@ export function AgentCard({
             )}
           </div>
 
-          <p className="text-sm leading-relaxed text-foreground/90">
+          <p className="text-sm leading-relaxed text-scenra-light">
             {response}
           </p>
         </div>

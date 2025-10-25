@@ -19,7 +19,7 @@ export function SoraGenerationButton({ videoId, videoTitle, finalPrompt }: SoraG
       <Button
         onClick={() => setModalOpen(true)}
         size="sm"
-        className="bg-sage-600 hover:bg-sage-700"
+        className="bg-sage-600 hover:bg-scenra-dark"
       >
         <Sparkles className="mr-2 h-4 w-4" />
         Generate with Sora

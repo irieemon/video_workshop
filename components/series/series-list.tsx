@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SeriesCard } from './series-card'
 import { SeriesForm } from './series-form'
-import { Plus, ListVideo } from 'lucide-react'
+import { CreateSeriesDialog } from './create-series-dialog'
+import { AssociateSeriesDialog } from './associate-series-dialog'
+import { Plus, ListVideo, Sparkles } from 'lucide-react'
+import Link from 'next/link'
 
 interface SeriesListProps {
   projectId: string
@@ -28,27 +31,39 @@ export function SeriesList({ projectId, series }: SeriesListProps) {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Series</h2>
-          <p className="text-muted-foreground">
+          <p className="text-scenra-gray">
             Manage your video series with consistent characters and settings
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Series
-        </Button>
+        <div className="flex gap-2">
+          <AssociateSeriesDialog projectId={projectId} />
+          <Button variant="outline" asChild>
+            <Link href={`/dashboard/projects/${projectId}/series/concept`}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              AI-Assisted
+            </Link>
+          </Button>
+          <CreateSeriesDialog defaultProjectId={projectId} />
+        </div>
       </div>
 
       {series.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed rounded-lg">
-          <ListVideo className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <ListVideo className="h-12 w-12 text-scenra-gray mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No series yet</h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-scenra-light mb-4">
             Create your first video series to maintain consistency across episodes
           </p>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Series
-          </Button>
+          <div className="flex gap-2 justify-center flex-wrap">
+            <AssociateSeriesDialog projectId={projectId} />
+            <Button variant="outline" asChild>
+              <Link href={`/dashboard/projects/${projectId}/series/concept`}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                AI-Assisted Creation
+              </Link>
+            </Button>
+            <CreateSeriesDialog defaultProjectId={projectId} />
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

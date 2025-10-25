@@ -74,16 +74,16 @@ export default async function VideoDetailPage({
                   Series: {video.series.name}
                 </Badge>
               )}
-              <span className="text-xs md:text-sm text-muted-foreground">
+              <span className="text-xs md:text-sm text-scenra-gray">
                 Created {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
               </span>
             </div>
           </div>
 
           {/* User Brief */}
-          <div className="bg-muted/50 rounded-lg p-3 md:p-4 border">
-            <h3 className="font-semibold text-sm mb-2">Original Brief</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="bg-scenra-dark-panel rounded-lg p-3 md:p-4 border border-scenra-amber/20">
+            <h3 className="font-semibold text-sm mb-2 text-scenra-amber">Original Brief</h3>
+            <p className="text-sm text-scenra-light leading-relaxed">
               {video.user_brief}
             </p>
           </div>

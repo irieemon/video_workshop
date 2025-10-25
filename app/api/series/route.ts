@@ -14,13 +14,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch series with episode counts (now queries by user_id directly)
+    // Fetch series with episode counts (decoupled from projects)
     const { data: series, error } = await supabase
       .from('series')
       .select(
         `
         *,
-        project:projects(id, name),
         episodes:series_episodes(count),
         characters:series_characters(count),
         settings:series_settings(count)
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If project_id provided, verify ownership
+    // If project_id provided, verify ownership and check for duplicates
     if (project_id) {
       const { data: project, error: projectError } = await supabase
         .from('projects')
@@ -103,13 +102,20 @@ export async function POST(request: NextRequest) {
         throw projectError
       }
 
-      // Check for duplicate series name in project
-      const { data: existingSeries } = await supabase
-        .from('series')
-        .select('id')
+      // Check for duplicate series name in project through junction table
+      const { data: existingAssociations } = await supabase
+        .from('project_series')
+        .select(`
+          series:series_id (
+            id,
+            name
+          )
+        `)
         .eq('project_id', project_id)
-        .eq('name', name.trim())
-        .single()
+
+      const existingSeries = existingAssociations?.find(
+        (assoc: any) => assoc.series?.name === name.trim()
+      )
 
       if (existingSeries) {
         return NextResponse.json(
@@ -117,22 +123,6 @@ export async function POST(request: NextRequest) {
             error:
               'A series with this name already exists in this project',
           },
-          { status: 409 }
-        )
-      }
-    } else {
-      // Check for duplicate series name for standalone series
-      const { data: existingSeries } = await supabase
-        .from('series')
-        .select('id')
-        .eq('user_id', user.id)
-        .is('project_id', null)
-        .eq('name', name.trim())
-        .single()
-
-      if (existingSeries) {
-        return NextResponse.json(
-          { error: 'A standalone series with this name already exists' },
           { status: 409 }
         )
       }
@@ -155,12 +145,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create series (now with user_id and optional project_id)
-    const { data: newSeries, error } = await supabase
+    // Create series (decoupled from projects)
+    const { data: newSeries, error: seriesError } = await supabase
       .from('series')
       .insert({
         user_id: user.id,
-        project_id: project_id || null,
         name: name.trim(),
         description: description?.trim() || null,
         genre: genre || null,
@@ -175,7 +164,24 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) throw error
+    if (seriesError) throw seriesError
+
+    // If project_id provided, create junction table association
+    if (project_id) {
+      const { error: associationError } = await supabase
+        .from('project_series')
+        .insert({
+          project_id: project_id,
+          series_id: newSeries.id,
+          created_by: user.id,
+        })
+
+      if (associationError) {
+        // Rollback: delete the series we just created
+        await supabase.from('series').delete().eq('id', newSeries.id)
+        throw associationError
+      }
+    }
 
     return NextResponse.json(newSeries, { status: 201 })
   } catch (error: any) {

@@ -24,19 +24,40 @@ export default async function ProjectSeriesPage({
     notFound()
   }
 
-  // Fetch series with counts
-  const cookieStore = await (await import('next/headers')).cookies()
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/api/projects/${id}/series`,
-    {
-      cache: 'no-store',
-      headers: {
-        Cookie: cookieStore.toString(),
-      },
-    }
-  )
+  // Fetch series through junction table with counts
+  const { data: seriesAssociations } = await supabase
+    .from('project_series')
+    .select(
+      `
+      id,
+      created_at,
+      series:series_id (
+        *,
+        episodes:series_episodes(count),
+        characters:series_characters(count),
+        settings:series_settings(count)
+      )
+    `
+    )
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
 
-  const series = response.ok ? await response.json() : []
+  // Transform the data to include counts
+  const series = seriesAssociations
+    ?.map((assoc: any) => {
+      if (!assoc.series) return null
+      const s = assoc.series
+      return {
+        ...s,
+        episode_count: s.episodes?.[0]?.count || 0,
+        character_count: s.characters?.[0]?.count || 0,
+        setting_count: s.settings?.[0]?.count || 0,
+        episodes: undefined,
+        characters: undefined,
+        settings: undefined,
+      }
+    })
+    .filter(Boolean) || []
 
   return (
     <div className="p-4 md:p-8">

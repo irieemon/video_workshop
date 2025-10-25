@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
+import { POST, GET } from '@/app/api/videos/route'
 
 jest.mock('@/lib/supabase/server')
 

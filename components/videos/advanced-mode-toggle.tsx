@@ -14,11 +14,11 @@ export function AdvancedModeToggle({ enabled, onChange, disabled }: AdvancedMode
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
       <div className="flex items-center gap-3">
-        <Settings2 className={`h-5 w-5 ${enabled ? 'text-sage-500' : 'text-muted-foreground'}`} />
+        <Settings2 className={`h-5 w-5 ${enabled ? 'text-scenra-amber' : 'text-muted-foreground'}`} />
         <div>
           <div className="flex items-center gap-2">
             <Label className="font-semibold cursor-pointer">Advanced Mode</Label>
-            <Badge variant={enabled ? 'default' : 'secondary'} className={enabled ? 'bg-sage-500' : ''}>
+            <Badge variant={enabled ? 'default' : 'secondary'} className={enabled ? 'bg-scenra-amber' : ''}>
               {enabled ? 'Enabled' : 'Disabled'}
             </Badge>
           </div>
@@ -36,9 +36,9 @@ export function AdvancedModeToggle({ enabled, onChange, disabled }: AdvancedMode
         onClick={() => onChange(!enabled)}
         className={`
           relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scenra-amber focus-visible:ring-offset-2
           disabled:cursor-not-allowed disabled:opacity-50
-          ${enabled ? 'bg-sage-500' : 'bg-gray-200'}
+          ${enabled ? 'bg-scenra-amber' : 'bg-gray-200'}
         `}
       >
         <span

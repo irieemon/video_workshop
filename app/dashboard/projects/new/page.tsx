@@ -103,7 +103,7 @@ export default function NewProjectPage() {
                   {error}
                   {error.includes('limit') && (
                     <div className="mt-2">
-                      <Link href="/dashboard/upgrade" className="text-sage-700 hover:text-sage-500 font-medium">
+                      <Link href="/dashboard/upgrade" className="text-scenra-dark hover:text-scenra-amber font-medium">
                         Upgrade to Premium
                       </Link>
                     </div>
@@ -115,7 +115,7 @@ export default function NewProjectPage() {
                 <Button
                   type="submit"
                   disabled={loading || !name.trim()}
-                  className="bg-sage-500 hover:bg-sage-700"
+                  className="bg-scenra-amber hover:bg-scenra-dark"
                 >
                   {loading ? 'Creating...' : 'Create Project'}
                 </Button>

@@ -145,7 +145,7 @@ export function SoraSettingsManager({ seriesId, seriesName, settings: initialSet
                   placeholder={`e.g., "In ${seriesName}, "`}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Optional opening phrase for episodic continuity (e.g., "In {seriesName}, ")
+                  Optional opening phrase for episodic continuity (e.g., &quot;In {seriesName}, &quot;)
                 </p>
               </div>
 

@@ -14,7 +14,7 @@ export function AdditionalGuidance({ value, onChange }: AdditionalGuidanceProps)
     <Card className="p-4">
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Lightbulb className="h-4 w-4 text-sage-500" />
+          <Lightbulb className="h-4 w-4 text-scenra-amber" />
           <Label className="text-base font-semibold">Additional Creative Guidance</Label>
         </div>
 
@@ -25,7 +25,7 @@ export function AdditionalGuidance({ value, onChange }: AdditionalGuidanceProps)
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scenra-amber focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Example: Focus more on emotional journey, ensure vibrant colors, emphasize movement and energy..."
         />
 

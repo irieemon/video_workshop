@@ -80,7 +80,7 @@ export function SeriesContextSelector({
     }
 
     fetchSeriesContext()
-  }, [seriesId])
+  }, [seriesId, onCharactersChange, onSettingsChange])
 
   const toggleCharacter = (characterId: string) => {
     if (disabled) return
@@ -109,8 +109,8 @@ export function SeriesContextSelector({
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-sage-500 mr-2" />
-            <span className="text-sm text-muted-foreground">Loading series context...</span>
+            <Loader2 className="h-6 w-6 animate-spin text-scenra-amber mr-2" />
+            <span className="text-sm text-scenra-gray">Loading series context...</span>
           </div>
         </CardContent>
       </Card>
@@ -138,7 +138,7 @@ export function SeriesContextSelector({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-sage-500" />
+              <Users className="h-4 w-4 text-scenra-amber" />
               Characters
             </CardTitle>
             <CardDescription className="text-xs">
@@ -149,7 +149,7 @@ export function SeriesContextSelector({
             {characters.map((character) => (
               <div
                 key={character.id}
-                className="flex items-start space-x-3 p-3 rounded-md border hover:border-sage-500 transition-colors cursor-pointer"
+                className="flex items-start space-x-3 p-3 rounded-md border border-scenra-amber/30 bg-scenra-dark-panel hover:border-scenra-amber transition-colors cursor-pointer"
                 onClick={() => toggleCharacter(character.id)}
               >
                 <Checkbox
@@ -163,7 +163,7 @@ export function SeriesContextSelector({
                   <div className="flex items-center gap-2 mb-1">
                     <Label
                       htmlFor={`character-${character.id}`}
-                      className="text-sm font-medium cursor-pointer"
+                      className="text-sm font-medium text-scenra-light cursor-pointer"
                     >
                       {character.name}
                     </Label>
@@ -176,11 +176,11 @@ export function SeriesContextSelector({
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
+                  <p className="text-xs text-scenra-gray line-clamp-2">
                     {character.description}
                   </p>
                   {character.performance_style && (
-                    <p className="text-xs text-sage-600 mt-1 italic">
+                    <p className="text-xs text-scenra-amber/80 mt-1 italic">
                       Performance: {character.performance_style}
                     </p>
                   )}
@@ -196,7 +196,7 @@ export function SeriesContextSelector({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-sage-500" />
+              <MapPin className="h-4 w-4 text-scenra-amber" />
               Settings & Locations
             </CardTitle>
             <CardDescription className="text-xs">
@@ -207,7 +207,7 @@ export function SeriesContextSelector({
             {settings.map((setting) => (
               <div
                 key={setting.id}
-                className="flex items-start space-x-3 p-3 rounded-md border hover:border-sage-500 transition-colors cursor-pointer"
+                className="flex items-start space-x-3 p-3 rounded-md border border-scenra-amber/30 bg-scenra-dark-panel hover:border-scenra-amber transition-colors cursor-pointer"
                 onClick={() => toggleSetting(setting.id)}
               >
                 <Checkbox
@@ -221,7 +221,7 @@ export function SeriesContextSelector({
                   <div className="flex items-center gap-2 mb-1">
                     <Label
                       htmlFor={`setting-${setting.id}`}
-                      className="text-sm font-medium cursor-pointer"
+                      className="text-sm font-medium text-scenra-light cursor-pointer"
                     >
                       {setting.name}
                     </Label>
@@ -234,15 +234,15 @@ export function SeriesContextSelector({
                       </Badge>
                     )}
                     {setting.is_primary && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs border-scenra-amber/40 text-scenra-amber">
                         Primary
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
+                  <p className="text-xs text-scenra-gray line-clamp-2">
                     {setting.description}
                   </p>
-                  <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                  <div className="flex gap-3 mt-1 text-xs text-scenra-gray">
                     {setting.time_of_day && <span>⏰ {setting.time_of_day}</span>}
                     {setting.atmosphere && <span>✨ {setting.atmosphere}</span>}
                   </div>
@@ -256,8 +256,8 @@ export function SeriesContextSelector({
       {characters.length === 0 && settings.length === 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center py-8 text-sm text-muted-foreground">
-              This series doesn't have any characters or settings defined yet.
+            <div className="text-center py-8 text-sm text-scenra-gray">
+              This series doesn&apos;t have any characters or settings defined yet.
               <br />
               Add them from the series management page.
             </div>

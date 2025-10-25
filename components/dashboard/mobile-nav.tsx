@@ -63,8 +63,8 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
               className="flex items-center gap-2"
               onClick={() => setOpen(false)}
             >
-              <Sparkles className="h-6 w-6 text-sage-500" />
-              <span className="font-bold text-lg">Sora2 Studio</span>
+              <Sparkles className="h-6 w-6 text-scenra-amber" />
+              <span className="font-bold text-lg">Scenra Studio</span>
             </Link>
           </div>
 
@@ -109,7 +109,7 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
                       className={cn(
                         'h-full transition-all',
                         consultationsRemaining > 5
-                          ? 'bg-sage-500'
+                          ? 'bg-scenra-amber'
                           : consultationsRemaining > 2
                           ? 'bg-yellow-500'
                           : 'bg-red-500'
@@ -135,7 +135,7 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
             )}
             {subscriptionTier === 'premium' && (
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-sage-500 text-white">
+                <Badge variant="secondary" className="bg-scenra-amber text-white">
                   Premium
                 </Badge>
                 <span className="text-xs text-muted-foreground">Unlimited access</span>

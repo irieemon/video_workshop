@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { CharacterManager, SettingManager, VisualAssetManager, RelationshipManager, SoraSettingsManager } from '@/components/series'
+import { EpisodeManager } from '@/components/screenplay'
 import { Separator } from '@/components/ui/separator'
 
 export default async function SeriesDetailPage({
@@ -94,6 +95,13 @@ export default async function SeriesDetailPage({
 
       {/* Content Sections */}
       <div className="space-y-8 md:space-y-10">
+        <EpisodeManager
+          seriesId={seriesId}
+          seriesName={series.name}
+        />
+
+        <Separator />
+
         <SoraSettingsManager
           seriesId={seriesId}
           seriesName={series.name}

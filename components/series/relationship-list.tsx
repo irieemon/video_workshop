@@ -72,7 +72,7 @@ export function RelationshipList({
     return (
       <Card className="p-8 text-center text-muted-foreground">
         <p>No relationships defined yet.</p>
-        <p className="text-sm mt-2">Click "Add Relationship" to create one.</p>
+        <p className="text-sm mt-2">Click &quot;Add Relationship&quot; to create one.</p>
       </Card>
     )
   }

@@ -117,7 +117,7 @@ export default function SignupPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
           <CardDescription>
-            Get started with Sora2 Prompt Studio
+            Get started with Scenra Prompt Studio
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -183,11 +183,11 @@ export default function SignupPage() {
 
             <div className="text-xs text-muted-foreground">
               By creating an account, you agree to our{' '}
-              <Link href="/terms" className="text-sage-700 hover:text-sage-500">
+              <Link href="/terms" className="text-scenra-dark hover:text-scenra-amber">
                 Terms of Service
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-sage-700 hover:text-sage-500">
+              <Link href="/privacy" className="text-scenra-dark hover:text-scenra-amber">
                 Privacy Policy
               </Link>
             </div>
@@ -251,7 +251,7 @@ export default function SignupPage() {
         <CardFooter>
           <p className="text-sm text-center w-full text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="text-sage-700 hover:text-sage-500 font-medium">
+            <Link href="/login" className="text-scenra-dark hover:text-scenra-amber font-medium">
               Sign in
             </Link>
           </p>

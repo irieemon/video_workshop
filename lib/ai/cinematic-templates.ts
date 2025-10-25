@@ -1,8 +1,8 @@
 /**
- * Cinematic Narrative Templates for Sora2
+ * Cinematic Narrative Templates for Scenra
  *
  * These templates guide the synthesis of natural language prompts
- * that blend storytelling with cinematography in Sora2-optimized format.
+ * that blend storytelling with cinematography in Scenra-optimized format.
  *
  * Target: 800-1000 characters
  * Balance: 50% narrative / 50% technical
@@ -18,7 +18,7 @@ export interface CinematicTemplate {
 }
 
 /**
- * Template section guidelines based on Sora2 research
+ * Template section guidelines based on Scenra research
  */
 export const templateGuidelines = {
   sceneSetup: {

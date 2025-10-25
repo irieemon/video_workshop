@@ -14,14 +14,13 @@ export default async function ProjectDetailPage({
   const { id } = await params
   const supabase = await createClient()
 
-  // Fetch project with videos and series
+  // Fetch project with videos
   const { data: project, error } = await supabase
     .from('projects')
     .select(
       `
       *,
-      videos:videos(*),
-      series:series!series_project_id_fkey(*)
+      videos:videos(*)
     `
     )
     .eq('id', id)
@@ -31,8 +30,47 @@ export default async function ProjectDetailPage({
     notFound()
   }
 
+  // Fetch associated series through junction table
+  const { data: seriesAssociations } = await supabase
+    .from('project_series')
+    .select(`
+      id,
+      created_at,
+      series:series_id (
+        id,
+        name,
+        description,
+        genre,
+        created_at,
+        updated_at
+      )
+    `)
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
+
+  // Flatten series data
+  const series = seriesAssociations?.map((assoc: any) => assoc.series).filter(Boolean) || []
+
+  // Fetch episodes for associated series
+  const seriesIds = series.map((s: any) => s.id)
+  const { data: episodes } = seriesIds.length > 0
+    ? await supabase
+        .from('episodes')
+        .select('id, series_id, season_number, episode_number, title, status')
+        .in('series_id', seriesIds)
+        .order('season_number', { ascending: true })
+        .order('episode_number', { ascending: true })
+    : { data: [] }
+
+  // Group episodes by series
+  const episodesBySeries = episodes?.reduce((acc: any, ep: any) => {
+    if (!acc[ep.series_id]) acc[ep.series_id] = []
+    acc[ep.series_id].push(ep)
+    return acc
+  }, {}) || {}
+
   const videoCount = project.videos?.length || 0
-  const seriesCount = project.series?.length || 0
+  const seriesCount = series.length
 
   return (
     <div className="p-4 md:p-8">
@@ -65,7 +103,7 @@ export default async function ProjectDetailPage({
               </Badge>
             </div>
           </div>
-          <p className="text-sm md:text-base text-muted-foreground">
+          <p className="text-sm md:text-base text-scenra-gray">
             {project.description || 'No description'}
           </p>
         </div>
@@ -77,7 +115,7 @@ export default async function ProjectDetailPage({
               <span className="sm:hidden">Series</span>
             </Link>
           </Button>
-          <Button size="sm" className="bg-sage-500 hover:bg-sage-700 flex-1 sm:flex-none" asChild>
+          <Button size="sm" className="scenra-button-primary flex-1 sm:flex-none" asChild>
             <Link href={`/dashboard/projects/${id}/videos/new`}>
               <Plus className="mr-1 md:mr-2 h-4 w-4" />
               <span className="hidden sm:inline">New Video</span>
@@ -96,13 +134,13 @@ export default async function ProjectDetailPage({
             <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 md:p-12 text-center">
               <div className="mx-auto max-w-md">
                 <div className="mb-4 flex justify-center">
-                  <Film className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground" />
+                  <Film className="h-8 w-8 md:h-10 md:w-10 text-scenra-gray" />
                 </div>
                 <h3 className="mb-2 text-base md:text-lg font-semibold">No videos yet</h3>
-                <p className="mb-4 text-xs md:text-sm text-muted-foreground">
+                <p className="mb-4 text-xs md:text-sm text-scenra-light">
                   Get started by creating your first video with AI agent assistance.
                 </p>
-                <Button size="sm" className="bg-sage-500 hover:bg-sage-700 w-full sm:w-auto" asChild>
+                <Button size="sm" className="scenra-button-primary w-full sm:w-auto" asChild>
                   <Link href={`/dashboard/projects/${id}/videos/new`}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create First Video
@@ -123,37 +161,77 @@ export default async function ProjectDetailPage({
           )}
         </div>
 
-        {/* Series */}
+        {/* Series & Episodes */}
         {seriesCount > 0 && (
           <div>
             <div className="flex justify-between items-center mb-3 md:mb-4">
-              <h2 className="text-lg md:text-xl font-semibold">Series</h2>
+              <h2 className="text-lg md:text-xl font-semibold">Series & Episodes</h2>
               <Button variant="ghost" size="sm" asChild>
-                <Link href={`/dashboard/projects/${id}/series`}>
-                  View All
+                <Link href={`/dashboard/series`}>
+                  Manage All Series
                 </Link>
               </Button>
             </div>
             <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
-              {project.series?.slice(0, 4).map((series: any) => (
-                <Link
-                  key={series.id}
-                  href={`/dashboard/projects/${id}/series/${series.id}`}
-                  className="rounded-lg border p-3 md:p-4 hover:border-sage-500 transition-colors cursor-pointer block"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-sm md:text-base">{series.name}</h4>
-                    {series.genre && (
-                      <Badge variant="secondary" className="text-xs">
-                        {series.genre.replace('-', ' ')}
-                      </Badge>
+              {series.slice(0, 4).map((seriesItem: any) => {
+                const seriesEpisodes = episodesBySeries[seriesItem.id] || []
+                const episodeCount = seriesEpisodes.length
+
+                return (
+                  <div
+                    key={seriesItem.id}
+                    className="rounded-lg border p-3 md:p-4 hover:border-scenra-amber transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-sm md:text-base">{seriesItem.name}</h4>
+                      {seriesItem.genre && (
+                        <Badge variant="secondary" className="text-xs">
+                          {seriesItem.genre.replace('-', ' ')}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs md:text-sm text-scenra-gray line-clamp-2 mb-3">
+                      {seriesItem.description || 'No description'}
+                    </p>
+
+                    {/* Episodes summary */}
+                    <div className="flex items-center justify-between pt-3 border-t">
+                      <span className="text-xs text-scenra-gray">
+                        {episodeCount} {episodeCount === 1 ? 'episode' : 'episodes'}
+                      </span>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/dashboard/projects/${id}/series/${seriesItem.id}`}>
+                          View Details
+                        </Link>
+                      </Button>
+                    </div>
+
+                    {/* Show recent episodes if available */}
+                    {seriesEpisodes.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        {seriesEpisodes.slice(0, 3).map((ep: any) => (
+                          <div
+                            key={ep.id}
+                            className="text-xs text-scenra-gray flex items-center justify-between"
+                          >
+                            <span>
+                              S{ep.season_number}E{ep.episode_number}: {ep.title}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {ep.status}
+                            </Badge>
+                          </div>
+                        ))}
+                        {seriesEpisodes.length > 3 && (
+                          <div className="text-xs text-scenra-gray">
+                            +{seriesEpisodes.length - 3} more
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
-                    {series.description || 'No description'}
-                  </p>
-                </Link>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

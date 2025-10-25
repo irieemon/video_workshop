@@ -155,7 +155,7 @@ export default function SettingsPage() {
                 )}
 
                 {success && (
-                  <div className="p-3 text-sm text-sage-700 bg-sage-50 border border-sage-200 rounded-md">
+                  <div className="p-3 text-sm text-scenra-dark bg-sage-50 border border-sage-200 rounded-md">
                     Profile updated successfully!
                   </div>
                 )}
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-sage-500"
+                      className="h-full bg-scenra-amber"
                       style={{
                         width: `${((profile?.usage_current.projects || 0) / (profile?.usage_quota.projects || 1)) * 100}%`,
                       }}
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-sage-500"
+                      className="h-full bg-scenra-amber"
                       style={{
                         width: `${((profile?.usage_current.videos_this_month || 0) / (profile?.usage_quota.videos_per_month || 1)) * 100}%`,
                       }}
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-sage-500"
+                      className="h-full bg-scenra-amber"
                       style={{
                         width: `${((profile?.usage_current.consultations_this_month || 0) / (profile?.usage_quota.consultations_per_month || 1)) * 100}%`,
                       }}

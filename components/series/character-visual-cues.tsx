@@ -279,7 +279,7 @@ export function CharacterVisualCues({
           )}
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Main visual reference for {characterName}'s appearance. AI will auto-analyze to extract physical characteristics.
+          Main visual reference for {characterName}&apos;s appearance. AI will auto-analyze to extract physical characteristics.
         </p>
 
         {primaryImageUrl ? (

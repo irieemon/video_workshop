@@ -65,7 +65,7 @@ interface SeriesSoraSettings {
 
 interface RoundtableInput {
   brief: string
-  platform: 'tiktok' | 'instagram'
+  platform: 'tiktok' | 'instagram' | 'youtube' | 'twitter' | 'facebook' | 'linkedin' | 'other'
   visualTemplate?: VisualTemplate
   seriesCharacters?: SeriesCharacter[]
   seriesSettings?: SeriesSetting[]
@@ -450,7 +450,7 @@ async function synthesizeRoundtable(data: {
   }
 
   const synthesisPrompt = `
-You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Sora2 video generation.
+You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Scenra video generation.
 
 CRITICAL OUTPUT REQUIREMENTS:
 - ULTRA-DETAILED TECHNICAL SPECIFICATIONS - professional cinematographer-level detail
@@ -667,7 +667,7 @@ Return JSON:
     messages: [
       {
         role: 'system',
-        content: 'You are an ULTRA-DETAILED CINEMATOGRAPHY SYNTHESIZER for Sora2 video generation. You transform production team contributions into HIGHLY DETAILED PROFESSIONAL CINEMATOGRAPHY DOCUMENTATION with comprehensive technical specifications. Target: 2000-3000 characters with structured sections and precise technical details. Style: Professional cinematography documentation - detailed shot specs, lighting design, technical parameters. USE FULL PROFESSIONAL TERMINOLOGY - specific equipment, measurements, technical specifications. Format with clear section headers: Format & Look, Lenses & Filtration, Grade/Palette, Lighting & Atmosphere, Location & Framing, Wardrobe/Props/Extras, Sound, Optimized Shot List, Camera Notes, Finishing.',
+        content: 'You are an ULTRA-DETAILED CINEMATOGRAPHY SYNTHESIZER for Scenra video generation. You transform production team contributions into HIGHLY DETAILED PROFESSIONAL CINEMATOGRAPHY DOCUMENTATION with comprehensive technical specifications. Target: 2000-3000 characters with structured sections and precise technical details. Style: Professional cinematography documentation - detailed shot specs, lighting design, technical parameters. USE FULL PROFESSIONAL TERMINOLOGY - specific equipment, measurements, technical specifications. Format with clear section headers: Format & Look, Lenses & Filtration, Grade/Palette, Lighting & Atmosphere, Location & Framing, Wardrobe/Props/Extras, Sound, Optimized Shot List, Camera Notes, Finishing.',
       },
       { role: 'user', content: synthesisPrompt },
     ],
@@ -848,7 +848,7 @@ async function synthesizeAdvancedRoundtable(data: {
   }
 
   const synthesisPrompt = `
-You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Sora2 video generation.
+You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Scenra video generation.
 
 CRITICAL OUTPUT REQUIREMENTS:
 - ULTRA-DETAILED TECHNICAL SPECIFICATIONS - professional cinematographer-level detail
@@ -1019,7 +1019,7 @@ Return JSON:
     messages: [
       {
         role: 'system',
-        content: 'You are an ULTRA-DETAILED CINEMATOGRAPHY SYNTHESIZER for Sora2 video generation. You transform production team contributions into HIGHLY DETAILED PROFESSIONAL CINEMATOGRAPHY DOCUMENTATION with comprehensive technical specifications. Target: 2000-3000 characters with structured sections and precise technical details. Style: Professional cinematography documentation - detailed shot specs, lighting design, technical parameters. USE FULL PROFESSIONAL TERMINOLOGY - specific equipment, measurements, technical specifications. Format with clear section headers: Format & Look, Lenses & Filtration, Grade/Palette, Lighting & Atmosphere, Location & Framing, Wardrobe/Props/Extras, Sound, Optimized Shot List, Camera Notes, Finishing. When users provide edits or shot lists, integrate them into the appropriate ultra-detailed sections.',
+        content: 'You are an ULTRA-DETAILED CINEMATOGRAPHY SYNTHESIZER for Scenra video generation. You transform production team contributions into HIGHLY DETAILED PROFESSIONAL CINEMATOGRAPHY DOCUMENTATION with comprehensive technical specifications. Target: 2000-3000 characters with structured sections and precise technical details. Style: Professional cinematography documentation - detailed shot specs, lighting design, technical parameters. USE FULL PROFESSIONAL TERMINOLOGY - specific equipment, measurements, technical specifications. Format with clear section headers: Format & Look, Lenses & Filtration, Grade/Palette, Lighting & Atmosphere, Location & Framing, Wardrobe/Props/Extras, Sound, Optimized Shot List, Camera Notes, Finishing. When users provide edits or shot lists, integrate them into the appropriate ultra-detailed sections.',
       },
       { role: 'user', content: synthesisPrompt },
     ],

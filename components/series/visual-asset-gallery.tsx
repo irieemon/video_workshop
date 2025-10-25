@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -40,11 +41,7 @@ export function VisualAssetGallery({ seriesId, refreshTrigger }: VisualAssetGall
   const [deleting, setDeleting] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<VisualAsset | null>(null)
 
-  useEffect(() => {
-    fetchAssets()
-  }, [seriesId, refreshTrigger])
-
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/series/${seriesId}/assets`)
@@ -57,7 +54,11 @@ export function VisualAssetGallery({ seriesId, refreshTrigger }: VisualAssetGall
     } finally {
       setLoading(false)
     }
-  }
+  }, [seriesId])
+
+  useEffect(() => {
+    fetchAssets()
+  }, [fetchAssets, refreshTrigger])
 
   const handleDelete = async (asset: VisualAsset) => {
     setDeleting(asset.id)
@@ -104,8 +105,8 @@ export function VisualAssetGallery({ seriesId, refreshTrigger }: VisualAssetGall
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-sage-500 mr-2" />
-        <span className="text-sm text-muted-foreground">Loading assets...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-scenra-amber mr-2" />
+        <span className="text-sm text-scenra-light">Loading assets...</span>
       </div>
     )
   }
@@ -115,8 +116,8 @@ export function VisualAssetGallery({ seriesId, refreshTrigger }: VisualAssetGall
       <Card>
         <CardContent className="pt-6">
           <div className="text-center py-8">
-            <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">
+            <ImageIcon className="h-12 w-12 mx-auto text-scenra-gray mb-3" />
+            <p className="text-sm text-scenra-light">
               No visual assets uploaded yet.
               <br />
               Upload logos, color palettes, or reference images for the AI team.
@@ -132,12 +133,14 @@ export function VisualAssetGallery({ seriesId, refreshTrigger }: VisualAssetGall
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {assets.map((asset) => (
           <Card key={asset.id} className="overflow-hidden">
-            <div className="relative aspect-video bg-muted">
+            <div className="relative aspect-video bg-scenra-dark-panel">
               {asset.url ? (
-                <img
+                <Image
                   src={asset.url}
                   alt={asset.name}
-                  className="w-full h-full object-contain"
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -154,12 +157,12 @@ export function VisualAssetGallery({ seriesId, refreshTrigger }: VisualAssetGall
               </div>
 
               {asset.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                <p className="text-xs text-scenra-gray line-clamp-2 mb-3">
                   {asset.description}
                 </p>
               )}
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-scenra-gray">
                 <span>
                   {asset.width && asset.height
                     ? `${asset.width}×${asset.height}`
@@ -190,7 +193,7 @@ export function VisualAssetGallery({ seriesId, refreshTrigger }: VisualAssetGall
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Visual Asset</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteConfirm?.name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{deleteConfirm?.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

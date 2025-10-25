@@ -6,11 +6,11 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { ScenraLogo } from '@/components/brand'
 import {
   Home,
   FolderKanban,
   Settings,
-  Sparkles,
   ListVideo,
 } from 'lucide-react'
 
@@ -43,12 +43,11 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
     : 10
 
   return (
-    <div className="hidden md:flex h-full w-64 flex-col bg-muted/40 border-r">
+    <div className="hidden md:flex h-full w-64 flex-col bg-scenra-dark border-r border-scenra-border-subtle">
       {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-sage-500" />
-          <span className="font-bold text-lg">Sora2 Studio</span>
+      <div className="flex h-16 items-center border-b border-scenra-border-subtle px-6">
+        <Link href="/dashboard">
+          <ScenraLogo size="md" />
         </Link>
       </div>
 
@@ -63,10 +62,10 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
                 isActive
-                  ? 'bg-sage-100 text-sage-900'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'scenra-sidebar-active text-scenra-amber'
+                  : 'text-scenra-gray hover:bg-scenra-amber/5 hover:text-scenra-amber'
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -77,22 +76,22 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
       </nav>
 
       {/* Usage Quota */}
-      <div className="border-t p-4 space-y-3">
+      <div className="border-t border-scenra-border-subtle p-4 space-y-3">
         {subscriptionTier === 'free' && (
           <>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium">AI Consultations</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-scenra-light">AI Consultations</span>
+                <span className="text-xs text-scenra-gray">
                   {consultationsRemaining} left
                 </span>
               </div>
-              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-1.5 bg-scenra-dark-panel rounded-full overflow-hidden border border-scenra-border-subtle">
                 <div
                   className={cn(
                     'h-full transition-all',
                     consultationsRemaining > 5
-                      ? 'bg-sage-500'
+                      ? 'bg-scenra-amber shadow-amber-glow'
                       : consultationsRemaining > 2
                       ? 'bg-yellow-500'
                       : 'bg-red-500'
@@ -103,8 +102,8 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
                 />
               </div>
             </div>
-            <Separator />
-            <Button asChild className="w-full" size="sm">
+            <div className="scenra-divider" />
+            <Button asChild className="w-full scenra-button-primary" size="sm">
               <Link href="/dashboard/upgrade">
                 Upgrade to Premium
               </Link>
@@ -113,10 +112,10 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free' }:
         )}
         {subscriptionTier === 'premium' && (
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-sage-500 text-white">
+            <Badge variant="secondary" className="bg-scenra-amber text-scenra-dark font-medium">
               Premium
             </Badge>
-            <span className="text-xs text-muted-foreground">Unlimited access</span>
+            <span className="text-xs text-scenra-gray">Unlimited access</span>
           </div>
         )}
       </div>

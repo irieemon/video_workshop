@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CharacterRelationshipWithDetails } from '@/lib/types/database.types'
 import { Button } from '@/components/ui/button'
@@ -42,11 +42,7 @@ export function RelationshipManager({ seriesId, characters }: RelationshipManage
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
   const [showCharacterDetail, setShowCharacterDetail] = useState(false)
 
-  useEffect(() => {
-    fetchRelationships()
-  }, [seriesId])
-
-  const fetchRelationships = async () => {
+  const fetchRelationships = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/series/${seriesId}/relationships`)
@@ -62,7 +58,11 @@ export function RelationshipManager({ seriesId, characters }: RelationshipManage
     } finally {
       setLoading(false)
     }
-  }
+  }, [seriesId])
+
+  useEffect(() => {
+    fetchRelationships()
+  }, [fetchRelationships])
 
   const handleFormSuccess = () => {
     setShowForm(false)

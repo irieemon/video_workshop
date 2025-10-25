@@ -1,11 +1,14 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 32 15% 98%; /* #FAFAF9 - Warm off-white */
-    --foreground: 0 0% 11%; /* #1C1C1C - Deep black */
+    /* Cinematic Studio Theme - Light Mode */
+    --background: 0 0% 97%; /* #F6F6F8 - Scenra Light */
+    --foreground: 0 0% 5%; /* #0E0E10 - Scenra Dark */
 
     --card: 0 0% 100%;
     --card-foreground: 0 0% 11%;
@@ -13,56 +16,57 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 11%;
 
-    --primary: 134 16% 53%; /* Sage #7C9473 */
-    --primary-foreground: 134 22% 34%;
+    --primary: 27 65% 47%; /* Scenra Amber #C6762A */
+    --primary-foreground: 0 0% 5%;
 
-    --secondary: 134 22% 34%;
-    --secondary-foreground: 134 16% 53%;
+    --secondary: 233 100% 66%; /* Scenra Blue #536CFF */
+    --secondary-foreground: 0 0% 97%;
 
-    --muted: 28 9% 65%; /* #A8A29E - Warm gray */
-    --muted-foreground: 25 11% 35%;
+    --muted: 0 1% 48%; /* Scenra Gray #7A7A7C */
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 6 48% 59%; /* Terracotta #C97064 */
-    --accent-foreground: 32 15% 98%;
+    --accent: 27 65% 47%; /* Scenra Amber */
+    --accent-foreground: 0 0% 5%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 28 9% 88%;
-    --input: 28 9% 88%;
-    --ring: 134 16% 53%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 27 65% 47%; /* Scenra Amber */
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 0 0% 11%;
-    --foreground: 0 0% 98%;
+    /* Cinematic Studio Theme - Dark Mode (Primary) */
+    --background: 0 0% 5.5%; /* #0E0E10 - Cinema darkness */
+    --foreground: 0 0% 97%; /* #F6F6F8 - Off-white text */
 
-    --card: 0 0% 11%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 1% 7%; /* #121214 - Slightly lighter panel */
+    --card-foreground: 0 0% 97%;
 
-    --popover: 0 0% 11%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 1% 7%;
+    --popover-foreground: 0 0% 97%;
 
-    --primary: 134 16% 53%;
-    --primary-foreground: 134 22% 34%;
+    --primary: 27 65% 47%; /* #C6762A - Amber accent */
+    --primary-foreground: 0 0% 5.5%;
 
-    --secondary: 134 22% 34%;
-    --secondary-foreground: 134 16% 53%;
+    --secondary: 233 100% 66%; /* #536CFF - Blue highlight */
+    --secondary-foreground: 0 0% 97%;
 
-    --muted: 25 11% 25%;
-    --muted-foreground: 28 9% 65%;
+    --muted: 0 1% 48%; /* #7A7A7C - Gray */
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 6 48% 59%;
-    --accent-foreground: 32 15% 98%;
+    --accent: 27 65% 47%; /* Amber accent */
+    --accent-foreground: 0 0% 97%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 97%;
 
-    --border: 25 11% 25%;
-    --input: 25 11% 25%;
-    --ring: 134 16% 53%;
+    --border: 0 0% 15%; /* Subtle borders */
+    --input: 0 1% 7%;
+    --ring: 27 65% 47%; /* Amber focus ring */
   }
 }
 
@@ -73,5 +77,62 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Cinematic Studio Components */
+
+  .scenra-card {
+    @apply bg-scenra-dark-panel border border-scenra-border-subtle rounded-lg;
+    transition: all 0.3s ease;
+  }
+
+  .scenra-card-hover {
+    @apply scenra-card hover:shadow-amber-glow;
+  }
+
+  .scenra-button-primary {
+    @apply bg-scenra-amber text-scenra-dark font-medium px-4 py-2 rounded-md;
+    @apply hover:bg-scenra-amber-hover hover:shadow-amber-glow;
+    @apply transition-all duration-200;
+  }
+
+  .scenra-button-ai {
+    @apply bg-scenra-blue text-white font-medium px-4 py-2 rounded-md;
+    @apply hover:shadow-blue-glow hover:brightness-110;
+    @apply transition-all duration-200;
+  }
+
+  .scenra-button-secondary {
+    @apply bg-transparent border border-scenra-amber text-scenra-amber font-medium px-4 py-2 rounded-md;
+    @apply hover:bg-scenra-amber/10 hover:shadow-amber-glow;
+    @apply transition-all duration-200;
+  }
+
+  .scenra-input {
+    @apply bg-scenra-dark-panel border border-scenra-border-subtle text-scenra-light;
+    @apply focus:border-scenra-amber focus:ring-1 focus:ring-scenra-amber;
+    @apply rounded-md px-3 py-2 transition-all duration-200;
+  }
+
+  .scenra-heading {
+    @apply text-scenra-light font-semibold;
+  }
+
+  .scenra-text-muted {
+    @apply text-scenra-gray;
+  }
+
+  .scenra-divider {
+    @apply border-t border-scenra-border-subtle;
+  }
+
+  .scenra-fade-in {
+    @apply animate-fade-in;
+  }
+
+  .scenra-sidebar-active {
+    @apply border-l-2 border-scenra-amber bg-scenra-amber/10;
   }
 }

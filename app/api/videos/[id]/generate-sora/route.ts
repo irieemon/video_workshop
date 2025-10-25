@@ -121,11 +121,12 @@ export async function POST(
         resolution: settings.resolution,
       })
 
+      const duration = settings.duration?.toString() || '5'
       const videoGeneration = await openai.videos.create({
         model: settings.model as 'sora-2' | 'sora-2-pro',
         prompt: video.optimized_prompt,
-        seconds: settings.duration?.toString() || '5',
-        size: size,
+        ...(duration && { seconds: duration as any }),
+        size: size as any,
       })
 
       console.log('Sora video generation started:', videoGeneration)
