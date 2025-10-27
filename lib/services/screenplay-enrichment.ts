@@ -9,10 +9,12 @@ import { createClient } from '@/lib/supabase/server'
 import type {
   Episode,
   Scene,
-  SeriesCharacter,
-  SeriesSetting,
   ScreenplayEnrichmentData,
 } from '@/lib/types/database.types'
+import type {
+  SeriesCharacter,
+  SeriesSetting,
+} from '@/lib/types/api.types'
 
 interface SeriesContext {
   series: {

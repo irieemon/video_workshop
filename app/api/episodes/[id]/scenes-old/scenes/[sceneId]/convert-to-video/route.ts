@@ -23,10 +23,10 @@ interface SceneToVideoRequest {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ episodeId: string; sceneId: string }> }
+  { params }: { params: Promise<{ id: string; sceneId: string }> }
 ) {
   try {
-    const { episodeId, sceneId } = await params
+    const { id: episodeId, sceneId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

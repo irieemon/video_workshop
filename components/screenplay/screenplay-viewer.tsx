@@ -167,7 +167,7 @@ export function ScreenplayViewer({ open, onClose, episode }: ScreenplayViewerPro
                                 <div key={i} className="bg-muted/50 p-3 rounded-md">
                                   <div className="font-semibold text-sm mb-1">{d.character}</div>
                                   <div className="text-sm italic">
-                                    "{Array.isArray(d.lines) ? d.lines.join(' ') : d.lines}"
+                                    &quot;{Array.isArray(d.lines) ? d.lines.join(' ') : d.lines}&quot;
                                   </div>
                                 </div>
                               ))}

@@ -206,7 +206,7 @@ export function EpisodeSceneSelector({
                   </div>
                   {scene.dialoguePreview.map((d, i) => (
                     <div key={i} className="text-xs">
-                      <strong>{d.character}:</strong> "{d.firstLine}"
+                      <strong>{d.character}:</strong> &quot;{d.firstLine}&quot;
                     </div>
                   ))}
                   {scene.hasDialogue && (

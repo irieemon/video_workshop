@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
         const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/videos/${video.id}/sora-status`
 
         // Create a service role client that bypasses RLS
-        const serviceSupabase = createClient()
+        const serviceSupabase = await createClient()
 
         // Fetch the full video record to pass to status checking logic
         const { data: fullVideo, error: videoError } = await serviceSupabase
