@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useTheme } from '@/app/providers/theme-provider'
 
 interface Profile {
   id: string
@@ -27,6 +29,7 @@ interface Profile {
 
 export default function SettingsPage() {
   const router = useRouter()
+  const { theme } = useTheme()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(true)
@@ -241,6 +244,27 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Appearance */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>
+                Customize how Scenra Studio looks
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Theme</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Current theme: <span className="capitalize">{theme}</span>
+                  </p>
+                </div>
+                <ThemeToggle />
               </div>
             </CardContent>
           </Card>

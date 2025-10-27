@@ -52,12 +52,12 @@ export function PromptOutput({
   return (
     <div className="space-y-6">
       {/* Optimized Prompt */}
-      <Card>
+      <Card className="bg-white dark:bg-card border-gray-200 dark:border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Optimized Sora Prompt</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900 dark:text-foreground">Optimized Sora Prompt</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-muted-foreground">
                 Ready to use in Sora video generation
               </CardDescription>
             </div>
@@ -84,8 +84,8 @@ export function PromptOutput({
         <CardContent>
           <div className="space-y-4">
             {/* Prompt Text */}
-            <div className="p-4 bg-scenra-dark-panel border border-scenra-blue/20 rounded-lg">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap text-scenra-light">
+            <div className="p-4 bg-gray-50 dark:bg-scenra-dark-panel border border-scenra-blue/30 dark:border-scenra-blue/20 rounded-lg">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-900 dark:text-scenra-light">
                 {optimizedPrompt}
               </p>
             </div>
@@ -94,12 +94,12 @@ export function PromptOutput({
       </Card>
 
       {/* Hashtags */}
-      <Card>
+      <Card className="bg-white dark:bg-card border-gray-200 dark:border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Recommended Hashtags</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900 dark:text-foreground">Recommended Hashtags</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-muted-foreground">
                 Platform-optimized tags for maximum reach
               </CardDescription>
             </div>
@@ -135,10 +135,10 @@ export function PromptOutput({
       </Card>
 
       {/* Detailed Breakdown */}
-      <Card>
+      <Card className="bg-white dark:bg-card border-gray-200 dark:border-border">
         <CardHeader>
-          <CardTitle>Technical Production Specifications</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-gray-900 dark:text-foreground">Technical Production Specifications</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-muted-foreground">
             Detailed breakdown with abbreviation reference
           </CardDescription>
         </CardHeader>

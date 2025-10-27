@@ -65,12 +65,15 @@ export function SeriesContextSelector({
         setCharacters(data.characters || [])
         setSettings(data.settings || [])
 
-        // Auto-select primary settings
-        const primarySettings = (data.settings || [])
-          .filter((s: Setting) => s.is_primary)
-          .map((s: Setting) => s.id)
-        if (primarySettings.length > 0) {
-          onSettingsChange(primarySettings)
+        // Auto-select primary settings ONLY if no settings are already selected
+        // This prevents overwriting episode-specific selections
+        if (selectedSettings.length === 0) {
+          const primarySettings = (data.settings || [])
+            .filter((s: Setting) => s.is_primary)
+            .map((s: Setting) => s.id)
+          if (primarySettings.length > 0) {
+            onSettingsChange(primarySettings)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch series context:', error)
@@ -149,7 +152,7 @@ export function SeriesContextSelector({
             {characters.map((character) => (
               <div
                 key={character.id}
-                className="flex items-start space-x-3 p-3 rounded-md border border-scenra-amber/30 bg-scenra-dark-panel hover:border-scenra-amber transition-colors cursor-pointer"
+                className="flex items-start space-x-3 p-3 rounded-md border border-gray-200 dark:border-scenra-amber/30 bg-gray-50 dark:bg-scenra-dark-panel hover:border-scenra-amber transition-colors cursor-pointer"
                 onClick={() => toggleCharacter(character.id)}
               >
                 <Checkbox
@@ -163,7 +166,7 @@ export function SeriesContextSelector({
                   <div className="flex items-center gap-2 mb-1">
                     <Label
                       htmlFor={`character-${character.id}`}
-                      className="text-sm font-medium text-scenra-light cursor-pointer"
+                      className="text-sm font-medium text-gray-900 dark:text-scenra-light cursor-pointer"
                     >
                       {character.name}
                     </Label>
@@ -176,7 +179,7 @@ export function SeriesContextSelector({
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-scenra-gray line-clamp-2">
+                  <p className="text-xs text-gray-600 dark:text-scenra-gray line-clamp-2">
                     {character.description}
                   </p>
                   {character.performance_style && (
@@ -207,7 +210,7 @@ export function SeriesContextSelector({
             {settings.map((setting) => (
               <div
                 key={setting.id}
-                className="flex items-start space-x-3 p-3 rounded-md border border-scenra-amber/30 bg-scenra-dark-panel hover:border-scenra-amber transition-colors cursor-pointer"
+                className="flex items-start space-x-3 p-3 rounded-md border border-gray-200 dark:border-scenra-amber/30 bg-gray-50 dark:bg-scenra-dark-panel hover:border-scenra-amber transition-colors cursor-pointer"
                 onClick={() => toggleSetting(setting.id)}
               >
                 <Checkbox
@@ -221,7 +224,7 @@ export function SeriesContextSelector({
                   <div className="flex items-center gap-2 mb-1">
                     <Label
                       htmlFor={`setting-${setting.id}`}
-                      className="text-sm font-medium text-scenra-light cursor-pointer"
+                      className="text-sm font-medium text-gray-900 dark:text-scenra-light cursor-pointer"
                     >
                       {setting.name}
                     </Label>
@@ -239,10 +242,10 @@ export function SeriesContextSelector({
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-scenra-gray line-clamp-2">
+                  <p className="text-xs text-gray-600 dark:text-scenra-gray line-clamp-2">
                     {setting.description}
                   </p>
-                  <div className="flex gap-3 mt-1 text-xs text-scenra-gray">
+                  <div className="flex gap-3 mt-1 text-xs text-gray-600 dark:text-scenra-gray">
                     {setting.time_of_day && <span>⏰ {setting.time_of_day}</span>}
                     {setting.atmosphere && <span>✨ {setting.atmosphere}</span>}
                   </div>

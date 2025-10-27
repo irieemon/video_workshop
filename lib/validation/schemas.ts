@@ -78,17 +78,17 @@ export const createVideoSchema = z.object({
     .trim(),
   userBrief: z.string()
     .min(10, 'Brief must be at least 10 characters')
-    .max(2000, 'Brief must be less than 2000 characters')
+    .max(5000, 'Brief must be less than 5000 characters')
     .trim(),
   agentDiscussion: z.string().optional().nullable(),
   detailedBreakdown: z.string().optional().nullable(),
   optimizedPrompt: z.string()
     .min(1, 'Optimized prompt is required')
-    .max(5000, 'Prompt must be less than 5000 characters'),
-  characterCount: characterCountSchema,
+    .max(10000, 'Prompt must be less than 10000 characters'),
+  characterCount: z.number().int().nonnegative(),
   platform: platformSchema,
   hashtags: z.array(z.string().trim().min(1)).optional().default([]),
-  generation_source: z.enum(['manual', 'screenplay']).optional().default('manual'),
+  generation_source: z.enum(['manual', 'episode', 'template']).optional().default('manual'),
   source_metadata: z.any().optional().nullable(),
 });
 
@@ -100,11 +100,11 @@ export const updateVideoSchema = z.object({
     .optional(),
   userBrief: z.string()
     .min(10, 'Brief must be at least 10 characters')
-    .max(2000, 'Brief must be less than 2000 characters')
+    .max(5000, 'Brief must be less than 5000 characters')
     .trim()
     .optional(),
   optimizedPrompt: z.string()
-    .max(5000, 'Prompt must be less than 5000 characters')
+    .max(10000, 'Prompt must be less than 10000 characters')
     .optional(),
   characterCount: characterCountSchema.optional(),
   platform: platformSchema.optional(),
@@ -228,7 +228,7 @@ export const updateSettingSchema = createSettingSchema.partial();
 export const agentRoundtableSchema = z.object({
   brief: z.string()
     .min(10, 'Brief must be at least 10 characters')
-    .max(2000, 'Brief must be less than 2000 characters')
+    .max(5000, 'Brief must be less than 5000 characters')
     .trim(),
   platform: platformSchema,
   projectId: uuidSchema,
@@ -378,9 +378,13 @@ export function validateRequest<T>(
   } catch (error) {
     if (error instanceof z.ZodError) {
       const firstError = error.issues[0];
+      const fieldPath = firstError.path.join('.');
+      const errorMessage = fieldPath
+        ? `${fieldPath}: ${firstError.message}`
+        : firstError.message;
       return {
         success: false,
-        error: firstError.message,
+        error: errorMessage,
         details: error,
       };
     }

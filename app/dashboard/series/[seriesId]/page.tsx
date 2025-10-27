@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Settings } from 'lucide-react'
 import Link from 'next/link'
-import { CharacterManager, SettingManager, VisualAssetManager, RelationshipManager, SoraSettingsManager, ConceptEpisodesWithScreenplay } from '@/components/series'
-import { EpisodeManager } from '@/components/screenplay'
+import { CharacterManager, SettingManager, VisualAssetManager, RelationshipManager, SoraSettingsManager, SeriesEpisodesCoordinator } from '@/components/series'
 import { Separator } from '@/components/ui/separator'
 
 export default async function StandaloneSeriesDetailPage({
@@ -96,21 +95,11 @@ export default async function StandaloneSeriesDetailPage({
 
       {/* Content Sections */}
       <div className="space-y-8 md:space-y-10">
-        {/* Show concept episodes if they exist in screenplay_data */}
-        {series.screenplay_data?.seasons && (
-          <>
-            <ConceptEpisodesWithScreenplay
-              seasons={series.screenplay_data.seasons}
-              seriesId={seriesId}
-              seriesName={series.name}
-            />
-            <Separator />
-          </>
-        )}
-
-        <EpisodeManager
+        {/* Coordinated Episodes Section - handles both regular episodes and concept episodes */}
+        <SeriesEpisodesCoordinator
           seriesId={seriesId}
           seriesName={series.name}
+          seasons={series.screenplay_data?.seasons}
         />
 
         <Separator />

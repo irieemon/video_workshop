@@ -44,10 +44,10 @@ export default async function DashboardPage() {
       </div>
 
       {transformedProjects.length === 0 ? (
-        <div className="flex min-h-[300px] md:min-h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-scenra-border-subtle bg-scenra-dark-panel/50 p-6 md:p-12 text-center">
+        <div className="flex min-h-[300px] md:min-h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-scenra-border-subtle bg-gray-50 dark:bg-scenra-dark-panel/50 p-6 md:p-12 text-center">
           <div className="mx-auto max-w-md">
             <div className="mb-4 flex justify-center">
-              <Plus className="h-10 w-10 md:h-12 md:w-12 text-scenra-gray" />
+              <Plus className="h-10 w-10 md:h-12 md:w-12 text-gray-400 dark:text-scenra-gray" />
             </div>
             <h3 className="mb-2 text-lg md:text-xl font-semibold scenra-heading">No projects yet</h3>
             <p className="mb-6 text-sm md:text-base scenra-text-muted">

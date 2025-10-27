@@ -97,7 +97,7 @@ export async function convertScreenplayToPrompt(
 
   // Call OpenAI to convert to Sora prompt
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: 'gpt-4o',
     messages: [
       {
         role: 'system',

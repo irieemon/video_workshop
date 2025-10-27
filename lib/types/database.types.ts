@@ -17,6 +17,7 @@ export interface Database {
           avatar_url: string | null
           subscription_tier: 'free' | 'premium'
           subscription_expires_at: string | null
+          is_admin: boolean
           usage_quota: {
             projects: number
             videos_per_month: number
@@ -37,6 +38,7 @@ export interface Database {
           avatar_url?: string | null
           subscription_tier?: 'free' | 'premium'
           subscription_expires_at?: string | null
+          is_admin?: boolean
           usage_quota?: Json
           usage_current?: Json
           created_at?: string
@@ -49,6 +51,7 @@ export interface Database {
           avatar_url?: string | null
           subscription_tier?: 'free' | 'premium'
           subscription_expires_at?: string | null
+          is_admin?: boolean
           usage_quota?: Json
           usage_current?: Json
           created_at?: string
@@ -414,11 +417,13 @@ export interface Database {
           project_id: string | null
           series_id: string | null
           episode_id: string | null
+          scene_id: string | null
           title: string
           user_brief: string
           agent_discussion: AgentDiscussion
           detailed_breakdown: DetailedBreakdown
           optimized_prompt: string
+          screenplay_enrichment_data: ScreenplayEnrichmentData | null
           character_count: number
           sora_video_url: string | null
           platform: 'tiktok' | 'instagram' | 'both' | null
@@ -433,11 +438,13 @@ export interface Database {
           project_id?: string | null
           series_id?: string | null
           episode_id?: string | null
+          scene_id?: string | null
           title: string
           user_brief: string
           agent_discussion: Json
           detailed_breakdown: Json
           optimized_prompt: string
+          screenplay_enrichment_data?: Json | null
           character_count: number
           sora_video_url?: string | null
           platform?: 'tiktok' | 'instagram' | 'both' | null
@@ -452,11 +459,13 @@ export interface Database {
           project_id?: string | null
           series_id?: string | null
           episode_id?: string | null
+          scene_id?: string | null
           title?: string
           user_brief?: string
           agent_discussion?: Json
           detailed_breakdown?: Json
           optimized_prompt?: string
+          screenplay_enrichment_data?: Json | null
           character_count?: number
           sora_video_url?: string | null
           platform?: 'tiktok' | 'instagram' | 'both' | null
@@ -774,6 +783,27 @@ export interface Episode {
   current_session_id: string | null
   created_at: string
   updated_at: string
+}
+
+// Screenplay Enrichment Types
+export interface ScreenplayEnrichmentData {
+  sourceScene: {
+    sceneId: string
+    sceneNumber: number
+    location: string
+    timeOfDay: 'INT' | 'EXT' | 'INT/EXT'
+    timePeriod: 'DAY' | 'NIGHT' | 'DAWN' | 'DUSK' | 'CONTINUOUS'
+  }
+  extractedDialogue: {
+    character: string
+    lines: string[]
+  }[]
+  extractedActions: string[]
+  charactersInScene: string[] // Character IDs
+  settingsInScene: string[] // Setting IDs
+  emotionalBeat?: string
+  durationEstimate?: number // in seconds
+  enrichmentTimestamp: string
 }
 
 // Project-Series Junction Table

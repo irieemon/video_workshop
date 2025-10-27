@@ -84,7 +84,7 @@ export function SeriesCard({ series, projectId }: SeriesCardProps) {
     <>
       <div className="relative group">
         <Link href={seriesUrl}>
-          <Card className="hover:border-scenra-amber transition-colors cursor-pointer h-full">
+          <Card className="hover:border-scenra-amber border-gray-200 dark:border-border bg-white dark:bg-card transition-colors cursor-pointer h-full">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <ListVideo className="h-7 w-7 md:h-8 md:w-8 text-scenra-amber mb-2" />
@@ -94,18 +94,18 @@ export function SeriesCard({ series, projectId }: SeriesCardProps) {
                       {series.genre.replace('-', ' ')}
                     </Badge>
                   )}
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-secondary text-gray-700 dark:text-secondary-foreground">
                     {series.episode_count} {series.episode_count === 1 ? 'episode' : 'episodes'}
                   </Badge>
                 </div>
               </div>
-              <CardTitle className="text-lg md:text-xl">{series.name}</CardTitle>
-              <CardDescription className="line-clamp-2 min-h-[2.5rem] text-sm">
+              <CardTitle className="text-lg md:text-xl text-gray-900 dark:text-foreground">{series.name}</CardTitle>
+              <CardDescription className="line-clamp-2 min-h-[2.5rem] text-sm text-gray-600 dark:text-muted-foreground">
                 {series.description || 'No description'}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-600 dark:text-muted-foreground">
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="flex items-center gap-1" title="Episodes">
                     <ListVideo className="h-4 w-4" />

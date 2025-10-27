@@ -160,6 +160,7 @@ interface StreamRoundtableInput {
   characterRelationships?: any[]
   seriesSoraSettings?: any
   characterContext?: string
+  screenplayContext?: string
   userId: string
 }
 
@@ -177,6 +178,7 @@ export async function streamAgentRoundtable(
     characterRelationships,
     seriesSoraSettings,
     characterContext,
+    screenplayContext,
   } = input
 
   // Build context string
@@ -186,6 +188,9 @@ export async function streamAgentRoundtable(
   }
   if (characterContext) {
     contextString += characterContext
+  }
+  if (screenplayContext) {
+    contextString += screenplayContext
   }
   if (seriesSettings && seriesSettings.length > 0) {
     contextString += `\n\nSETTINGS:\n${seriesSettings.map(s => `- ${s.name}: ${s.description}`).join('\n')}`

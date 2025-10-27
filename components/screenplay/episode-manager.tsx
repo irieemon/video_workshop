@@ -1,24 +1,42 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Film, Plus, Edit, Trash2 } from 'lucide-react'
+import { Film, Plus, Edit, Trash2, Eye } from 'lucide-react'
 import { ScreenplayChat } from './screenplay-chat'
+import { ScreenplayViewer } from './screenplay-viewer'
 import type { Episode } from '@/lib/types/database.types'
+import { useModal } from '@/components/providers/modal-provider'
+import { useToast } from '@/hooks/use-toast'
 
 interface EpisodeManagerProps {
   seriesId: string
   seriesName: string
 }
 
-export function EpisodeManager({ seriesId, seriesName }: EpisodeManagerProps) {
+export interface EpisodeManagerHandle {
+  refresh: () => void
+}
+
+export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerProps>(
+  function EpisodeManager({ seriesId, seriesName }, ref) {
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
+  const [viewingEpisode, setViewingEpisode] = useState<Episode | null>(null)
+  const [viewerOpen, setViewerOpen] = useState(false)
+
+  const { showConfirm } = useModal()
+  const { toast } = useToast()
+
+  // Expose refresh function to parent via ref
+  useImperativeHandle(ref, () => ({
+    refresh: loadEpisodes,
+  }))
 
   useEffect(() => {
     loadEpisodes()
@@ -34,6 +52,7 @@ export function EpisodeManager({ seriesId, seriesName }: EpisodeManagerProps) {
       }
 
       const data = await response.json()
+      console.log('Episodes loaded:', data.episodes)
       setEpisodes(data.episodes || [])
     } catch (error) {
       console.error('Failed to load episodes:', error)
@@ -53,7 +72,20 @@ export function EpisodeManager({ seriesId, seriesName }: EpisodeManagerProps) {
   }
 
   const handleDeleteEpisode = async (episodeId: string) => {
-    if (!confirm('Delete this episode? This cannot be undone.')) return
+    const episode = episodes.find(ep => ep.id === episodeId)
+    const episodeTitle = episode ? `${episode.title}` : 'this episode'
+
+    const confirmed = await showConfirm(
+      'Delete Episode',
+      `Are you sure you want to delete ${episodeTitle}? This action cannot be undone.`,
+      {
+        variant: 'destructive',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel'
+      }
+    )
+
+    if (!confirmed) return
 
     try {
       const response = await fetch(`/api/episodes/${episodeId}`, {
@@ -66,9 +98,17 @@ export function EpisodeManager({ seriesId, seriesName }: EpisodeManagerProps) {
 
       // Reload episodes
       await loadEpisodes()
+      toast({
+        title: 'Episode Deleted',
+        description: `${episodeTitle} has been successfully deleted.`,
+      })
     } catch (error) {
       console.error('Failed to delete episode:', error)
-      alert('Failed to delete episode')
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete episode. Please try again.',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -150,6 +190,17 @@ export function EpisodeManager({ seriesId, seriesName }: EpisodeManagerProps) {
                           )}
                         </div>
                         <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setViewingEpisode(episode)
+                              setViewerOpen(true)
+                            }}
+                            title="View screenplay"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -236,6 +287,19 @@ export function EpisodeManager({ seriesId, seriesName }: EpisodeManagerProps) {
             : undefined
         }
       />
+
+      {/* Screenplay Viewer Modal */}
+      {viewingEpisode && (
+        <ScreenplayViewer
+          open={viewerOpen}
+          onClose={() => {
+            setViewerOpen(false)
+            setViewingEpisode(null)
+          }}
+          episode={viewingEpisode}
+        />
+      )}
     </>
   )
-}
+})
+

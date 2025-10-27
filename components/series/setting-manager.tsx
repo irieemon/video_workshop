@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Plus, MapPin, Edit, Trash2, Star } from 'lucide-react'
+import { useModal } from '@/components/providers/modal-provider'
+import { useToast } from '@/hooks/use-toast'
 
 interface Setting {
   id: string
@@ -39,6 +41,9 @@ export function SettingManager({ seriesId, settings: initialSettings }: SettingM
   const [editingSetting, setEditingSetting] = useState<Setting | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const { showConfirm } = useModal()
+  const { toast } = useToast()
 
   type EnvironmentType = 'interior' | 'exterior' | 'mixed' | 'other'
 
@@ -127,7 +132,20 @@ export function SettingManager({ seriesId, settings: initialSettings }: SettingM
   }
 
   const handleDelete = async (settingId: string) => {
-    if (!confirm('Are you sure you want to delete this setting?')) return
+    const setting = settings.find(s => s.id === settingId)
+    const settingName = setting ? setting.name : 'this setting'
+
+    const confirmed = await showConfirm(
+      'Delete Setting',
+      `Are you sure you want to delete ${settingName}? This action cannot be undone.`,
+      {
+        variant: 'destructive',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel'
+      }
+    )
+
+    if (!confirmed) return
 
     try {
       const response = await fetch(`/api/series/${seriesId}/settings/${settingId}`, {
@@ -140,8 +158,16 @@ export function SettingManager({ seriesId, settings: initialSettings }: SettingM
 
       setSettings(settings.filter(s => s.id !== settingId))
       router.refresh()
+      toast({
+        title: 'Setting Deleted',
+        description: `${settingName} has been successfully deleted.`,
+      })
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete setting. Please try again.',
+        variant: 'destructive',
+      })
     }
   }
 

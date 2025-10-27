@@ -57,6 +57,7 @@ export default function NewVideoPage() {
   const [platform, setPlatform] = useState<'tiktok' | 'instagram'>('tiktok')
   const [seriesId, setSeriesId] = useState<string | null>(null)
   const [episodeId, setEpisodeId] = useState<string | null>(null)
+  const [episodeData, setEpisodeData] = useState<any | null>(null)
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
   const [selectedSettings, setSelectedSettings] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -312,7 +313,9 @@ export default function NewVideoPage() {
     if (!result) return
 
     const finalPrompt = advancedMode ? editedPrompt : result.optimizedPrompt
-    const finalCharCount = finalPrompt.length
+
+    // Character count is the length of the final prompt
+    const characterCount = finalPrompt.length
 
     setSaving(true)
     setError(null)
@@ -335,10 +338,10 @@ export default function NewVideoPage() {
           selectedSettings,
           title: brief.slice(0, 100),
           userBrief: brief,
-          agentDiscussion: result.discussion,
-          detailedBreakdown: result.detailedBreakdown,
+          agentDiscussion: JSON.stringify(result.discussion),
+          detailedBreakdown: JSON.stringify(result.detailedBreakdown),
           optimizedPrompt: finalPrompt,
-          characterCount: finalCharCount,
+          characterCount,
           platform,
           hashtags: result.hashtags,
           generation_source: episodeId ? 'episode' : 'manual',
@@ -364,7 +367,7 @@ export default function NewVideoPage() {
                 final_version: {
                   prompt: finalPrompt,
                   shot_list: shotList.length > 0 ? shotList : undefined,
-                  character_count: finalCharCount,
+                  character_count: characterCount,
                 },
               }
             : null,
@@ -376,7 +379,7 @@ export default function NewVideoPage() {
       }
 
       const data = await response.json()
-      const videoId = data.video?.id
+      const videoId = data.id
 
       // Store video ID and title for Sora generation
       if (videoId) {
@@ -570,11 +573,35 @@ export default function NewVideoPage() {
                 onEpisodeSelect={setEpisodeId}
                 onEpisodeDataLoaded={(data) => {
                   if (data) {
-                    // Auto-populate brief with converted prompt
-                    setBrief(data.convertedPrompt)
+                    console.log('Parent received episode data:', {
+                      brief: data.brief?.substring(0, 100) + '...',
+                      suggestedCharacters: data.suggestedCharacters,
+                      suggestedSettings: data.suggestedSettings,
+                      hasScreenplay: data.hasScreenplay,
+                      sceneCount: data.sceneCount,
+                    })
+
+                    // Store full episode data including screenplay
+                    setEpisodeData(data)
+
+                    // Auto-populate brief with detailed episode description
+                    setBrief(data.brief || '')
                     // Auto-select characters and settings that appear in the episode
-                    setSelectedCharacters(data.suggestedCharacters)
-                    setSelectedSettings(data.suggestedSettings)
+                    setSelectedCharacters(data.suggestedCharacters || [])
+                    setSelectedSettings(data.suggestedSettings || [])
+
+                    console.log('State updated:', {
+                      briefLength: (data.brief || '').length,
+                      selectedCharacters: data.suggestedCharacters || [],
+                      selectedSettings: data.suggestedSettings || [],
+                      hasScreenplay: data.hasScreenplay,
+                    })
+                  } else {
+                    // Clear data when episode is deselected
+                    setEpisodeData(null)
+                    setBrief('')
+                    setSelectedCharacters([])
+                    setSelectedSettings([])
                   }
                 }}
                 disabled={loading || !!result}
@@ -656,6 +683,7 @@ export default function NewVideoPage() {
                 projectId={projectId}
                 selectedCharacters={selectedCharacters}
                 selectedSettings={selectedSettings}
+                episodeData={episodeData}  // Include screenplay context
                 onComplete={handleStreamingComplete}
                 onClose={handleModalClose}
                 isComplete={!!pendingResult}
@@ -678,6 +706,7 @@ export default function NewVideoPage() {
                   projectId={projectId}
                   selectedCharacters={selectedCharacters}
                   selectedSettings={selectedSettings}
+                  episodeData={episodeData}  // Include screenplay context
                   onComplete={() => {}}
                   onClose={() => setReviewModalOpen(false)}
                   isComplete={true}

@@ -84,7 +84,9 @@
   /* Cinematic Studio Components */
 
   .scenra-card {
-    @apply bg-scenra-dark-panel border border-scenra-border-subtle rounded-lg;
+    @apply bg-white dark:bg-scenra-dark-panel;
+    @apply border border-gray-200 dark:border-scenra-border-subtle;
+    @apply rounded-lg;
     transition: all 0.3s ease;
   }
 
@@ -111,21 +113,23 @@
   }
 
   .scenra-input {
-    @apply bg-scenra-dark-panel border border-scenra-border-subtle text-scenra-light;
+    @apply bg-white dark:bg-scenra-dark-panel;
+    @apply border border-gray-300 dark:border-scenra-border-subtle;
+    @apply text-gray-900 dark:text-scenra-light;
     @apply focus:border-scenra-amber focus:ring-1 focus:ring-scenra-amber;
     @apply rounded-md px-3 py-2 transition-all duration-200;
   }
 
   .scenra-heading {
-    @apply text-scenra-light font-semibold;
+    @apply text-gray-900 dark:text-scenra-light font-semibold;
   }
 
   .scenra-text-muted {
-    @apply text-scenra-gray;
+    @apply text-gray-600 dark:text-scenra-gray;
   }
 
   .scenra-divider {
-    @apply border-t border-scenra-border-subtle;
+    @apply border-t border-gray-200 dark:border-scenra-border-subtle;
   }
 
   .scenra-fade-in {

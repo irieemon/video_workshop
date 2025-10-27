@@ -65,10 +65,10 @@ export function EditablePromptField({
   const hasChanges = value !== originalValue
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 bg-white dark:bg-card border-gray-200 dark:border-border">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-base font-semibold">Optimized Sora Prompt (Editable)</Label>
+          <Label className="text-base font-semibold text-gray-900 dark:text-foreground">Optimized Sora Prompt (Editable)</Label>
           {hasChanges && (
             <Button
               type="button"
@@ -106,17 +106,17 @@ export function EditablePromptField({
 
         {/* Copyright Warnings */}
         {copyrightWarnings.length > 0 && (
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="p-3 bg-yellow-50 border border-yellow-200 dark:border-yellow-300 rounded-md">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-700 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-yellow-900">
                   Potential Copyright Issues Detected
                 </p>
-                <p className="text-xs text-yellow-700 mt-1">
+                <p className="text-xs text-yellow-700 dark:text-yellow-800 mt-1">
                   Found possible copyrighted terms: <strong>{copyrightWarnings.join(', ')}</strong>
                 </p>
-                <p className="text-xs text-yellow-600 mt-1">
+                <p className="text-xs text-yellow-600 dark:text-yellow-700 mt-1">
                   Consider replacing with generic descriptions to avoid generation failures.
                 </p>
               </div>

@@ -82,8 +82,8 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-sage-100 text-sage-900'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      ? 'bg-scenra-amber/10 text-scenra-amber'
+                      : 'text-gray-600 dark:text-muted-foreground hover:bg-gray-100 dark:hover:bg-muted hover:text-gray-900 dark:hover:text-foreground'
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -94,17 +94,17 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
           </nav>
 
           {/* Usage Quota */}
-          <div className="border-t p-4 space-y-3">
+          <div className="border-t border-gray-200 dark:border-scenra-border-subtle p-4 space-y-3">
             {subscriptionTier === 'free' && (
               <>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium">AI Consultations</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs font-medium text-gray-900 dark:text-foreground">AI Consultations</span>
+                    <span className="text-xs text-gray-600 dark:text-muted-foreground">
                       {consultationsRemaining} left
                     </span>
                   </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-gray-100 dark:bg-muted rounded-full overflow-hidden border border-gray-200 dark:border-scenra-border-subtle">
                     <div
                       className={cn(
                         'h-full transition-all',
@@ -120,7 +120,7 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
                     />
                   </div>
                 </div>
-                <Separator />
+                <Separator className="bg-gray-200 dark:bg-scenra-border-subtle" />
                 <Button
                   asChild
                   className="w-full"
@@ -135,10 +135,10 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
             )}
             {subscriptionTier === 'premium' && (
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-scenra-amber text-white">
+                <Badge variant="secondary" className="bg-scenra-amber text-scenra-dark dark:text-white">
                   Premium
                 </Badge>
-                <span className="text-xs text-muted-foreground">Unlimited access</span>
+                <span className="text-xs text-gray-600 dark:text-muted-foreground">Unlimited access</span>
               </div>
             )}
           </div>

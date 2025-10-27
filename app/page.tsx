@@ -5,7 +5,7 @@ import { Sparkles, Film, Zap } from 'lucide-react'
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-scenra-dark relative overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-scenra-dark relative overflow-hidden">
       {/* Ambient glow effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-scenra-amber/5 via-transparent to-scenra-blue/5 pointer-events-none" />
 
@@ -20,7 +20,7 @@ export default function HomePage() {
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight scenra-heading">
             Scenra Studio
           </h1>
-          <p className="text-xl md:text-2xl text-scenra-light/90 font-medium">
+          <p className="text-xl md:text-2xl text-gray-700 dark:text-scenra-light/90 font-medium">
             AI-powered creative production platform
           </p>
           <p className="text-base md:text-lg scenra-text-muted max-w-2xl mx-auto leading-relaxed">

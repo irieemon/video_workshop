@@ -65,7 +65,7 @@ export function AgentCard({
   const Icon = config.icon
 
   return (
-    <div className={cn('relative rounded-lg border-l-4 bg-card p-4', config.color)}>
+    <div className={cn('relative rounded-lg border-l-4 bg-white dark:bg-card border-gray-200 dark:border-border p-4', config.color)}>
       <div className="flex items-start gap-3">
         <div className={cn('rounded-full p-2', config.bgColor)}>
           <Icon className={cn('h-5 w-5', config.textColor)} />
@@ -77,23 +77,23 @@ export function AgentCard({
               {config.name}
             </span>
             {isChallenge && respondingTo && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground">
                 Challenges {agentConfig[respondingTo as keyof typeof agentConfig]?.name || respondingTo}
               </Badge>
             )}
             {respondingTo && !isChallenge && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground">
                 Responds to {agentConfig[respondingTo as keyof typeof agentConfig]?.name || respondingTo}
               </Badge>
             )}
             {buildingOn && buildingOn.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-secondary text-gray-700 dark:text-secondary-foreground">
                 Builds on consensus
               </Badge>
             )}
           </div>
 
-          <p className="text-sm leading-relaxed text-scenra-light">
+          <p className="text-sm leading-relaxed text-gray-700 dark:text-scenra-light">
             {response}
           </p>
         </div>

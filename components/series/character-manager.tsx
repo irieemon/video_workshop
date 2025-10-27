@@ -20,6 +20,8 @@ import { CharacterVisualCues } from './character-visual-cues'
 import { VisualCue } from '@/lib/types/database.types'
 import { CharacterConsistencyForm } from './character-consistency-form'
 import type { VisualFingerprint, VoiceProfile } from '@/lib/types/character-consistency'
+import { useModal } from '@/components/providers/modal-provider'
+import { useToast } from '@/hooks/use-toast'
 
 interface Character {
   id: string
@@ -48,6 +50,9 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
   const [error, setError] = useState<string | null>(null)
   const [selectedCharacterForVisuals, setSelectedCharacterForVisuals] = useState<Character | null>(null)
   const [showVisualCues, setShowVisualCues] = useState(false)
+
+  const { showConfirm } = useModal()
+  const { toast } = useToast()
 
   type CharacterRole = 'protagonist' | 'supporting' | 'background' | 'other'
 
@@ -147,7 +152,20 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
   }
 
   const handleDelete = async (characterId: string) => {
-    if (!confirm('Are you sure you want to delete this character?')) return
+    const character = characters.find(c => c.id === characterId)
+    const characterName = character ? character.name : 'this character'
+
+    const confirmed = await showConfirm(
+      'Delete Character',
+      `Are you sure you want to delete ${characterName}? This action cannot be undone.`,
+      {
+        variant: 'destructive',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel'
+      }
+    )
+
+    if (!confirmed) return
 
     try {
       const response = await fetch(`/api/series/${seriesId}/characters/${characterId}`, {
@@ -160,8 +178,16 @@ export function CharacterManager({ seriesId, characters: initialCharacters }: Ch
 
       setCharacters(characters.filter(c => c.id !== characterId))
       router.refresh()
+      toast({
+        title: 'Character Deleted',
+        description: `${characterName} has been successfully deleted.`,
+      })
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete character. Please try again.',
+        variant: 'destructive',
+      })
     }
   }
 

@@ -15,6 +15,7 @@ export interface EpisodeData {
     logline: string | null
     synopsis: string | null
     screenplay_text: string | null
+    structured_screenplay: any | null
     season_number: number
     episode_number: number
     status: string
@@ -27,7 +28,9 @@ export interface EpisodeData {
   settings: any[]
   suggestedCharacters: string[]
   suggestedSettings: string[]
-  convertedPrompt: string
+  brief: string  // Episode synopsis/logline to use as brief
+  hasScreenplay: boolean  // Whether screenplay data exists
+  sceneCount: number  // Number of scenes in structured screenplay
 }
 
 interface EpisodeSelectorProps {
@@ -49,15 +52,13 @@ export function EpisodeSelector({
 }: EpisodeSelectorProps) {
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState(false)
-  const [converting, setConverting] = useState(false)
-  const [convertedPrompt, setConvertedPrompt] = useState<string | null>(null)
+  const [loadingData, setLoadingData] = useState(false)
 
   // Fetch episodes when seriesId changes
   useEffect(() => {
     if (!seriesId) {
       setEpisodes([])
       onEpisodeSelect(null)
-      setConvertedPrompt(null)
       return
     }
 
@@ -75,54 +76,112 @@ export function EpisodeSelector({
     }
 
     fetchEpisodes()
-  }, [seriesId, onEpisodeSelect])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seriesId])
 
   // Reset when series changes
   useEffect(() => {
     onEpisodeSelect(null)
-    setConvertedPrompt(null)
     if (onEpisodeDataLoaded) {
       onEpisodeDataLoaded(null)
     }
-  }, [seriesId, onEpisodeSelect, onEpisodeDataLoaded])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seriesId])
 
-  const handleConvertEpisode = async (episodeId: string) => {
-    setConverting(true)
+  // Generate a detailed, comprehensive brief from episode data
+  const generateDetailedBrief = (data: any): string => {
+    const { episode, series, characters, settings } = data
+
+    // Build a natural, detailed brief that a human would write
+    const parts: string[] = []
+
+    // Start with series context
+    parts.push(`Create a video for "${series.name}" - Season ${episode.season_number}, Episode ${episode.episode_number}: "${episode.title}".`)
+
+    // Add logline/synopsis
+    if (episode.logline) {
+      parts.push(`\n\n${episode.logline}`)
+    }
+    if (episode.synopsis && episode.synopsis !== episode.logline) {
+      parts.push(`\n\n${episode.synopsis}`)
+    }
+
+    // Add character context
+    if (characters && characters.length > 0) {
+      parts.push('\n\nCharacters involved:')
+      characters.forEach((char: any) => {
+        const charDesc = char.description || 'No description available'
+        const role = char.role ? ` (${char.role})` : ''
+        parts.push(`\n- ${char.name}${role}: ${charDesc}`)
+      })
+    }
+
+    // Add setting/location context
+    if (settings && settings.length > 0) {
+      parts.push('\n\nKey locations and settings:')
+      settings.forEach((setting: any) => {
+        const settingDesc = setting.description || 'No description available'
+        const envType = setting.environment_type ? ` [${setting.environment_type}]` : ''
+        const timeOfDay = setting.time_of_day ? `, ${setting.time_of_day}` : ''
+        const atmosphere = setting.atmosphere ? `, ${setting.atmosphere} atmosphere` : ''
+        parts.push(`\n- ${setting.name}${envType}: ${settingDesc}${timeOfDay}${atmosphere}`)
+      })
+    }
+
+    // Add a helpful prompt for the AI
+    parts.push('\n\nPlease create an optimized video prompt that captures the essence of this episode scene.')
+
+    return parts.join('')
+  }
+
+  // Auto-load episode data when episode is selected
+  const handleEpisodeChange = async (episodeId: string | null) => {
+    onEpisodeSelect(episodeId)
+
+    if (!episodeId) {
+      if (onEpisodeDataLoaded) {
+        onEpisodeDataLoaded(null)
+      }
+      return
+    }
+
+    setLoadingData(true)
     try {
-      // First, get full episode data
+      // Fetch full episode data with characters and settings
       const fullDataResponse = await fetch(`/api/episodes/${episodeId}/full-data`)
       if (!fullDataResponse.ok) {
         throw new Error('Failed to fetch episode data')
       }
       const fullData = await fullDataResponse.json()
 
-      // Then convert to prompt
-      const convertResponse = await fetch(`/api/episodes/${episodeId}/convert-to-prompt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}), // No specific scene, convert full episode
+      // Generate detailed, comprehensive brief
+      const detailedBrief = generateDetailedBrief(fullData)
+
+      // Debug logging
+      console.log('Episode data loaded:', {
+        characters: fullData.characters?.length || 0,
+        settings: fullData.settings?.length || 0,
+        suggestedCharacters: fullData.suggestedCharacters,
+        suggestedSettings: fullData.suggestedSettings,
       })
 
-      if (!convertResponse.ok) {
-        throw new Error('Failed to convert episode to prompt')
-      }
-
-      const convertData = await convertResponse.json()
-      const prompt = convertData.prompt.prompt
-      setConvertedPrompt(prompt)
-
-      // Pass complete data to parent component
+      // Pass data to parent WITHOUT converting to prompt
       if (onEpisodeDataLoaded) {
+        const hasScreenplay = !!(fullData.episode.structured_screenplay?.scenes?.length > 0 || fullData.episode.screenplay_text)
+        const sceneCount = fullData.episode.structured_screenplay?.scenes?.length || 0
+
         onEpisodeDataLoaded({
           ...fullData,
-          convertedPrompt: prompt,
+          brief: detailedBrief,
+          hasScreenplay,
+          sceneCount,
         })
       }
     } catch (err: any) {
-      console.error('Failed to convert episode:', err)
-      alert(err.message || 'Failed to convert episode to video prompt')
+      console.error('Failed to load episode data:', err)
+      alert(err.message || 'Failed to load episode data')
     } finally {
-      setConverting(false)
+      setLoadingData(false)
     }
   }
 
@@ -160,27 +219,27 @@ export function EpisodeSelector({
               <select
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scenra-amber focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={selectedEpisodeId || ''}
-                onChange={(e) => {
-                  onEpisodeSelect(e.target.value || null)
-                  setConvertedPrompt(null) // Reset converted prompt when selection changes
-                  if (onEpisodeDataLoaded) {
-                    onEpisodeDataLoaded(null) // Clear episode data
-                  }
-                }}
-                disabled={disabled}
+                onChange={(e) => handleEpisodeChange(e.target.value || null)}
+                disabled={disabled || loadingData}
               >
                 <option value="">Manual video creation</option>
                 {episodes.map((episode) => (
                   <option key={episode.id} value={episode.id}>
                     S{episode.season_number}E{episode.episode_number}: {episode.title}
-                    {episode.screenplay_text ? '' : ' (no screenplay)'}
                   </option>
                 ))}
               </select>
             </div>
 
-            {selectedEpisode && (
-              <div className="rounded-lg border border-scenra-amber/30 p-3 space-y-3 bg-scenra-dark-panel">
+            {loadingData && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-scenra-amber mr-2" />
+                <span className="text-sm text-scenra-gray">Loading episode data...</span>
+              </div>
+            )}
+
+            {selectedEpisode && !loadingData && (
+              <div className="rounded-lg border border-gray-200 dark:border-scenra-amber/30 p-3 space-y-3 bg-gray-50 dark:bg-scenra-dark-panel">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -191,66 +250,31 @@ export function EpisodeSelector({
                         {selectedEpisode.status}
                       </Badge>
                     </div>
-                    <h4 className="font-medium text-sm mb-1 text-scenra-light">{selectedEpisode.title}</h4>
+                    <h4 className="font-medium text-sm mb-1 text-gray-900 dark:text-scenra-light">{selectedEpisode.title}</h4>
                     {selectedEpisode.logline && (
-                      <p className="text-xs text-scenra-gray italic line-clamp-2">
+                      <p className="text-xs text-gray-600 dark:text-scenra-gray italic line-clamp-2">
                         {selectedEpisode.logline}
                       </p>
                     )}
                   </div>
                 </div>
 
-                {selectedEpisode.screenplay_text ? (
-                  <>
-                    <div className="text-xs text-scenra-gray">
-                      Screenplay: {Math.round(selectedEpisode.screenplay_text.length / 1000)}k characters
-                    </div>
-
-                    {!convertedPrompt && (
-                      <Button
-                        onClick={() => handleConvertEpisode(selectedEpisode.id)}
-                        disabled={converting || disabled}
-                        size="sm"
-                        className="w-full bg-scenra-amber hover:bg-scenra-dark"
-                      >
-                        {converting ? (
-                          <>
-                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                            Converting screenplay to Sora prompt...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-2 h-3 w-3" />
-                            Convert to Video Prompt
-                          </>
-                        )}
-                      </Button>
-                    )}
-
-                    {convertedPrompt && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-3 w-3 text-green-600" />
-                          <span className="text-xs font-medium text-green-600">
-                            Converted to Sora Prompt
-                          </span>
-                        </div>
-                        <div className="rounded-md bg-white border p-3 text-xs">
-                          <p className="line-clamp-4">{convertedPrompt}</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          This prompt will be used as the initial brief for the AI roundtable.
-                          You can review and edit it after the roundtable discussion.
-                        </p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2">
-                    This episode has no screenplay content yet. You can create a manual video or
-                    add screenplay content first.
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3 w-3 text-green-600" />
+                    <span className="text-xs font-medium text-green-600">
+                      Episode Data Loaded
+                    </span>
                   </div>
-                )}
+                  <div className="text-xs text-gray-600 dark:text-scenra-gray space-y-1">
+                    <p>✓ Brief auto-filled from episode synopsis</p>
+                    <p>✓ Characters and settings pre-selected</p>
+                    <p>✓ Ready for AI roundtable discussion</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    Click &quot;Start Roundtable&quot; to create an optimized prompt through AI collaboration.
+                  </p>
+                </div>
               </div>
             )}
           </>

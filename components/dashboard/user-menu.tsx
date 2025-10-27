@@ -51,13 +51,13 @@ export function UserMenu({ user }: UserMenuProps) {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56 bg-white dark:bg-card border-gray-200 dark:border-border" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">
+            <p className="text-sm font-medium leading-none text-gray-900 dark:text-foreground">
               {user.full_name || 'User'}
             </p>
-            <p className="text-xs leading-none text-scenra-gray">
+            <p className="text-xs leading-none text-gray-600 dark:text-scenra-gray">
               {user.email}
             </p>
           </div>

@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings } = body
+    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeData } = body
 
     // Validate required fields
     if (!brief || !platform || !projectId) {
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     let characterRelationships = null
     let seriesSoraSettings = null
     let characterContext = ''
+    let screenplayContext = ''
 
     if (seriesId) {
       const { data: series } = await supabase
@@ -133,6 +134,61 @@ export async function POST(request: NextRequest) {
       visualAssets = assets
     }
 
+    // Process episode screenplay context if available
+    if (episodeData && episodeData.episode) {
+      const { episode, series } = episodeData
+      const parts: string[] = []
+
+      parts.push(`\n\nEPISODE SCREENPLAY CONTEXT:`)
+      parts.push(`\nSeries: "${series.name}" - Season ${episode.season_number}, Episode ${episode.episode_number}: "${episode.title}"`)
+
+      if (episode.logline) {
+        parts.push(`\nLogline: ${episode.logline}`)
+      }
+
+      if (episode.synopsis && episode.synopsis !== episode.logline) {
+        parts.push(`\nSynopsis: ${episode.synopsis}`)
+      }
+
+      // Include structured screenplay data if available
+      if (episode.structured_screenplay?.scenes && episode.structured_screenplay.scenes.length > 0) {
+        parts.push(`\n\nSTRUCTURED SCREENPLAY (${episode.structured_screenplay.scenes.length} scenes):`)
+
+        // Include first few scenes as examples
+        const scenesToInclude = episode.structured_screenplay.scenes.slice(0, 3)
+        scenesToInclude.forEach((scene: any, idx: number) => {
+          parts.push(`\n\nScene ${scene.scene_number}: ${scene.location} - ${scene.time_of_day} ${scene.time_period}`)
+          parts.push(`Description: ${scene.description}`)
+
+          if (scene.characters && scene.characters.length > 0) {
+            parts.push(`Characters: ${scene.characters.join(', ')}`)
+          }
+
+          if (scene.dialogue && scene.dialogue.length > 0) {
+            parts.push(`Dialogue: ${scene.dialogue.length} exchanges`)
+          }
+
+          if (scene.action && scene.action.length > 0) {
+            parts.push(`Actions: ${scene.action.join('; ')}`)
+          }
+        })
+
+        if (episode.structured_screenplay.scenes.length > 3) {
+          parts.push(`\n... and ${episode.structured_screenplay.scenes.length - 3} more scenes`)
+        }
+      } else if (episode.screenplay_text) {
+        // Include unstructured screenplay text (truncated if too long)
+        const maxLength = 1000
+        const truncated = episode.screenplay_text.length > maxLength
+        parts.push(`\n\nSCREENPLAY TEXT:`)
+        parts.push(truncated ? episode.screenplay_text.substring(0, maxLength) + '...' : episode.screenplay_text)
+      }
+
+      parts.push(`\n\nIMPORTANT: This video is based on the above screenplay. Use the scene descriptions, dialogue, actions, and character interactions to inform your creative decisions.\n`)
+
+      screenplayContext = parts.join('')
+    }
+
     // Create a ReadableStream for Server-Sent Events
     const stream = new ReadableStream({
       async start(controller) {
@@ -178,6 +234,7 @@ export async function POST(request: NextRequest) {
               characterRelationships: characterRelationships || undefined,
               seriesSoraSettings: seriesSoraSettings || undefined,
               characterContext: characterContext || undefined,
+              screenplayContext: screenplayContext || undefined,
               userId: user.id,
             },
             sendEvent

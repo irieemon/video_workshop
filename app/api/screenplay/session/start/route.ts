@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { buildEnhancedContextPrompt, buildEpisodeContextPrompt, EnhancedSeriesContext } from '@/lib/ai/screenplay-context'
 
 interface EpisodeConcept {
   episode_number: number
@@ -38,24 +39,70 @@ export async function POST(request: NextRequest) {
     const body: StartSessionRequest = await request.json()
     const { seriesId, targetType, targetId, initialConcept } = body
 
-    // Verify user owns this series
+    console.log('[Screenplay Session] Starting session for:', { seriesId, targetType, hasInitialConcept: !!initialConcept })
+
+    // Fetch full series context with all related data
     const { data: series, error: seriesError } = await supabase
       .from('series')
-      .select('id, name, screenplay_data')
+      .select(`
+        *,
+        characters:series_characters(*),
+        settings:series_settings(*),
+        visual_assets:series_visual_assets(*),
+        relationships:character_relationships(*)
+      `)
       .eq('id', seriesId)
       .eq('user_id', user.id)
       .single()
 
     if (seriesError || !series) {
+      console.error('[Screenplay Session] Series fetch error:', seriesError)
       return NextResponse.json(
-        { error: 'Series not found' },
+        {
+          error: 'Series not found',
+          details: seriesError?.message,
+          code: seriesError?.code
+        },
         { status: 404 }
       )
     }
 
+    console.log('[Screenplay Session] Series found:', {
+      id: series.id,
+      name: series.name,
+      characterCount: series.characters?.length || 0,
+      settingCount: series.settings?.length || 0
+    })
+
+    console.log('[Screenplay Session] Building enhanced context...')
+
+    // Build enhanced context prompt for AI
+    const enhancedContext: EnhancedSeriesContext = {
+      seriesId: series.id,
+      seriesName: series.name,
+      description: series.description,
+      genre: series.genre,
+      tone: series.tone,
+      screenplay_data: series.screenplay_data,
+      characters: series.characters || [],
+      settings: series.settings || [],
+      visual_assets: series.visual_assets || [],
+      relationships: series.relationships || [],
+      enforce_continuity: series.enforce_continuity || false,
+      allow_continuity_breaks: series.allow_continuity_breaks || false,
+      sora_camera_style: series.sora_camera_style,
+      sora_lighting_mood: series.sora_lighting_mood,
+      sora_color_palette: series.sora_color_palette,
+      sora_overall_tone: series.sora_overall_tone,
+      sora_narrative_prefix: series.sora_narrative_prefix,
+    }
+
+    const seriesContextPrompt = buildEnhancedContextPrompt(enhancedContext)
+
     // Determine initial conversation based on target type
     let initialStep = 'series_setup'
     let initialMessage = ''
+    let systemContext = seriesContextPrompt
 
     switch (targetType) {
       case 'series':
@@ -70,31 +117,39 @@ First, let's start with the core concept:
       case 'episode':
         initialStep = 'episode_planning'
         if (initialConcept) {
+          // Build episode-specific context
+          const episodeContextPrompt = buildEpisodeContextPrompt(initialConcept, enhancedContext)
+          systemContext = episodeContextPrompt + '\n\n' + seriesContextPrompt
+
           // Use the episode concept data to create a personalized initial message
           const seasonInfo = initialConcept.season_title
             ? `Season ${initialConcept.season_number}: ${initialConcept.season_title}`
             : `Season ${initialConcept.season_number}`
 
-          const characterFocus = initialConcept.character_focus && initialConcept.character_focus.length > 0
-            ? `\n- **Character Focus**: ${initialConcept.character_focus.join(', ')}`
-            : ''
+          const characterCount = enhancedContext.characters.length
+          const settingCount = enhancedContext.settings.length
+          const relationshipCount = enhancedContext.relationships?.length || 0
 
-          initialMessage = `Perfect! I can see you want to develop **Episode ${initialConcept.episode_number}** from ${seasonInfo}.
+          initialMessage = `Perfect! I'm ready to help you develop **"${initialConcept.title}"** (S${initialConcept.season_number}E${initialConcept.episode_number}).
 
-Here's what we have from your series concept:
+I have complete context for "${series.name}":
+- ${characterCount} established character${characterCount !== 1 ? 's' : ''}
+- ${settingCount} location${settingCount !== 1 ? 's' : ''}
+- ${relationshipCount} character relationship${relationshipCount !== 1 ? 's' : ''}
+- Series visual style and tone guidelines
 
-**"${initialConcept.title}"**
+**Episode Concept:**
 *${initialConcept.logline}*
 
-**Overview**: ${initialConcept.plot_summary}${characterFocus}
+${initialConcept.plot_summary}
 
-Let's break this down into a detailed screenplay structure with proper acts, beats, and scenes.
+Let's develop this into a detailed screenplay. I'll help you structure the acts, create compelling scenes, and ensure everything aligns with your established characters and world.
 
-**First, let's establish the episode structure:**
-
-What's the **protagonist's emotional state at the start** of this episode? Where are they mentally/emotionally before the events unfold?`
+**To start: What emotional journey do you want the main character(s) to go through in this episode?**`
         } else {
-          initialMessage = `Perfect! Let's break down this episode with proper screenplay structure.
+          initialMessage = `Perfect! Let's break down this episode with professional screenplay structure.
+
+I have access to all your series context (characters, settings, relationships, and visual style) to ensure continuity.
 
 **What's the main story you want to tell in this episode?** Give me a brief overview - what happens, and how does it change your protagonist?`
         }
@@ -121,9 +176,17 @@ What's the **protagonist's emotional state at the start** of this episode? Where
         break
     }
 
+    console.log('[Screenplay Session] Context built, creating episode if needed...')
+
     // Create episode if this is for an episode
     let episodeId: string | null = null
     if (targetType === 'episode' && initialConcept) {
+      console.log('[Screenplay Session] Creating episode:', {
+        season: initialConcept.season_number,
+        episode: initialConcept.episode_number,
+        title: initialConcept.title
+      })
+
       const { data: episode, error: episodeError } = await supabase
         .from('episodes')
         .insert({
@@ -139,6 +202,7 @@ What's the **protagonist's emotional state at the start** of this episode? Where
         .single()
 
       if (episodeError) {
+        console.log('[Screenplay Session] Episode insert error, checking if exists:', episodeError.code)
         // Episode might already exist - try to fetch it
         const { data: existingEpisode } = await supabase
           .from('episodes')
@@ -149,12 +213,16 @@ What's the **protagonist's emotional state at the start** of this episode? Where
           .single()
 
         episodeId = existingEpisode?.id || null
+        console.log('[Screenplay Session] Found existing episode:', episodeId)
       } else {
         episodeId = episode.id
+        console.log('[Screenplay Session] Created new episode:', episodeId)
       }
     }
 
-    // Create screenplay session
+    console.log('[Screenplay Session] Creating screenplay session...')
+
+    // Create screenplay session with full context
     const { data: session, error: sessionError } = await supabase
       .from('screenplay_sessions')
       .insert({
@@ -164,6 +232,11 @@ What's the **protagonist's emotional state at the start** of this episode? Where
         target_id: targetId,
         current_step: initialStep,
         conversation_history: [
+          {
+            role: 'system',
+            content: systemContext,
+            timestamp: new Date().toISOString(),
+          },
           {
             role: 'assistant',
             content: initialMessage,
@@ -180,7 +253,12 @@ What's the **protagonist's emotional state at the start** of this episode? Where
     if (sessionError) {
       console.error('Failed to create screenplay session:', sessionError)
       return NextResponse.json(
-        { error: 'Failed to start session' },
+        {
+          error: 'Failed to start session',
+          details: sessionError.message,
+          code: sessionError.code,
+          hint: sessionError.hint
+        },
         { status: 500 }
       )
     }

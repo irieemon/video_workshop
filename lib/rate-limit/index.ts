@@ -57,17 +57,30 @@ export const RATE_LIMITS = {
  * Check if a request should be rate limited
  * @param identifier - Unique identifier for the rate limit (e.g., user ID + endpoint)
  * @param config - Rate limit configuration
+ * @param skipCheck - If true, bypasses rate limiting (for admin users)
  * @returns Object with allowed status and remaining requests
  */
 export function checkRateLimit(
   identifier: string,
-  config: RateLimitConfig
+  config: RateLimitConfig,
+  skipCheck: boolean = false
 ): {
   allowed: boolean;
   remaining: number;
   resetTime: number;
   retryAfter?: number;
+  bypassed?: boolean;
 } {
+  // Admin bypass - skip rate limiting entirely
+  if (skipCheck) {
+    return {
+      allowed: true,
+      remaining: 999999, // Unlimited for display purposes
+      resetTime: Date.now() + config.interval,
+      bypassed: true,
+    };
+  }
+
   const now = Date.now();
   const record = rateLimitStore.get(identifier);
 

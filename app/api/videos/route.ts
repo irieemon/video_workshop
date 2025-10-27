@@ -20,9 +20,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Rate limiting
+  // Get user profile to check admin status and quota
+  const { data: profiles, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .limit(1)
+
+  const profile = profiles?.[0]
+
+  if (profileError || !profile) {
+    logger.error('Profile fetch failed', profileError as Error)
+    return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  }
+
+  const isAdmin = profile.is_admin || false
+
+  // Rate limiting with admin bypass
   const rateLimitKey = createRateLimitKey(user.id, 'videos:create')
-  const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.WRITE)
+  const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.WRITE, isAdmin)
 
   if (!rateLimit.allowed) {
     logger.warn(LOG_MESSAGES.API_RATE_LIMIT, { remaining: rateLimit.remaining })
@@ -33,6 +49,11 @@ export async function POST(request: NextRequest) {
         headers: getRateLimitHeaders(rateLimit)
       }
     )
+  }
+
+  // Log admin bypass
+  if (isAdmin && rateLimit.bypassed) {
+    logger.info('Admin rate limit bypass', { userId: user.id })
   }
 
   try {
@@ -66,23 +87,11 @@ export async function POST(request: NextRequest) {
       source_metadata,
     } = validation.data
 
-    // Get user's profile to check quota
+    // Quota enforcement with admin bypass
     logger.info(LOG_MESSAGES.QUOTA_CHECK)
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .limit(1)
 
-    const profile = profiles?.[0]
-
-    if (profileError || !profile) {
-      logger.error('Profile fetch failed', profileError as Error)
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Re-enable quota enforcement (was temporarily disabled)
-    if (profile.subscription_tier === 'free') {
+    // Admins bypass quota limits
+    if (!isAdmin && profile.subscription_tier === 'free') {
       const currentVideos = profile.usage_current?.videos_this_month || 0
       const maxVideos = profile.usage_quota?.videos_per_month || 10
 
@@ -101,6 +110,14 @@ export async function POST(request: NextRequest) {
           { status: 429 }
         )
       }
+    }
+
+    // Log admin quota bypass
+    if (isAdmin) {
+      logger.info('Admin quota bypass', {
+        userId: user.id,
+        currentUsage: profile.usage_current?.videos_this_month || 0
+      })
     }
 
     // Create the video (without hashtags - they go in separate table)

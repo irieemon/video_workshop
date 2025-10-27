@@ -8,6 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { Film, Plus, Edit, Trash2, Video, Copy, ChevronDown, ChevronRight } from 'lucide-react'
 import { ScreenplayChat } from './screenplay-chat'
+import { useModal } from '@/components/providers/modal-provider'
+import { useToast } from '@/hooks/use-toast'
 
 interface Scene {
   id: string
@@ -44,6 +46,9 @@ export function SceneList({ episodeId, episodeTitle, seriesId, onVideoGenerate }
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
   const [chatOpen, setChatOpen] = useState(false)
   const [editingScene, setEditingScene] = useState<Scene | null>(null)
+
+  const { showConfirm } = useModal()
+  const { toast } = useToast()
 
   useEffect(() => {
     loadScenes()
@@ -87,7 +92,17 @@ export function SceneList({ episodeId, episodeTitle, seriesId, onVideoGenerate }
   }
 
   const handleDeleteScene = async (sceneId: string) => {
-    if (!confirm('Delete this scene? This cannot be undone.')) return
+    const confirmed = await showConfirm(
+      'Delete Scene',
+      'Are you sure you want to delete this scene? This action cannot be undone.',
+      {
+        variant: 'destructive',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel'
+      }
+    )
+
+    if (!confirmed) return
 
     try {
       const response = await fetch(`/api/screenplay/scenes/${sceneId}`, {
@@ -99,20 +114,35 @@ export function SceneList({ episodeId, episodeTitle, seriesId, onVideoGenerate }
       }
 
       await loadScenes()
+      toast({
+        title: 'Scene Deleted',
+        description: 'The scene has been successfully deleted.',
+      })
     } catch (error) {
       console.error('Failed to delete scene:', error)
-      alert('Failed to delete scene')
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete scene. Please try again.',
+        variant: 'destructive',
+      })
     }
   }
 
   const handleCopyPrompt = (prompt: string) => {
     navigator.clipboard.writeText(prompt)
-    alert('Prompt copied to clipboard!')
+    toast({
+      title: 'Copied!',
+      description: 'Scene prompt copied to clipboard.',
+    })
   }
 
   const handleGenerateVideo = async (scene: Scene) => {
     if (!scene.video_prompt) {
-      alert('No video prompt available for this scene')
+      toast({
+        title: 'No Prompt Available',
+        description: 'This scene does not have a video prompt yet.',
+        variant: 'destructive',
+      })
       return
     }
 
@@ -121,7 +151,10 @@ export function SceneList({ episodeId, episodeTitle, seriesId, onVideoGenerate }
     } else {
       // Default behavior: copy to clipboard and inform user
       navigator.clipboard.writeText(scene.video_prompt)
-      alert('Video prompt copied to clipboard! Create a new video and paste this prompt.')
+      toast({
+        title: 'Copied!',
+        description: 'Video prompt copied to clipboard. Create a new video and paste this prompt.',
+      })
     }
   }
 

@@ -33,6 +33,7 @@ interface StreamingRoundtableModalProps {
   projectId: string
   selectedCharacters?: string[]
   selectedSettings?: string[]
+  episodeData?: any  // Episode data including screenplay context
   onComplete: (result: {
     finalPrompt: string
     suggestedShots: string
@@ -127,6 +128,7 @@ export function StreamingRoundtableModal({
   projectId,
   selectedCharacters,
   selectedSettings,
+  episodeData,
   onComplete,
   onClose,
   isComplete = false,
@@ -236,6 +238,7 @@ export function StreamingRoundtableModal({
           projectId,
           selectedCharacters,
           selectedSettings,
+          episodeData,  // Include screenplay context
         }),
       })
 

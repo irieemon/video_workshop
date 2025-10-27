@@ -38,6 +38,22 @@ export default async function VideoDetailPage({
   // Transform hashtags from array of objects to array of strings
   const hashtagsArray = video.hashtags?.map((h: any) => h.tag) || []
 
+  // Parse agent_discussion if it's a string (stored as JSON in database)
+  let agentDiscussion = null
+  try {
+    const parsed = typeof video.agent_discussion === 'string'
+      ? JSON.parse(video.agent_discussion)
+      : video.agent_discussion
+
+    // Validate that the parsed discussion has the required structure
+    if (parsed && typeof parsed === 'object' && parsed.round1 && parsed.round2) {
+      agentDiscussion = parsed
+    }
+  } catch (error) {
+    console.error('Failed to parse agent_discussion:', error)
+    // agentDiscussion remains null, component won't render
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
@@ -90,9 +106,9 @@ export default async function VideoDetailPage({
         </div>
 
         {/* Agent Discussion */}
-        {video.agent_discussion && (
+        {agentDiscussion && (
           <div className="mb-6 md:mb-8">
-            <AgentRoundtable discussion={video.agent_discussion} />
+            <AgentRoundtable discussion={agentDiscussion} />
           </div>
         )}
 

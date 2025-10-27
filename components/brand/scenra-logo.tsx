@@ -27,10 +27,10 @@ export function ScenraLogo({
   const Icon = () => (
     <div className={cn(
       sizeClasses[size],
-      'rounded-lg bg-gradient-to-br from-scenra-amber to-scenra-highlight flex items-center justify-center',
+      'rounded-lg bg-scenra-amber dark:bg-white flex items-center justify-center',
       'shadow-md'
     )}>
-      <span className="text-white font-bold text-sm">S</span>
+      <span className="text-white dark:text-black font-bold text-sm">S</span>
     </div>
   )
 
@@ -41,7 +41,7 @@ export function ScenraLogo({
   if (variant === 'wordmark') {
     return (
       <span className={cn(
-        'font-bold bg-gradient-to-r from-scenra-amber to-scenra-highlight bg-clip-text text-transparent',
+        'font-bold text-gray-900 dark:text-white',
         textSizeClasses[size],
         className
       )}>
@@ -54,7 +54,7 @@ export function ScenraLogo({
     <div className={cn('flex items-center gap-2', className)}>
       <Icon />
       <span className={cn(
-        'font-bold bg-gradient-to-r from-scenra-amber to-scenra-highlight bg-clip-text text-transparent',
+        'font-bold text-gray-900 dark:text-white',
         textSizeClasses[size]
       )}>
         SCENRA

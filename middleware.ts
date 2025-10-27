@@ -32,6 +32,30 @@ export async function middleware(request: NextRequest) {
   // Get user from session
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Protect admin routes - check admin status
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    // Check admin status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = profile?.is_admin || false
+
+    if (!isAdmin) {
+      const dashboardUrl = new URL('/dashboard', request.url)
+      dashboardUrl.searchParams.set('error', 'unauthorized')
+      return NextResponse.redirect(dashboardUrl)
+    }
+  }
+
   // Protect dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     if (!user) {

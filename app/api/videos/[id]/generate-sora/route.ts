@@ -8,7 +8,7 @@ const openai = new OpenAI({
 })
 
 interface SoraGenerationSettings {
-  duration?: number // in seconds (4, 8, or 12 for Sora 2)
+  duration?: number // in seconds (4, 8, 12, or 15 for Sora 2)
   aspect_ratio?: '16:9' | '9:16' | '1:1'
   resolution?: '1080p' | '720p'
   model?: 'sora-2' | 'sora-2-pro'
@@ -40,10 +40,11 @@ export async function POST(
     const { id: videoId } = await params
     const body: SoraGenerationRequest = await request.json()
 
-    // Validate and normalize duration to Sora 2 supported values (4, 8, 12)
+    // Validate and normalize duration to Sora 2 supported values (4, 8, 12, 15)
     const requestedDuration = body.settings?.duration || 4
     let duration = 4 // default
-    if (requestedDuration >= 12) duration = 12
+    if (requestedDuration >= 15) duration = 15
+    else if (requestedDuration >= 12) duration = 12
     else if (requestedDuration >= 8) duration = 8
     else duration = 4
 
@@ -199,15 +200,17 @@ function convertAspectRatioToSize(
 
 /**
  * Calculate estimated cost for Sora video generation
- * Based on duration tiers: 4s (base), 8s (2x), 12s (3x)
+ * Based on duration tiers: 4s (base), 8s (2x), 12s (3x), 15s (3.75x)
  */
 function calculateCost(duration: number, resolution: string): number {
   const baseCost = 1.00 // Base cost for 4 seconds
   let durationMultiplier = 1.0
   let resolutionMultiplier = 1.0
 
-  // Duration pricing tiers (4s, 8s, 12s)
-  if (duration >= 12) {
+  // Duration pricing tiers (4s, 8s, 12s, 15s)
+  if (duration >= 15) {
+    durationMultiplier = 3.75 // 15 seconds
+  } else if (duration >= 12) {
     durationMultiplier = 3.0 // 12 seconds
   } else if (duration >= 8) {
     durationMultiplier = 2.0 // 8 seconds

@@ -30,12 +30,16 @@ export async function GET(
             id,
             name,
             description,
-            visual_description
+            role,
+            performance_style
           ),
           settings:series_settings (
             id,
             name,
-            description
+            description,
+            environment_type,
+            time_of_day,
+            atmosphere
           )
         )
       `)

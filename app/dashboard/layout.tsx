@@ -35,12 +35,13 @@ export default async function DashboardLayout({
         usageQuota={profile?.usage_quota}
         usageCurrent={profile?.usage_current}
         subscriptionTier={profile?.subscription_tier}
+        isAdmin={profile?.is_admin || false}
       />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b px-4 md:px-6">
+        <header className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-scenra-border-subtle px-4 md:px-6 bg-white dark:bg-background">
           <div className="flex items-center gap-3">
             {/* Mobile Menu */}
             <MobileNav
@@ -55,7 +56,7 @@ export default async function DashboardLayout({
             </Link>
 
             {/* Desktop Title */}
-            <h2 className="hidden md:block text-lg font-semibold">Dashboard</h2>
+            <h2 className="hidden md:block text-lg font-semibold text-gray-900 dark:text-foreground">Dashboard</h2>
           </div>
 
           <UserMenu
