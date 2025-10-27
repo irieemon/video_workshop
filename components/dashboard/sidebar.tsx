@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { ScenraLogo } from '@/components/brand'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useTheme } from '@/app/providers/theme-provider'
 import {
   Home,
   FolderKanban,
@@ -33,6 +34,7 @@ interface SidebarProps {
 
 export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', isAdmin = false }: SidebarProps) {
   const pathname = usePathname()
+  const { theme } = useTheme()
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -51,12 +53,11 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', i
 
   return (
     <div className="hidden md:flex h-full w-64 flex-col bg-white dark:bg-scenra-dark border-r border-gray-200 dark:border-scenra-border-subtle">
-      {/* Logo and Theme Toggle */}
-      <div className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-scenra-border-subtle px-6">
+      {/* Logo */}
+      <div className="flex h-16 items-center border-b border-gray-200 dark:border-scenra-border-subtle px-6">
         <Link href="/dashboard">
           <ScenraLogo size="md" />
         </Link>
-        <ThemeToggle />
       </div>
 
       {/* Navigation */}
@@ -108,8 +109,21 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', i
         )}
       </nav>
 
-      {/* Usage Quota */}
+      {/* Theme Toggle and Usage Quota */}
       <div className="border-t border-gray-200 dark:border-scenra-border-subtle p-4 space-y-3">
+        {/* Theme Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-gray-900 dark:text-scenra-light">Theme</span>
+            <span className="text-xs text-gray-600 dark:text-scenra-gray capitalize">
+              {theme === 'system' ? 'System' : theme === 'light' ? 'Light' : 'Dark'}
+            </span>
+          </div>
+          <ThemeToggle />
+        </div>
+
+        <div className="scenra-divider border-gray-200 dark:border-scenra-border-subtle" />
+
         {subscriptionTier === 'free' && (
           <>
             <div>
