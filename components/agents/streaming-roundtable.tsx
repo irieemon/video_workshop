@@ -11,7 +11,7 @@ interface Agent {
   role: string
   emoji: string
   expertise: string
-  status: 'waiting' | 'thinking' | 'complete'
+  status: 'waiting' | 'thinking' | 'analyzing' | 'complete'
   response: string
   isStreaming: boolean
 }
@@ -96,6 +96,12 @@ export function StreamingRoundtable({
 
   const [statusMessage, setStatusMessage] = useState('Initializing creative team...')
   const [currentStage, setCurrentStage] = useState('initialization')
+  const [stageText, setStageText] = useState('Initializing...')
+  const [activeAgentKey, setActiveAgentKey] = useState<string | null>(null)
+  const [conversationHistory, setConversationHistory] = useState<any[]>([])
+  const [completedAgents, setCompletedAgents] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const totalAgents = 5
   const [debateMessages, setDebateMessages] = useState<
     Array<{ from: string; fromName: string; fromEmoji: string; message: string }>
   >([])
@@ -105,7 +111,7 @@ export function StreamingRoundtable({
   const [error, setError] = useState<string | null>(null)
 
   const eventSourceRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
-  const decoder = useMemo(() => new TextDecoder(), [])
+  const decoderRef = useRef(new TextDecoder())
 
   const handleEvent = useCallback((event: StreamEvent) => {
     const { type, data } = event
@@ -141,7 +147,7 @@ export function StreamingRoundtable({
                 agent: data.agent,
                 name: agents.find(a => a.key === data.agent)?.name || '',
                 message: data.content,
-                icon: agents.find(a => a.key === data.agent)?.icon || '🎬',
+                icon: agents.find(a => a.key === data.agent)?.emoji || '🎬',
               },
             ]
           }
@@ -174,9 +180,15 @@ export function StreamingRoundtable({
               { ...lastMsg, message: lastMsg.message + data.content },
             ]
           }
+          const agent = agents.find(a => a.key === data.from)
           return [
             ...prev,
-            { from: data.from, fromName: data.fromName, message: data.content },
+            {
+              from: data.from,
+              fromName: data.fromName,
+              fromEmoji: agent?.emoji || '🎬',
+              message: data.content
+            },
           ]
         })
         break
@@ -184,15 +196,26 @@ export function StreamingRoundtable({
       case 'debate_message':
         setDebateMessages(prev => {
           const lastMsg = prev[prev.length - 1]
+          const agent = agents.find(a => a.key === data.from)
           if (lastMsg && lastMsg.from === data.from) {
             return [
               ...prev.slice(0, -1),
-              { from: data.from, fromName: data.fromName, message: data.message },
+              {
+                from: data.from,
+                fromName: data.fromName,
+                fromEmoji: agent?.emoji || '🎬',
+                message: data.message
+              },
             ]
           }
           return [
             ...prev,
-            { from: data.from, fromName: data.fromName, message: data.message },
+            {
+              from: data.from,
+              fromName: data.fromName,
+              fromEmoji: agent?.emoji || '🎬',
+              message: data.message
+            },
           ]
         })
         break
@@ -236,7 +259,7 @@ export function StreamingRoundtable({
         setError(data.message)
         break
     }
-  }, [synthesisText, shotsText, onComplete, agents])
+  }, [synthesisText, shotsText, onComplete, agents, completedAgents, totalAgents])
 
   const startStreaming = useCallback(async () => {
     try {
@@ -270,7 +293,7 @@ export function StreamingRoundtable({
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value, { stream: true })
+        const chunk = decoderRef.current.decode(value, { stream: true })
         const lines = chunk.split('\n').filter(line => line.trim())
 
         for (const line of lines) {
@@ -286,7 +309,7 @@ export function StreamingRoundtable({
       console.error('Streaming error:', err)
       setError(err.message || 'An error occurred')
     }
-  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, decoder, handleEvent])
+  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, handleEvent])
 
   useEffect(() => {
     startStreaming()

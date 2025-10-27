@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -149,13 +149,13 @@ export function StreamingRoundtableModal({
   const [isSynthesizing, setIsSynthesizing] = useState(false)
   const [isGeneratingShots, setIsGeneratingShots] = useState(false)
   const [sessionComplete, setSessionComplete] = useState(false)
-  const [typingAgent, setTypingAgent] = useState<string | null>(null)
+  const [typingAgent, setTypingAgent] = useState<{ key: string; name: string } | null>(null)
 
   const eventSourceRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const eventQueueRef = useRef<StreamEvent[]>([])
   const processingRef = useRef(false)
-  const decoder = useMemo(() => new TextDecoder(), [])
+  const decoderRef = useRef(new TextDecoder())
   const lastAgentCompleteRef = useRef<number>(0)
 
   const handleEvent = useCallback((event: StreamEvent) => {
@@ -185,19 +185,21 @@ export function StreamingRoundtableModal({
         if (data.agent) {
           setConversationHistory((prev) => {
             const last = prev[prev.length - 1]
-            if (last && last.agent === data.agent) {
+            if (last && last.agentKey === data.agent) {
               return [
                 ...prev.slice(0, -1),
-                { ...last, message: last.message + data.content },
+                { ...last, content: last.content + data.content },
               ]
             } else {
+              const agent = agents.find((a) => a.key === data.agent)
               return [
                 ...prev,
                 {
-                  agent: data.agent,
-                  name: agents.find((a) => a.key === data.agent)?.name || data.agent,
-                  message: data.content,
-                  icon: agents.find((a) => a.key === data.agent)?.icon || '🎬',
+                  agentKey: data.agent,
+                  agentName: agent?.name || data.agent,
+                  agentColor: agent?.color || 'gray',
+                  content: data.content,
+                  isComplete: false,
                 },
               ]
             }
@@ -227,19 +229,19 @@ export function StreamingRoundtableModal({
         if (data.agent) {
           setDebateMessages((prev) => {
             const last = prev[prev.length - 1]
-            if (last && last.agent === data.agent) {
+            if (last && last.from === data.agent) {
               return [
                 ...prev.slice(0, -1),
                 { ...last, message: last.message + data.content },
               ]
             } else {
+              const agent = agents.find((a) => a.key === data.agent)
               return [
                 ...prev,
                 {
-                  agent: data.agent,
-                  name: agents.find((a) => a.key === data.agent)?.name || data.agent,
+                  from: data.agent,
+                  fromName: agent?.name || data.agent,
                   message: data.content,
-                  icon: agents.find((a) => a.key === data.agent)?.icon || '🎬',
                 },
               ]
             }
@@ -313,7 +315,7 @@ export function StreamingRoundtableModal({
 
         // Callback with final data
         onComplete({
-          synthesis: data.synthesis || synthesisText,
+          finalPrompt: data.synthesis || synthesisText,
           suggestedShots: data.suggestedShots || shotsText,
           conversationHistory: data.conversationHistory || conversationHistory,
           debateMessages: data.debateMessages || debateMessages,
@@ -355,7 +357,7 @@ export function StreamingRoundtableModal({
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value, { stream: true })
+        const chunk = decoderRef.current.decode(value, { stream: true })
         const lines = chunk.split('\n').filter(line => line.trim())
 
         for (const line of lines) {
@@ -390,7 +392,7 @@ export function StreamingRoundtableModal({
     } catch (err: any) {
       console.error('Streaming error:', err)
     }
-  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeData, decoder, handleEvent])
+  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeData, handleEvent])
 
   useEffect(() => {
     // If in review mode, load saved conversation
@@ -571,7 +573,7 @@ export function StreamingRoundtableModal({
               <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-6">
                 <div className="flex items-center gap-2 text-gray-500">
                   <span className="text-sm italic">
-                    {AGENTS.find(a => a.key === typingAgent)?.name} is typing
+                    {typingAgent?.name} is typing
                   </span>
                   <span className="flex gap-1">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
