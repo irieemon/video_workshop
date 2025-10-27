@@ -165,7 +165,11 @@ export async function POST(request: NextRequest) {
           }
 
           if (scene.dialogue && scene.dialogue.length > 0) {
-            parts.push(`Dialogue: ${scene.dialogue.length} exchanges`)
+            parts.push(`Dialogue:`)
+            scene.dialogue.forEach((d: any) => {
+              const lines = Array.isArray(d.lines) ? d.lines.join(' ') : d.lines
+              parts.push(`  - ${d.character}: "${lines}"`)
+            })
           }
 
           if (scene.action && scene.action.length > 0) {

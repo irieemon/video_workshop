@@ -567,7 +567,15 @@ Main subject description WITH character details (age, appearance from character 
 
 **Sound**
 Audio approach (diegetic/non-diegetic), specific sound elements, LUFS levels, foley notes
-IMPORTANT: If character voice profiles are provided, include detailed voice characteristics for each character (tone, pitch, pace, accent, mannerisms, vocal quirks)
+CRITICAL DIALOGUE HANDLING:
+1. If screenplay dialogue is provided in the context (look for "EPISODE SCREENPLAY CONTEXT" and "Dialogue:" sections), you MUST extract and include the actual dialogue lines
+2. Format dialogue with character names and their lines: "- CHARACTER_NAME: \"dialogue line\""
+3. If character voice profiles are provided, include voice characteristics AFTER each character's dialogue
+4. Example format:
+   Dialogue:
+   - ORIN: "Come on, Sol… what're you hiding in there?" (earthy Midwestern drawl, measured tone)
+   - SOL: "You are accessing restricted archives, Engineer Kale." (soft, androgynous tone)
+IMPORTANT: Always prioritize actual screenplay dialogue over generic descriptions. If dialogue exists in context, it MUST appear in this section.
 
 **Optimized Shot List**
 Numbered shots with timecodes, lens, movement, purpose. Format: "0.00–2.40 — "Shot Name" (lens, movement) | Description | Purpose"
