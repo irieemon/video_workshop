@@ -14,7 +14,7 @@ export default async function ProjectDetailPage({
   const { id } = await params
   const supabase = await createClient()
 
-  // Fetch project with videos
+  // Fetch project with videos (ordered by most recent first)
   const { data: project, error } = await supabase
     .from('projects')
     .select(
@@ -25,6 +25,13 @@ export default async function ProjectDetailPage({
     )
     .eq('id', id)
     .single()
+
+  // Sort videos by created_at descending (most recent first)
+  if (project?.videos) {
+    project.videos.sort((a: any, b: any) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+  }
 
   if (error || !project) {
     notFound()
@@ -150,7 +157,7 @@ export default async function ProjectDetailPage({
             </div>
           ) : (
             <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {project.videos?.slice(0, 6).map((video: any) => (
+              {project.videos?.map((video: any) => (
                 <VideoCard
                   key={video.id}
                   video={video}
