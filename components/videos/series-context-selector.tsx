@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -46,6 +46,33 @@ export function SeriesContextSelector({
   const [characters, setCharacters] = useState<Character[]>([])
   const [settings, setSettings] = useState<Setting[]>([])
 
+  const fetchSeriesContext = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/series/${seriesId}/context`)
+      if (!response.ok) throw new Error('Failed to fetch series context')
+
+      const data = await response.json()
+      setCharacters(data.characters || [])
+      setSettings(data.settings || [])
+
+      // Auto-select primary settings ONLY if no settings are already selected
+      // This prevents overwriting episode-specific selections
+      if (selectedSettings.length === 0) {
+        const primarySettings = (data.settings || [])
+          .filter((s: Setting) => s.is_primary)
+          .map((s: Setting) => s.id)
+        if (primarySettings.length > 0) {
+          onSettingsChange(primarySettings)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch series context:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [seriesId, selectedSettings.length, onSettingsChange])
+
   useEffect(() => {
     if (!seriesId) {
       setCharacters([])
@@ -55,35 +82,8 @@ export function SeriesContextSelector({
       return
     }
 
-    const fetchSeriesContext = async () => {
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/series/${seriesId}/context`)
-        if (!response.ok) throw new Error('Failed to fetch series context')
-
-        const data = await response.json()
-        setCharacters(data.characters || [])
-        setSettings(data.settings || [])
-
-        // Auto-select primary settings ONLY if no settings are already selected
-        // This prevents overwriting episode-specific selections
-        if (selectedSettings.length === 0) {
-          const primarySettings = (data.settings || [])
-            .filter((s: Setting) => s.is_primary)
-            .map((s: Setting) => s.id)
-          if (primarySettings.length > 0) {
-            onSettingsChange(primarySettings)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch series context:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchSeriesContext()
-  }, [seriesId, onCharactersChange, onSettingsChange])
+  }, [seriesId, onCharactersChange, onSettingsChange, fetchSeriesContext])
 
   const toggleCharacter = (characterId: string) => {
     if (disabled) return

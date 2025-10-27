@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,11 +54,7 @@ export default function AdminUsersPage() {
     totalPages: 0,
   })
 
-  useEffect(() => {
-    fetchUsers()
-  }, [page, search, tier, adminOnly])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams({
@@ -83,7 +79,11 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, search, tier, adminOnly])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   const updateUser = async (userId: string, updates: Record<string, unknown>) => {
     try {

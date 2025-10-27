@@ -737,6 +737,11 @@ export interface Act {
   scenes: string[] // scene IDs
 }
 
+export interface DialogueLine {
+  character: string
+  lines: string[]
+}
+
 export interface Scene {
   scene_id: string
   scene_number: number
@@ -745,10 +750,7 @@ export interface Scene {
   time_period: 'DAY' | 'NIGHT' | 'DAWN' | 'DUSK' | 'CONTINUOUS'
   description: string
   characters: string[]
-  dialogue?: {
-    character: string
-    lines: string[]
-  }[]
+  dialogue?: DialogueLine[]
   action: string[]
   duration_estimate?: number // in seconds
 }

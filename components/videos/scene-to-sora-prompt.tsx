@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -44,7 +44,7 @@ export function SceneToSoraPrompt({
   const [lightingMood, setLightingMood] = useState<string>('Natural')
   const [colorPalette, setColorPalette] = useState<string>('Neutral')
 
-  const scenes = structuredScreenplay?.scenes || []
+  const scenes = useMemo(() => structuredScreenplay?.scenes || [], [structuredScreenplay])
 
   // Update selected scene when ID changes
   useEffect(() => {

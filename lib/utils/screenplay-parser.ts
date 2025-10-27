@@ -324,8 +324,8 @@ function extractActions(content: string[], dialogue: DialogueLine[]): string[] {
 /**
  * Extract act structure
  */
-function extractActs(lines: string[]): Array<{ act: number; title: string; description: string }> {
-  const acts: Array<{ act: number; title: string; description: string }> = []
+function extractActs(lines: string[]): Array<{ act_number: number; title: string; description: string; scenes: string[] }> {
+  const acts: Array<{ act_number: number; title: string; description: string; scenes: string[] }> = []
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -335,7 +335,7 @@ function extractActs(lines: string[]): Array<{ act: number; title: string; descr
         const actNum = romanToNumber(match[1])
         const title = match[2].trim()
         const description = lines[i + 1] || ''
-        acts.push({ act: actNum, title, description })
+        acts.push({ act_number: actNum, title, description, scenes: [] })
       }
     }
   }

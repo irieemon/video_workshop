@@ -140,7 +140,7 @@ export function SoraGenerationModal({
         clearTimeout(timeout)
       }
     }
-  }, [step, jobId, videoId, startTime, settings.duration])
+  }, [step, jobId, videoId, startTime, settings.duration, retryCount])
 
   const handleGenerate = async () => {
     try {

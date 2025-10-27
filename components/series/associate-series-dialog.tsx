@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Dialog,
@@ -34,13 +34,7 @@ export function AssociateSeriesDialog({ projectId }: AssociateSeriesDialogProps)
   const [loading, setLoading] = useState(false)
   const [associating, setAssociating] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (open) {
-      fetchAvailableSeries()
-    }
-  }, [open])
-
-  const fetchAvailableSeries = async () => {
+  const fetchAvailableSeries = useCallback(async () => {
     setLoading(true)
     try {
       // Fetch all user's series
@@ -61,7 +55,13 @@ export function AssociateSeriesDialog({ projectId }: AssociateSeriesDialogProps)
     } finally {
       setLoading(false)
     }
-  }
+  }, [projectId])
+
+  useEffect(() => {
+    if (open) {
+      fetchAvailableSeries()
+    }
+  }, [open, fetchAvailableSeries])
 
   const handleAssociate = async (seriesId: string) => {
     setAssociating(seriesId)

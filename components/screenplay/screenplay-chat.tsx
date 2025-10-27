@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -111,22 +111,7 @@ export function ScreenplayChat({
     }
   }, [])
 
-  // Start session when dialog opens, reset when closed
-  useEffect(() => {
-    if (open && !sessionId) {
-      startSession()
-    } else if (!open) {
-      // Reset state when dialog closes
-      setMessages([])
-      setSessionId(null)
-      setEpisodeId(null)
-      setInput('')
-      setIsUserScrolling(false)
-      setLastSaved(null)
-    }
-  }, [open, sessionId])
-
-  const startSession = async () => {
+  const startSession = useCallback(async () => {
     try {
       setIsLoading(true)
 
@@ -162,7 +147,22 @@ export function ScreenplayChat({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [seriesId, targetType, targetId, initialConcept])
+
+  // Start session when dialog opens, reset when closed
+  useEffect(() => {
+    if (open && !sessionId) {
+      startSession()
+    } else if (!open) {
+      // Reset state when dialog closes
+      setMessages([])
+      setSessionId(null)
+      setEpisodeId(null)
+      setInput('')
+      setIsUserScrolling(false)
+      setLastSaved(null)
+    }
+  }, [open, sessionId, startSession])
 
   const sendMessage = async () => {
     if (!input.trim() || !sessionId || isLoading) return

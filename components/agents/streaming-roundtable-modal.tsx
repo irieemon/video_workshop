@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -155,76 +155,174 @@ export function StreamingRoundtableModal({
   const contentRef = useRef<HTMLDivElement>(null)
   const eventQueueRef = useRef<StreamEvent[]>([])
   const processingRef = useRef(false)
-  const decoder = new TextDecoder()
+  const decoder = useMemo(() => new TextDecoder(), [])
   const lastAgentCompleteRef = useRef<number>(0)
 
-  useEffect(() => {
-    // If in review mode, load saved conversation
-    if (reviewMode && savedConversation) {
-      console.log('🔍 Review Mode - Loading saved conversation:', {
-        conversationHistory: savedConversation.conversationHistory,
-        debateMessages: savedConversation.debateMessages,
-        historyLength: savedConversation.conversationHistory?.length,
-        debateLength: savedConversation.debateMessages?.length,
-      })
-      setConversationHistory(savedConversation.conversationHistory)
-      setDebateMessages(savedConversation.debateMessages)
-      setStageText('Review: Creative Session')
-      setProgress(100)
-      setCompletedAgents(totalAgents)
-      setSessionComplete(true)
-    } else {
-      // Start new streaming session
-      startStreaming()
+  const handleEvent = useCallback((event: StreamEvent) => {
+    const { type, data } = event
+
+    switch (type) {
+      case 'status':
+        setStageText(data.stage)
+        break
+
+      case 'phase_start':
+        console.log('📍 Phase Start:', data.stage)
+        setStageText(data.stage)
+        break
+
+      case 'typing_start':
+        console.log('⌨️ Typing Start:', data.agent)
+        setActiveAgentKey(data.agent)
+        setTypingAgent({
+          key: data.agent,
+          name: agents.find(a => a.key === data.agent)?.name || data.agent,
+        })
+        break
+
+      case 'message_chunk':
+        console.log('💬 Message Chunk:', { agent: data.agent, length: data.content.length })
+        if (data.agent) {
+          setConversationHistory((prev) => {
+            const last = prev[prev.length - 1]
+            if (last && last.agent === data.agent) {
+              return [
+                ...prev.slice(0, -1),
+                { ...last, message: last.message + data.content },
+              ]
+            } else {
+              return [
+                ...prev,
+                {
+                  agent: data.agent,
+                  name: agents.find((a) => a.key === data.agent)?.name || data.agent,
+                  message: data.content,
+                  icon: agents.find((a) => a.key === data.agent)?.icon || '🎬',
+                },
+              ]
+            }
+          })
+        }
+        break
+
+      case 'message_complete':
+        console.log('✅ Message Complete:', data.agent)
+        setTypingAgent(null)
+        if (data.conversationHistory) {
+          console.log('Setting conversation history from message_complete:', data.conversationHistory)
+          setConversationHistory(data.conversationHistory)
+        }
+        setCompletedAgents((prev) => prev + 1)
+        const nextProgress = Math.min(((completedAgents + 1) / totalAgents) * 95, 95)
+        setProgress(nextProgress)
+        break
+
+      case 'debate_start':
+        console.log('⚡ Debate Start:', data.topic)
+        setStageText('Debate: ' + data.topic)
+        break
+
+      case 'debate_chunk':
+        console.log('🗣️ Debate Chunk:', { agent: data.agent, length: data.content.length })
+        if (data.agent) {
+          setDebateMessages((prev) => {
+            const last = prev[prev.length - 1]
+            if (last && last.agent === data.agent) {
+              return [
+                ...prev.slice(0, -1),
+                { ...last, message: last.message + data.content },
+              ]
+            } else {
+              return [
+                ...prev,
+                {
+                  agent: data.agent,
+                  name: agents.find((a) => a.key === data.agent)?.name || data.agent,
+                  message: data.content,
+                  icon: agents.find((a) => a.key === data.agent)?.icon || '🎬',
+                },
+              ]
+            }
+          })
+        }
+        break
+
+      case 'debate_complete':
+        console.log('✅ Debate Complete')
+        if (data.debateMessages) {
+          console.log('Setting debate messages from debate_complete:', data.debateMessages)
+          setDebateMessages(data.debateMessages)
+        }
+        setTypingAgent(null)
+        break
+
+      case 'synthesis_chunk':
+        console.log('🔄 Synthesis Chunk:', { length: data.content.length })
+        setSynthesisText((prev) => prev + data.content)
+        break
+
+      case 'synthesis_complete':
+        console.log('✅ Synthesis Complete')
+        if (data.synthesis) {
+          console.log('Setting synthesis text from synthesis_complete:', data.synthesis)
+          setSynthesisText(data.synthesis)
+        }
+        break
+
+      case 'shots_chunk':
+        console.log('🎬 Shots Chunk:', { length: data.content.length })
+        setShotsText((prev) => prev + data.content)
+        break
+
+      case 'shots_complete':
+        console.log('✅ Shots Complete')
+        if (data.shots) {
+          console.log('Setting shots text from shots_complete:', data.shots)
+          setShotsText(data.shots)
+        }
+        break
+
+      case 'complete':
+        console.log('🎉 Complete Event:', {
+          hasConversationHistory: !!data.conversationHistory,
+          hasDebateMessages: !!data.debateMessages,
+          hasSynthesis: !!data.synthesis,
+          hasShots: !!data.suggestedShots,
+        })
+        setSessionComplete(true)
+        setProgress(100)
+        setTypingAgent(null)
+
+        // Final state setting from complete event
+        if (data.conversationHistory) {
+          console.log('Final conversation history:', data.conversationHistory)
+          setConversationHistory(data.conversationHistory)
+        }
+        if (data.debateMessages) {
+          console.log('Final debate messages:', data.debateMessages)
+          setDebateMessages(data.debateMessages)
+        }
+        if (data.synthesis) {
+          console.log('Final synthesis:', data.synthesis.substring(0, 100) + '...')
+          setSynthesisText(data.synthesis)
+        }
+        if (data.suggestedShots) {
+          console.log('Final shots:', data.suggestedShots.substring(0, 100) + '...')
+          setShotsText(data.suggestedShots)
+        }
+
+        // Callback with final data
+        onComplete({
+          synthesis: data.synthesis || synthesisText,
+          suggestedShots: data.suggestedShots || shotsText,
+          conversationHistory: data.conversationHistory || conversationHistory,
+          debateMessages: data.debateMessages || debateMessages,
+        })
+        break
     }
+  }, [conversationHistory, debateMessages, synthesisText, shotsText, onComplete, completedAgents, totalAgents, agents])
 
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.cancel()
-      }
-    }
-  }, [])
-
-  // Track if user is manually scrolling
-  const [isUserScrolling, setIsUserScrolling] = useState(false)
-  const [showNewMessageBadge, setShowNewMessageBadge] = useState(false)
-
-  // Detect user scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!contentRef.current) return
-
-      const { scrollTop, scrollHeight, clientHeight } = contentRef.current
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
-
-      if (!isAtBottom) {
-        setIsUserScrolling(true)
-      } else {
-        setIsUserScrolling(false)
-        setShowNewMessageBadge(false)
-      }
-    }
-
-    const scrollElement = contentRef.current
-    scrollElement?.addEventListener('scroll', handleScroll)
-
-    return () => scrollElement?.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Smart auto-scroll: only scroll if user is at bottom
-  useEffect(() => {
-    if (!isUserScrolling && contentRef.current) {
-      contentRef.current.scrollTo({
-        top: contentRef.current.scrollHeight,
-        behavior: 'smooth',
-      })
-    } else if (isUserScrolling) {
-      // Show badge when new messages arrive while scrolled up
-      setShowNewMessageBadge(true)
-    }
-  }, [conversationHistory, debateMessages, synthesisText, shotsText, isUserScrolling])
-
-  async function startStreaming() {
+  const startStreaming = useCallback(async () => {
     try {
       const response = await fetch('/api/agent/roundtable/stream', {
         method: 'POST',
@@ -292,200 +390,73 @@ export function StreamingRoundtableModal({
     } catch (err: any) {
       console.error('Streaming error:', err)
     }
-  }
+  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeData, decoder, handleEvent])
 
-  function handleEvent(event: StreamEvent) {
-    const { type, data } = event
-
-    switch (type) {
-      case 'status':
-        setStageText(data.message)
-        setCurrentStage(data.stage)
-        break
-
-      case 'typing_start':
-        // Show typing indicator
-        setTypingAgent(data.agent)
-        setActiveAgentKey(data.agent)
-        setAgents(prev =>
-          prev.map(agent =>
-            agent.key === data.agent
-              ? { ...agent, status: 'analyzing', isStreaming: false }
-              : agent
-          )
-        )
-        break
-
-      case 'message_chunk':
-        // Clear typing indicator and add sentence to conversation
-        if (typingAgent === data.agent) {
-          setTypingAgent(null)
-        }
-
-        setConversationHistory(prev => {
-          const lastMsg = prev[prev.length - 1]
-
-          // If this is the first chunk for this agent, create new message
-          if (!lastMsg || lastMsg.agentKey !== data.agent || lastMsg.isComplete) {
-            const agentInfo = AGENTS.find(a => a.key === data.agent)
-            return [
-              ...prev,
-              {
-                agentKey: data.agent,
-                agentName: agentInfo?.name || '',
-                agentColor: agentInfo?.color || 'blue',
-                content: data.content,
-                isComplete: false,
-              },
-            ]
-          }
-
-          // Otherwise, append to existing message
-          return prev.map((msg, idx) =>
-            idx === prev.length - 1 && msg.agentKey === data.agent
-              ? { ...msg, content: msg.content + ' ' + data.content }
-              : msg
-          )
-        })
-        break
-
-      case 'typing_stop':
-        // Clear typing indicator when agent finishes
-        if (typingAgent === data.agent) {
-          setTypingAgent(null)
-        }
-        break
-
-      case 'message_complete':
-        // Mark agent as complete
-        setAgents(prev =>
-          prev.map(agent =>
-            agent.key === data.agent
-              ? { ...agent, status: 'complete', isStreaming: false }
-              : agent
-          )
-        )
-        setCompletedAgents(prev => {
-          const newCount = prev + 1
-          // Round 1: 5 agents = 0-60%, Round 2: debate = 60-80%, Synthesis = 80-90%, Shots = 90-100%
-          let progressPercent = 0
-          if (newCount <= 5) {
-            // Round 1: Each agent = 12% (5 * 12% = 60%)
-            progressPercent = (newCount / 5) * 60
-          } else {
-            // After Round 1, keep at 60% until synthesis
-            progressPercent = 60
-          }
-          setProgress(progressPercent)
-          return newCount
-        })
-
-        // Mark conversation message as complete
-        setConversationHistory(prev =>
-          prev.map(msg =>
-            msg.agentKey === data.agent && !msg.isComplete
-              ? { ...msg, isComplete: true }
-              : msg
-          )
-        )
-        break
-
-      // Legacy events for backwards compatibility
-      case 'agent_start':
-      case 'agent_chunk':
-      case 'agent_complete':
-        // These are handled by new events above
-        break
-
-      case 'debate_start':
-        setDebateMessages([])
-        setStageText('Round 2: Collaborative Refinement')
-        setProgress(60) // Round 1 complete, starting Round 2
-        break
-
-      case 'debate_chunk':
-        setDebateMessages(prev => {
-          const lastMsg = prev[prev.length - 1]
-          if (lastMsg && lastMsg.from === data.from) {
-            return [
-              ...prev.slice(0, -1),
-              { ...lastMsg, message: lastMsg.message + data.content },
-            ]
-          }
-          return [
-            ...prev,
-            {
-              from: data.from,
-              fromName: data.fromName,
-              message: data.content,
-            },
-          ]
-        })
-        break
-
-      case 'debate_message':
-        // Final message already added via chunks
-        break
-
-      case 'debate_complete':
-        // Keep debate messages visible, clear typing, update status
-        setTypingAgent(null)
-        setStageText('Synthesizing team insights...')
-        setProgress(80) // Round 2 complete, starting synthesis
-        break
-
-      case 'synthesis_start':
-        setIsSynthesizing(true)
-        setTypingAgent(null)
-        setStageText('Synthesizing team insights...')
-        setSynthesisText('')
-        setProgress(80)
-        break
-
-      case 'synthesis_chunk':
-        setSynthesisText(prev => prev + data.content)
-        break
-
-      case 'synthesis_complete':
-        setSynthesisText(data.finalPrompt)
-        setIsSynthesizing(false)
-        setProgress(90) // Synthesis complete, starting shots
-        break
-
-      case 'shots_start':
-        setIsGeneratingShots(true)
-        setStageText('Generating shot list...')
-        setShotsText('')
-        setProgress(90)
-        break
-
-      case 'shots_chunk':
-        setShotsText(prev => prev + data.content)
-        break
-
-      case 'shots_complete':
-        setShotsText(data.suggestedShots)
-        setIsGeneratingShots(false)
-        break
-
-      case 'complete':
-        setTypingAgent(null)
-        setIsSynthesizing(false)
-        setIsGeneratingShots(false)
-        setSessionComplete(true)
-        setStageText('✅ Creative session complete! Review the conversation below.')
-        setProgress(100)
-        // Don't auto-close - let user review conversation
-        // Pass results to parent using event data (includes conversation history from backend)
-        onComplete({
-          finalPrompt: data.finalPrompt || synthesisText,
-          suggestedShots: data.suggestedShots || shotsText,
-          conversationHistory: data.conversationHistory || conversationHistory,
-          debateMessages: data.debateMessages || debateMessages,
-        })
-        break
+  useEffect(() => {
+    // If in review mode, load saved conversation
+    if (reviewMode && savedConversation) {
+      console.log('🔍 Review Mode - Loading saved conversation:', {
+        conversationHistory: savedConversation.conversationHistory,
+        debateMessages: savedConversation.debateMessages,
+        historyLength: savedConversation.conversationHistory?.length,
+        debateLength: savedConversation.debateMessages?.length,
+      })
+      setConversationHistory(savedConversation.conversationHistory)
+      setDebateMessages(savedConversation.debateMessages)
+      setStageText('Review: Creative Session')
+      setProgress(100)
+      setCompletedAgents(totalAgents)
+      setSessionComplete(true)
+    } else {
+      // Start new streaming session
+      startStreaming()
     }
-  }
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.cancel()
+      }
+    }
+  }, [reviewMode, savedConversation, totalAgents, startStreaming])
+
+  // Track if user is manually scrolling
+  const [isUserScrolling, setIsUserScrolling] = useState(false)
+  const [showNewMessageBadge, setShowNewMessageBadge] = useState(false)
+
+  // Detect user scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!contentRef.current) return
+
+      const { scrollTop, scrollHeight, clientHeight } = contentRef.current
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
+
+      if (!isAtBottom) {
+        setIsUserScrolling(true)
+      } else {
+        setIsUserScrolling(false)
+        setShowNewMessageBadge(false)
+      }
+    }
+
+    const scrollElement = contentRef.current
+    scrollElement?.addEventListener('scroll', handleScroll)
+
+    return () => scrollElement?.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Smart auto-scroll: only scroll if user is at bottom
+  useEffect(() => {
+    if (!isUserScrolling && contentRef.current) {
+      contentRef.current.scrollTo({
+        top: contentRef.current.scrollHeight,
+        behavior: 'smooth',
+      })
+    } else if (isUserScrolling) {
+      // Show badge when new messages arrive while scrolled up
+      setShowNewMessageBadge(true)
+    }
+  }, [conversationHistory, debateMessages, synthesisText, shotsText, isUserScrolling])
 
   const activeAgent = agents.find(a => a.key === activeAgentKey)
 

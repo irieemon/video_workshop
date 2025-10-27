@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -50,11 +50,7 @@ export function SceneList({ episodeId, episodeTitle, seriesId, onVideoGenerate }
   const { showConfirm } = useModal()
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadScenes()
-  }, [episodeId])
-
-  const loadScenes = async () => {
+  const loadScenes = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/screenplay/scenes?episodeId=${episodeId}`)
@@ -70,7 +66,11 @@ export function SceneList({ episodeId, episodeTitle, seriesId, onVideoGenerate }
     } finally {
       setLoading(false)
     }
-  }
+  }, [episodeId])
+
+  useEffect(() => {
+    loadScenes()
+  }, [loadScenes])
 
   const toggleExpanded = (sceneId: string) => {
     const newExpanded = new Set(expandedScenes)

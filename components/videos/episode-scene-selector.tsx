@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -43,11 +43,7 @@ export function EpisodeSceneSelector({
   const [converting, setConverting] = useState<string | null>(null)
   const [selectedScene, setSelectedScene] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadScenes()
-  }, [episodeId])
-
-  const loadScenes = async () => {
+  const loadScenes = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/episodes/${episodeId}/scenes`)
@@ -64,7 +60,11 @@ export function EpisodeSceneSelector({
     } finally {
       setLoading(false)
     }
-  }
+  }, [episodeId])
+
+  useEffect(() => {
+    loadScenes()
+  }, [loadScenes])
 
   const handleConvertScene = async (sceneId: string) => {
     try {

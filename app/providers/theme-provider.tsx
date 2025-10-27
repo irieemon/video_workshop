@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 type Theme = 'light' | 'dark' | 'system'
@@ -26,23 +26,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Resolve theme to actual light/dark
-  const resolveTheme = (themeValue: Theme): ResolvedTheme => {
+  const resolveTheme = useCallback((themeValue: Theme): ResolvedTheme => {
     if (themeValue === 'system') {
       return getSystemTheme()
     }
     return themeValue
-  }
+  }, [])
 
   // Apply theme to document
-  const applyTheme = (resolved: ResolvedTheme) => {
+  const applyTheme = useCallback((resolved: ResolvedTheme) => {
     const root = document.documentElement
     root.classList.remove('light', 'dark')
     root.classList.add(resolved)
     setResolvedTheme(resolved)
-  }
+  }, [])
 
   // Set theme and persist
-  const setTheme = async (newTheme: Theme) => {
+  const setTheme = useCallback(async (newTheme: Theme) => {
     setThemeState(newTheme)
     const resolved = resolveTheme(newTheme)
     applyTheme(resolved)
@@ -73,7 +73,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       // Silently fail - theme preference will still work via localStorage
       console.debug('Failed to sync theme to database:', error)
     }
-  }
+  }, [resolveTheme, applyTheme])
 
   // Initialize theme on mount
   useEffect(() => {
@@ -122,7 +122,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     initTheme()
-  }, [])
+  }, [resolveTheme, applyTheme])
 
   // Listen for system theme changes
   useEffect(() => {
@@ -136,7 +136,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [theme])
+  }, [theme, applyTheme])
 
   // Prevent flash of unstyled content
   if (!mounted) {

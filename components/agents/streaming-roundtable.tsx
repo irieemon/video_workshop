@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2 } from 'lucide-react'
@@ -105,20 +105,140 @@ export function StreamingRoundtable({
   const [error, setError] = useState<string | null>(null)
 
   const eventSourceRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
-  const decoder = new TextDecoder()
+  const decoder = useMemo(() => new TextDecoder(), [])
 
-  useEffect(() => {
-    startStreaming()
+  const handleEvent = useCallback((event: StreamEvent) => {
+    const { type, data } = event
 
-    return () => {
-      // Cleanup on unmount
-      if (eventSourceRef.current) {
-        eventSourceRef.current.cancel()
-      }
+    switch (type) {
+      case 'status':
+        setStageText(data.stage)
+        break
+
+      case 'agent_start':
+        setActiveAgentKey(data.agent)
+        setAgents(prev =>
+          prev.map(agent =>
+            agent.key === data.agent
+              ? { ...agent, status: 'analyzing', isStreaming: true }
+              : agent
+          )
+        )
+        break
+
+      case 'agent_chunk':
+        setConversationHistory(prev => {
+          const lastMsg = prev[prev.length - 1]
+          if (lastMsg && lastMsg.agent === data.agent) {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMsg, message: lastMsg.message + data.content },
+            ]
+          } else {
+            return [
+              ...prev,
+              {
+                agent: data.agent,
+                name: agents.find(a => a.key === data.agent)?.name || '',
+                message: data.content,
+                icon: agents.find(a => a.key === data.agent)?.icon || '🎬',
+              },
+            ]
+          }
+        })
+        break
+
+      case 'agent_complete':
+        setAgents(prev =>
+          prev.map(agent =>
+            agent.key === data.agent
+              ? { ...agent, status: 'complete', isStreaming: false }
+              : agent
+          )
+        )
+        setCompletedAgents(prev => prev + 1)
+        setProgress(Math.min((completedAgents + 1) / totalAgents, 0.9) * 100)
+        break
+
+      case 'debate_start':
+        setDebateMessages([])
+        setStageText('Round 2: Debate')
+        break
+
+      case 'debate_chunk':
+        setDebateMessages(prev => {
+          const lastMsg = prev[prev.length - 1]
+          if (lastMsg && lastMsg.from === data.from) {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMsg, message: lastMsg.message + data.content },
+            ]
+          }
+          return [
+            ...prev,
+            { from: data.from, fromName: data.fromName, message: data.content },
+          ]
+        })
+        break
+
+      case 'debate_message':
+        setDebateMessages(prev => {
+          const lastMsg = prev[prev.length - 1]
+          if (lastMsg && lastMsg.from === data.from) {
+            return [
+              ...prev.slice(0, -1),
+              { from: data.from, fromName: data.fromName, message: data.message },
+            ]
+          }
+          return [
+            ...prev,
+            { from: data.from, fromName: data.fromName, message: data.message },
+          ]
+        })
+        break
+
+      case 'synthesis_start':
+        setStageText('Synthesizing...')
+        setProgress(90)
+        break
+
+      case 'synthesis_chunk':
+        setSynthesisText(prev => prev + data.content)
+        break
+
+      case 'synthesis_complete':
+        setSynthesisText(data.finalPrompt)
+        break
+
+      case 'shots_start':
+        setStageText('Generating shot list...')
+        break
+
+      case 'shots_chunk':
+        setShotsText(prev => prev + data.content)
+        break
+
+      case 'shots_complete':
+        setShotsText(data.suggestedShots)
+        break
+
+      case 'complete':
+        setIsComplete(true)
+        setProgress(100)
+        setStageText('Complete!')
+        onComplete({
+          finalPrompt: synthesisText,
+          suggestedShots: shotsText,
+        })
+        break
+
+      case 'error':
+        setError(data.message)
+        break
     }
-  }, [])
+  }, [synthesisText, shotsText, onComplete, agents])
 
-  async function startStreaming() {
+  const startStreaming = useCallback(async () => {
     try {
       const response = await fetch('/api/agent/roundtable/stream', {
         method: 'POST',
@@ -166,126 +286,18 @@ export function StreamingRoundtable({
       console.error('Streaming error:', err)
       setError(err.message || 'An error occurred')
     }
-  }
+  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, decoder, handleEvent])
 
-  function handleEvent(event: StreamEvent) {
-    const { type, data } = event
+  useEffect(() => {
+    startStreaming()
 
-    switch (type) {
-      case 'status':
-        setStatusMessage(data.message)
-        setCurrentStage(data.stage)
-        break
-
-      case 'agent_start':
-        setAgents(prev =>
-          prev.map(agent =>
-            agent.key === data.agent
-              ? { ...agent, status: 'thinking', isStreaming: true }
-              : agent
-          )
-        )
-        break
-
-      case 'agent_chunk':
-        setAgents(prev =>
-          prev.map(agent =>
-            agent.key === data.agent
-              ? { ...agent, response: agent.response + data.content }
-              : agent
-          )
-        )
-        break
-
-      case 'agent_complete':
-        setAgents(prev =>
-          prev.map(agent =>
-            agent.key === data.agent
-              ? { ...agent, status: 'complete', isStreaming: false, response: data.response }
-              : agent
-          )
-        )
-        break
-
-      case 'agent_error':
-        setAgents(prev =>
-          prev.map(agent =>
-            agent.key === data.agent
-              ? { ...agent, status: 'complete', isStreaming: false, response: 'Error occurred' }
-              : agent
-          )
-        )
-        break
-
-      case 'debate_start':
-        setDebateMessages([])
-        setStatusMessage(data.message)
-        break
-
-      case 'debate_chunk':
-        // Update the last message or add new one
-        setDebateMessages(prev => {
-          const lastMsg = prev[prev.length - 1]
-          if (lastMsg && lastMsg.from === data.from) {
-            return [
-              ...prev.slice(0, -1),
-              { ...lastMsg, message: lastMsg.message + data.content },
-            ]
-          }
-          return [
-            ...prev,
-            {
-              from: data.from,
-              fromName: data.fromName,
-              fromEmoji: data.fromEmoji,
-              message: data.content,
-            },
-          ]
-        })
-        break
-
-      case 'debate_message':
-        setDebateMessages(prev => [
-          ...prev,
-          {
-            from: data.from,
-            fromName: data.fromName,
-            fromEmoji: data.fromEmoji,
-            message: data.message,
-          },
-        ])
-        break
-
-      case 'synthesis_chunk':
-        setSynthesisText(prev => prev + data.content)
-        break
-
-      case 'synthesis_complete':
-        setSynthesisText(data.finalPrompt)
-        break
-
-      case 'shots_chunk':
-        setShotsText(prev => prev + data.content)
-        break
-
-      case 'shots_complete':
-        setShotsText(data.suggestedShots)
-        break
-
-      case 'complete':
-        setIsComplete(true)
-        setStatusMessage('✅ Creative session complete!')
-        onComplete({
-          finalPrompt: synthesisText,
-          suggestedShots: shotsText,
-        })
-        break
-
-      case 'error':
-        setError(data.message)
-        break
+    return () => {
+      // Cleanup on unmount
+      if (eventSourceRef.current) {
+        eventSourceRef.current.cancel()
+      }
     }
-  }
+  }, [startStreaming])
 
   return (
     <div className="space-y-6">

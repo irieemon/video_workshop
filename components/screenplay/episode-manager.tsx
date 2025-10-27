@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,16 +33,7 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
   const { showConfirm } = useModal()
   const { toast } = useToast()
 
-  // Expose refresh function to parent via ref
-  useImperativeHandle(ref, () => ({
-    refresh: loadEpisodes,
-  }))
-
-  useEffect(() => {
-    loadEpisodes()
-  }, [seriesId])
-
-  const loadEpisodes = async () => {
+  const loadEpisodes = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/episodes?seriesId=${seriesId}`)
@@ -59,7 +50,16 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
     } finally {
       setLoading(false)
     }
-  }
+  }, [seriesId])
+
+  // Expose refresh function to parent via ref
+  useImperativeHandle(ref, () => ({
+    refresh: loadEpisodes,
+  }), [loadEpisodes])
+
+  useEffect(() => {
+    loadEpisodes()
+  }, [loadEpisodes])
 
   const handleCreateEpisode = () => {
     setSelectedEpisode(null)
