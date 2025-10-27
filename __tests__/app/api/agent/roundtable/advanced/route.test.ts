@@ -1,24 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { runAdvancedRoundtable } from '@/lib/ai/agent-orchestrator'
-import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/agent/roundtable/advanced/route'
+import { createMockRequest, createMockSupabaseClient } from '@/__tests__/helpers/api-route-test-helpers'
 
 jest.mock('@/lib/supabase/server')
 jest.mock('@/lib/ai/agent-orchestrator')
 
-// Note: API route tests are skipped due to Next.js 15 server component complexities
-// These would be better tested with E2E tests or integration tests with a test server
+// Note: API route tests need more complex mocking for series queries
+// The basic infrastructure is fixed, but series-specific tests need additional work
 describe.skip('/api/agent/roundtable/advanced', () => {
-  const mockSupabaseClient = {
-    auth: {
-      getUser: jest.fn(),
-    },
-    from: jest.fn(),
-  }
+  const mockSupabaseClient = createMockSupabaseClient()
 
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(createClient as jest.Mock).mockResolvedValue(mockSupabaseClient)
+    ;(createClient as jest.Mock).mockReturnValue(mockSupabaseClient)
   })
 
   it('runs advanced roundtable successfully', async () => {
@@ -48,18 +43,12 @@ describe.skip('/api/agent/roundtable/advanced', () => {
 
     ;(runAdvancedRoundtable as jest.Mock).mockResolvedValue(mockResult)
 
-    const request = new NextRequest(
-      'http://localhost:3000/api/agent/roundtable/advanced',
-      {
-        method: 'POST',
-        body: JSON.stringify({
+    const request = createMockRequest('http://localhost:3000/api/agent/roundtable/advanced', { method: "POST", body: {
           brief: 'Test brief',
           platform: 'tiktok',
-          projectId: 'project-123',
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
           additionalGuidance: 'Focus on vibrant colors',
-        }),
-      }
-    )
+        } })
 
     const response = await POST(request)
     const data = await response.json()
@@ -113,18 +102,12 @@ describe.skip('/api/agent/roundtable/advanced', () => {
 
     ;(runAdvancedRoundtable as jest.Mock).mockResolvedValue(mockResult)
 
-    const request = new NextRequest(
-      'http://localhost:3000/api/agent/roundtable/advanced',
-      {
-        method: 'POST',
-        body: JSON.stringify({
+    const request = createMockRequest('http://localhost:3000/api/agent/roundtable/advanced', { method: "POST", body: {
           brief: 'Test brief',
           platform: 'instagram',
-          projectId: 'project-123',
-          seriesId: 'series-123',
-        }),
-      }
-    )
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
+          seriesId: '550e8400-e29b-41d4-a716-446655440004',
+        } })
 
     await POST(request)
 
@@ -159,18 +142,12 @@ describe.skip('/api/agent/roundtable/advanced', () => {
 
     ;(runAdvancedRoundtable as jest.Mock).mockResolvedValue(mockResult)
 
-    const request = new NextRequest(
-      'http://localhost:3000/api/agent/roundtable/advanced',
-      {
-        method: 'POST',
-        body: JSON.stringify({
+    const request = createMockRequest('http://localhost:3000/api/agent/roundtable/advanced', { method: "POST", body: {
           brief: 'Test brief',
           platform: 'tiktok',
-          projectId: 'project-123',
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
           userPromptEdits: 'Edited prompt text',
-        }),
-      }
-    )
+        } })
 
     await POST(request)
 
@@ -214,18 +191,12 @@ describe.skip('/api/agent/roundtable/advanced', () => {
       },
     ]
 
-    const request = new NextRequest(
-      'http://localhost:3000/api/agent/roundtable/advanced',
-      {
-        method: 'POST',
-        body: JSON.stringify({
+    const request = createMockRequest('http://localhost:3000/api/agent/roundtable/advanced', { method: "POST", body: {
           brief: 'Test brief',
           platform: 'tiktok',
-          projectId: 'project-123',
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
           shotList,
-        }),
-      }
-    )
+        } })
 
     await POST(request)
 
@@ -242,13 +213,7 @@ describe.skip('/api/agent/roundtable/advanced', () => {
       error: new Error('Unauthorized'),
     })
 
-    const request = new NextRequest(
-      'http://localhost:3000/api/agent/roundtable/advanced',
-      {
-        method: 'POST',
-        body: JSON.stringify({}),
-      }
-    )
+    const request = createMockRequest('http://localhost:3000/api/agent/roundtable/advanced', { method: "POST", body: {} })
 
     const response = await POST(request)
 
@@ -263,15 +228,9 @@ describe.skip('/api/agent/roundtable/advanced', () => {
       error: null,
     })
 
-    const request = new NextRequest(
-      'http://localhost:3000/api/agent/roundtable/advanced',
-      {
-        method: 'POST',
-        body: JSON.stringify({
+    const request = createMockRequest('http://localhost:3000/api/agent/roundtable/advanced', { method: "POST", body: {
           // Missing brief, platform, projectId
-        }),
-      }
-    )
+        } })
 
     const response = await POST(request)
 
@@ -290,17 +249,11 @@ describe.skip('/api/agent/roundtable/advanced', () => {
       new Error('Orchestrator error')
     )
 
-    const request = new NextRequest(
-      'http://localhost:3000/api/agent/roundtable/advanced',
-      {
-        method: 'POST',
-        body: JSON.stringify({
+    const request = createMockRequest('http://localhost:3000/api/agent/roundtable/advanced', { method: "POST", body: {
           brief: 'Test brief',
           platform: 'tiktok',
-          projectId: 'project-123',
-        }),
-      }
-    )
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
+        } })
 
     const response = await POST(request)
 

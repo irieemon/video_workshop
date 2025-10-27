@@ -87,3 +87,32 @@ jest.mock('openai', () => ({
     },
   })),
 }))
+
+// Mock Next.js server APIs for Next.js 15 compatibility
+jest.mock('next/server', () => ({
+  NextRequest: jest.fn().mockImplementation((url, init) => {
+    return {
+      url,
+      method: init?.method || 'GET',
+      headers: new Headers(init?.headers),
+      json: async () => {
+        if (typeof init?.body === 'string') {
+          return JSON.parse(init.body)
+        }
+        return init?.body || {}
+      },
+    }
+  }),
+  NextResponse: {
+    json: jest.fn((data, init) => ({
+      status: init?.status || 200,
+      headers: new Headers(init?.headers),
+      json: async () => data,
+    })),
+    redirect: jest.fn((url, init) => ({
+      status: init || 307,
+      headers: new Headers({ location: url.toString() }),
+      json: async () => ({}),
+    })),
+  },
+}))

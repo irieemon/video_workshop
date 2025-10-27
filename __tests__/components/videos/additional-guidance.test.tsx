@@ -2,9 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AdditionalGuidance } from '@/components/videos/additional-guidance'
 
-// Note: Tests temporarily skipped due to component rendering issues in test environment
-// Component is validated through manual testing and E2E tests
-describe.skip('AdditionalGuidance', () => {
+describe('AdditionalGuidance', () => {
   const mockOnChange = jest.fn()
 
   beforeEach(() => {
@@ -103,6 +101,7 @@ Line 3: Fast pacing`
       />
     )
 
-    expect(screen.getByDisplayValue(multilineValue)).toBeInTheDocument()
+    const textarea = screen.getByRole('textbox')
+    expect(textarea).toHaveValue(multilineValue)
   })
 })

@@ -2,8 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EditablePromptField } from '@/components/videos/editable-prompt-field'
 
-// Note: Most tests work but some fail due to async rendering issues in test environment
-// Component is validated through manual testing and E2E tests
+// Note: Some tests have assertion issues with UI text changes - needs update
+// 6 out of 12 tests pass, but skipping until assertions are updated
 describe.skip('EditablePromptField', () => {
   const mockOnChange = jest.fn()
   const mockOnRevert = jest.fn()

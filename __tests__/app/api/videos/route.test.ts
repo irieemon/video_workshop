@@ -1,31 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest } from 'next/server'
 import { POST, GET } from '@/app/api/videos/route'
+import { createMockRequest, createMockSupabaseClient } from '@/__tests__/helpers/api-route-test-helpers'
 
 jest.mock('@/lib/supabase/server')
 
-// Note: API route tests are skipped due to Next.js 15 server component complexities
-// These would be better tested with E2E tests or integration tests with a test server
-describe.skip('/api/videos', () => {
-  const mockSupabaseClient = {
-    auth: {
-      getUser: jest.fn(),
-    },
-    from: jest.fn(),
-  }
+describe('/api/videos', () => {
+  const mockSupabaseClient = createMockSupabaseClient()
 
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(createClient as jest.Mock).mockResolvedValue(mockSupabaseClient)
+    ;(createClient as jest.Mock).mockReturnValue(mockSupabaseClient)
   })
 
   describe('POST /api/videos', () => {
     it('creates a video successfully', async () => {
       const mockUser = { id: 'test-user-id' }
       const mockVideo = {
-        id: 'video-123',
+        id: '550e8400-e29b-41d4-a716-446655440003',
         title: 'Test Video',
-        project_id: 'project-123',
+        project_id: '550e8400-e29b-41d4-a716-446655440000',
       }
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -34,51 +27,72 @@ describe.skip('/api/videos', () => {
       })
 
       const mockInsert = jest.fn().mockReturnThis()
-      const mockSelect = jest.fn().mockResolvedValue({
+      const mockSelect = jest.fn().mockReturnThis()
+      const mockSingle = jest.fn().mockResolvedValue({
         data: mockVideo,
         error: null,
       })
 
-      mockSupabaseClient.from.mockReturnValue({
-        insert: mockInsert,
-        select: mockSelect,
-        single: jest.fn().mockResolvedValue({
-          data: mockVideo,
-          error: null,
-        }),
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue({
+                  data: [{
+                    id: 'test-user-id',
+                    is_admin: false,
+                    subscription_tier: 'premium',
+                    usage_current: { videos_this_month: 0 },
+                    usage_quota: { videos_per_month: 100 }
+                  }],
+                  error: null,
+                }),
+              }),
+            }),
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          }
+        }
+        return {
+          insert: mockInsert,
+          select: mockSelect,
+          single: mockSingle,
+        }
       })
 
-      const request = new NextRequest('http://localhost:3000/api/videos', {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId: 'project-123',
+      const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
           title: 'Test Video',
           userBrief: 'Test brief',
-          agentDiscussion: { round1: [], round2: [] },
-          detailedBreakdown: {
+          agentDiscussion: JSON.stringify({ round1: [], round2: [] }),
+          detailedBreakdown: JSON.stringify({
             scene_structure: 'Test',
             visual_specs: 'Test',
             audio: 'Test',
             platform_optimization: 'Test',
             hashtags: [],
-          },
+          }),
           optimizedPrompt: 'Test prompt',
           characterCount: 11,
           platform: 'tiktok',
           hashtags: ['test', 'video'],
-        }),
-      })
+        } })
 
       const response = await POST(request)
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.id).toBe('video-123')
+      expect(data.id).toBe('550e8400-e29b-41d4-a716-446655440003')
     })
 
     it('inserts hashtags into separate table', async () => {
       const mockUser = { id: 'test-user-id' }
-      const mockVideo = { id: 'video-123' }
+      const mockVideo = { id: '550e8400-e29b-41d4-a716-446655440003' }
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -92,7 +106,18 @@ describe.skip('/api/videos', () => {
 
       let callCount = 0
       mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'videos') {
+        if (table === 'profiles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue({
+                  data: [{ id: 'test-user-id', is_admin: false }],
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else if (table === 'videos') {
           callCount++
           return {
             insert: jest.fn().mockReturnThis(),
@@ -110,39 +135,36 @@ describe.skip('/api/videos', () => {
         return {}
       })
 
-      const request = new NextRequest('http://localhost:3000/api/videos', {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId: 'project-123',
+      const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
           title: 'Test Video',
           userBrief: 'Test brief',
-          agentDiscussion: { round1: [], round2: [] },
-          detailedBreakdown: {
+          agentDiscussion: JSON.stringify({ round1: [], round2: [] }),
+          detailedBreakdown: JSON.stringify({
             scene_structure: 'Test',
             visual_specs: 'Test',
             audio: 'Test',
             platform_optimization: 'Test',
             hashtags: [],
-          },
+          }),
           optimizedPrompt: 'Test prompt',
           characterCount: 11,
           platform: 'tiktok',
           hashtags: ['test', 'video', 'ai'],
-        }),
-      })
+        } })
 
       await POST(request)
 
       expect(mockHashtagInsert).toHaveBeenCalledWith([
-        { video_id: 'video-123', tag: 'test', suggested_by: 'platform_expert' },
-        { video_id: 'video-123', tag: 'video', suggested_by: 'platform_expert' },
-        { video_id: 'video-123', tag: 'ai', suggested_by: 'platform_expert' },
+        { video_id: '550e8400-e29b-41d4-a716-446655440003', tag: 'test', suggested_by: 'platform_expert' },
+        { video_id: '550e8400-e29b-41d4-a716-446655440003', tag: 'video', suggested_by: 'platform_expert' },
+        { video_id: '550e8400-e29b-41d4-a716-446655440003', tag: 'ai', suggested_by: 'platform_expert' },
       ])
     })
 
-    it('stores user_edits for Advanced Mode', async () => {
+    it('stores generation source and metadata', async () => {
       const mockUser = { id: 'test-user-id' }
-      const mockVideo = { id: 'video-123' }
+      const mockVideo = { id: '550e8400-e29b-41d4-a716-446655440003' }
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -156,50 +178,63 @@ describe.skip('/api/videos', () => {
         error: null,
       })
 
-      mockSupabaseClient.from.mockReturnValue({
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue({
+                  data: [{
+                    id: 'test-user-id',
+                    is_admin: false,
+                    subscription_tier: 'premium',
+                    usage_current: { videos_this_month: 0 },
+                    usage_quota: { videos_per_month: 100 }
+                  }],
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {
         insert: mockInsert,
         select: mockSelect,
         single: mockSingle,
+      }
       })
 
-      const userEdits = {
-        mode: 'advanced' as const,
-        iterations: 2,
-        additional_guidance: 'Focus on colors',
-        edits: [],
-        final_version: {
-          prompt: 'Final prompt',
-          character_count: 12,
-        },
+      const sourceMetadata = {
+        episode_id: '550e8400-e29b-41d4-a716-446655440005',
+        scene_number: 1
       }
 
-      const request = new NextRequest('http://localhost:3000/api/videos', {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId: 'project-123',
+      const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {
+          projectId: '550e8400-e29b-41d4-a716-446655440000',
           title: 'Test Video',
           userBrief: 'Test brief',
-          agentDiscussion: { round1: [], round2: [] },
-          detailedBreakdown: {
+          agentDiscussion: JSON.stringify({ round1: [], round2: [] }),
+          detailedBreakdown: JSON.stringify({
             scene_structure: 'Test',
             visual_specs: 'Test',
             audio: 'Test',
             platform_optimization: 'Test',
             hashtags: [],
-          },
+          }),
           optimizedPrompt: 'Test prompt',
           characterCount: 11,
           platform: 'tiktok',
           hashtags: [],
-          user_edits: userEdits,
-        }),
-      })
+          generation_source: 'episode',
+          source_metadata: sourceMetadata,
+        } })
 
       await POST(request)
 
       expect(mockInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          user_edits: userEdits,
+          generation_source: 'episode',
+          source_metadata: sourceMetadata,
         })
       )
     })
@@ -210,10 +245,7 @@ describe.skip('/api/videos', () => {
         error: new Error('Unauthorized'),
       })
 
-      const request = new NextRequest('http://localhost:3000/api/videos', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      })
+      const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {} })
 
       const response = await POST(request)
 
@@ -228,12 +260,9 @@ describe.skip('/api/videos', () => {
         error: null,
       })
 
-      const request = new NextRequest('http://localhost:3000/api/videos', {
-        method: 'POST',
-        body: JSON.stringify({
+      const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {
           // Missing required fields
-        }),
-      })
+        } })
 
       const response = await POST(request)
 
@@ -245,8 +274,8 @@ describe.skip('/api/videos', () => {
     it('returns videos for authenticated user', async () => {
       const mockUser = { id: 'test-user-id' }
       const mockVideos = [
-        { id: 'video-1', title: 'Video 1' },
-        { id: 'video-2', title: 'Video 2' },
+        { id: '550e8400-e29b-41d4-a716-446655440001', title: 'Video 1' },
+        { id: '550e8400-e29b-41d4-a716-446655440002', title: 'Video 2' },
       ]
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -260,12 +289,26 @@ describe.skip('/api/videos', () => {
         error: null,
       })
 
-      mockSupabaseClient.from.mockReturnValue({
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue({
+                  data: [{ id: 'test-user-id', is_admin: false }],
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {
         select: mockSelect,
         order: mockOrder,
+      }
       })
 
-      const request = new NextRequest('http://localhost:3000/api/videos')
+      const request = createMockRequest('http://localhost:3000/api/videos')
 
       const response = await GET(request)
       const data = await response.json()
@@ -280,7 +323,7 @@ describe.skip('/api/videos', () => {
         error: new Error('Unauthorized'),
       })
 
-      const request = new NextRequest('http://localhost:3000/api/videos')
+      const request = createMockRequest('http://localhost:3000/api/videos')
 
       const response = await GET(request)
 
