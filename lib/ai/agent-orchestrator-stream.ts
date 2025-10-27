@@ -383,21 +383,11 @@ export async function streamAgentRoundtable(
 
   const technicalResults = await Promise.all(technicalPromises)
 
-  // PHASE 3: Send completion events with both conversational and technical results
+  // PHASE 3: Combine results (no individual completion events to avoid flickering)
   for (let i = 0; i < agentOrder.length; i++) {
     const agentKey = agentOrder[i]
-    const agent = agents[agentKey]
     const conversationalResponse = conversationalResults[i]?.response || ''
     const technicalAnalysis = technicalResults[i]?.analysis || ''
-
-    sendEvent('message_complete', {
-      agent: agentKey,
-      name: agent.name,
-      emoji: agent.emoji,
-      conversationalResponse,
-      technicalAnalysis,
-      message: `${agent.emoji} ${agent.name} analysis complete`,
-    })
 
     round1Results.push({
       agent: agentKey,

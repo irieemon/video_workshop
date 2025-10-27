@@ -180,6 +180,12 @@ export function StreamingRoundtableModal({
         })
         break
 
+      case 'typing_stop':
+        console.log('⌨️ Typing Stop:', data.agent)
+        setTypingAgent(null)
+        setActiveAgentKey(null)
+        break
+
       case 'message_chunk':
         console.log('💬 Message Chunk:', { agent: data.agent, length: data.content.length })
         if (data.agent) {
