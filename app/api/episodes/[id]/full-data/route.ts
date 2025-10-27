@@ -91,6 +91,7 @@ export async function GET(
         logline: episode.logline,
         synopsis: episode.synopsis,
         screenplay_text: episode.screenplay_text,
+        structured_screenplay: episode.structured_screenplay,
         season_number: episode.season_number,
         episode_number: episode.episode_number,
         status: episode.status,

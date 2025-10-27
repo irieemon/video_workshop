@@ -31,6 +31,7 @@ export interface EpisodeData {
   brief: string  // Episode synopsis/logline to use as brief
   hasScreenplay: boolean  // Whether screenplay data exists
   sceneCount: number  // Number of scenes in structured screenplay
+  structuredScreenplay: any | null  // Full structured screenplay data
 }
 
 interface EpisodeSelectorProps {
@@ -175,6 +176,7 @@ export function EpisodeSelector({
           brief: detailedBrief,
           hasScreenplay,
           sceneCount,
+          structuredScreenplay: fullData.episode.structured_screenplay,
         })
       }
     } catch (err: any) {

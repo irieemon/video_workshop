@@ -19,6 +19,7 @@ import { AdditionalGuidance } from '@/components/videos/additional-guidance'
 import { SeriesContextSelector } from '@/components/videos/series-context-selector'
 import { SoraGenerationModal } from '@/components/videos/sora-generation-modal'
 import { EpisodeSelector } from '@/components/videos/episode-selector'
+import { SceneToSoraPrompt } from '@/components/videos/scene-to-sora-prompt'
 import { Shot } from '@/lib/types/database.types'
 
 interface RoundtableResult {
@@ -86,6 +87,7 @@ export default function NewVideoPage() {
   const [soraModalOpen, setSoraModalOpen] = useState(false)
   const [savedVideoId, setSavedVideoId] = useState<string | null>(null)
   const [savedVideoTitle, setSavedVideoTitle] = useState<string>('')
+  const [useScreenplayScene, setUseScreenplayScene] = useState(false)
 
   // Fetch series associated with this project
   useEffect(() => {
@@ -566,12 +568,13 @@ export default function NewVideoPage() {
 
             {/* Episode Selection */}
             {seriesId && (
-              <EpisodeSelector
-                projectId={projectId}
-                seriesId={seriesId}
-                selectedEpisodeId={episodeId}
-                onEpisodeSelect={setEpisodeId}
-                onEpisodeDataLoaded={(data) => {
+              <>
+                <EpisodeSelector
+                  projectId={projectId}
+                  seriesId={seriesId}
+                  selectedEpisodeId={episodeId}
+                  onEpisodeSelect={setEpisodeId}
+                  onEpisodeDataLoaded={(data) => {
                   if (data) {
                     console.log('Parent received episode data:', {
                       brief: data.brief?.substring(0, 100) + '...',
@@ -606,6 +609,48 @@ export default function NewVideoPage() {
                 }}
                 disabled={loading || !!result}
               />
+
+              {/* Toggle for screenplay scene selection */}
+              {episodeId && episodeData?.hasScreenplay && (
+                <Card>
+                  <CardContent className="pt-6 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Use Screenplay Scene</p>
+                        <p className="text-xs text-muted-foreground">
+                          Generate prompt directly from screenplay dialogue and actions
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant={useScreenplayScene ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setUseScreenplayScene(!useScreenplayScene)}
+                        disabled={loading || !!result}
+                        className={useScreenplayScene ? 'bg-scenra-amber hover:bg-scenra-dark' : ''}
+                      >
+                        {useScreenplayScene ? 'Enabled' : 'Enable'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Scene Selection (when enabled) */}
+              {episodeId && useScreenplayScene && episodeData?.structuredScreenplay && (
+                <SceneToSoraPrompt
+                  episodeId={episodeId}
+                  structuredScreenplay={episodeData.structuredScreenplay}
+                  characters={episodeData.characters || []}
+                  onPromptGenerated={(prompt, sceneInfo) => {
+                    console.log('Scene prompt generated:', { sceneInfo, promptLength: prompt.length })
+                    // Auto-populate the brief with the generated prompt
+                    setBrief(prompt)
+                  }}
+                  disabled={loading || !!result}
+                />
+              )}
+            </>
             )}
 
             {/* Series Context Selection */}
