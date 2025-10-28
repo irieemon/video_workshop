@@ -232,8 +232,13 @@ export async function streamAgentRoundtable(
   // Track completed agents for cross-referencing
   const completedAgents: string[] = []
 
-  // Process agents SEQUENTIALLY for natural conversation flow
-  const round1Results = []
+  // PHASE 1: Stream all conversational responses sequentially (for natural UX)
+  // This must be sequential so users see agents responding one at a time
+  const conversationalResults: Array<{
+    agent: Agent
+    response: string
+    error?: string
+  }> = []
 
   for (const agentKey of agentOrder) {
     const agent = agents[agentKey]
@@ -312,12 +317,58 @@ export async function streamAgentRoundtable(
         })
       }
 
-      // Generate technical analysis (non-streaming, hidden from UI)
+      // Send message complete (without technical analysis yet)
+      sendEvent('message_complete', {
+        agent: agentKey,
+        name: agent.name,
+        emoji: agent.emoji,
+        conversationalResponse,
+        technicalAnalysis: '', // Will be filled in later
+        message: `${agent.emoji} ${agent.name} has finished speaking`,
+      })
+
+      // Clear typing indicator for this agent
+      sendEvent('typing_stop', {
+        agent: agentKey,
+        name: agent.name,
+      })
+
+      completedAgents.push(agent.name)
+      conversationalResults.push({
+        agent: agentKey,
+        response: conversationalResponse,
+      })
+    } catch (error: any) {
+      console.error(`Error in ${agent.name} (${agentKey}):`, error)
+      sendEvent('agent_error', {
+        agent: agentKey,
+        name: agent.name,
+        error: error.message || 'Failed to get response',
+      })
+
+      // Send typing stop even on error
+      sendEvent('typing_stop', {
+        agent: agentKey,
+        name: agent.name,
+      })
+
+      conversationalResults.push({
+        agent: agentKey,
+        response: '',
+        error: error.message,
+      })
+    }
+  }
+
+  // PHASE 2: Generate all technical analyses in PARALLEL (hidden from UI, don't block UX)
+  // This is the optimization - technical calls don't need to be sequential since they're not shown to user
+  const technicalPromises = agentOrder.map(async (agentKey) => {
+    try {
       let technicalPrompt: string
       if (agentKey === 'platform_expert') {
         technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
       } else {
-        technicalPrompt = (agent as any).technicalPrompt(brief)
+        technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
       }
 
       const technicalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -334,46 +385,35 @@ export async function streamAgentRoundtable(
         max_tokens: 500,
       })
 
-      const technicalAnalysis = technicalResponse.choices[0]?.message?.content || ''
-
-      sendEvent('message_complete', {
+      return {
         agent: agentKey,
-        name: agent.name,
-        emoji: agent.emoji,
-        conversationalResponse,
-        technicalAnalysis,
-        message: `${agent.emoji} ${agent.name} has finished speaking`,
-      })
-
-      // Clear typing indicator for this agent
-      sendEvent('typing_stop', {
-        agent: agentKey,
-        name: agent.name,
-      })
-
-      completedAgents.push(agent.name)
-      round1Results.push({
-        agent: agentKey,
-        conversational: conversationalResponse,
-        technical: technicalAnalysis,
-      })
+        technical: technicalResponse.choices[0]?.message?.content || '',
+      }
     } catch (error: any) {
-      console.error(`Error in ${agent.name} (${agentKey}):`, error)
-      sendEvent('agent_error', {
+      console.error(`Error in technical analysis for ${agentKey}:`, error)
+      return {
         agent: agentKey,
-        name: agent.name,
-        error: error.message || 'Failed to get response',
-      })
-
-      // Send typing stop even on error
-      sendEvent('typing_stop', {
-        agent: agentKey,
-        name: agent.name,
-      })
-
-      round1Results.push({ agent: agentKey, conversational: '', technical: '', error: error.message })
+        technical: '',
+        error: error.message,
+      }
     }
-  }
+  })
+
+  // Wait for all technical analyses to complete
+  const technicalResults = await Promise.all(technicalPromises)
+
+  // PHASE 3: Combine conversational and technical results
+  const round1Results = agentOrder.map((agentKey, index) => {
+    const conversational = conversationalResults.find(r => r.agent === agentKey)
+    const technical = technicalResults.find(r => r.agent === agentKey)
+
+    return {
+      agent: agentKey,
+      conversational: conversational?.response || '',
+      technical: technical?.technical || '',
+      error: conversational?.error || technical?.error,
+    }
+  })
 
   sendEvent('status', {
     message: 'Round 1 complete. Team is now debating key creative decisions...',
