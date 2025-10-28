@@ -232,13 +232,44 @@ export async function streamAgentRoundtable(
   // Track completed agents for cross-referencing
   const completedAgents: string[] = []
 
-  // PHASE 1: Stream all conversational responses sequentially (for natural UX)
-  // This must be sequential so users see agents responding one at a time
-  const conversationalResults: Array<{
-    agent: Agent
-    response: string
-    error?: string
-  }> = []
+  // OPTIMIZATION: Start ALL technical analysis calls immediately in parallel (non-blocking)
+  // They run in background while we stream conversational responses sequentially
+  const technicalPromises = agentOrder.reduce<Record<Agent, Promise<string>>>((acc, agentKey) => {
+    acc[agentKey] = (async () => {
+      try {
+        let technicalPrompt: string
+        if (agentKey === 'platform_expert') {
+          technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
+        } else {
+          technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
+        }
+
+        const technicalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+          {
+            role: 'user',
+            content: technicalPrompt + contextString,
+          },
+        ]
+
+        const technicalResponse = await openai.chat.completions.create({
+          model: getModelForFeature('agent'),
+          messages: technicalMessages,
+          temperature: 0.7,
+          max_tokens: 500,
+        })
+
+        return technicalResponse.choices[0]?.message?.content || ''
+      } catch (error: any) {
+        console.error(`Error in technical analysis for ${agentKey}:`, error)
+        return ''
+      }
+    })()
+    return acc
+  }, {} as Record<Agent, Promise<string>>)
+
+  // Process agents SEQUENTIALLY for natural conversation flow
+  // But wait for each agent's technical promise (running in parallel) before completing
+  const round1Results = []
 
   for (const agentKey of agentOrder) {
     const agent = agents[agentKey]
@@ -317,13 +348,16 @@ export async function streamAgentRoundtable(
         })
       }
 
-      // Send message complete (without technical analysis yet)
+      // Wait for THIS agent's technical analysis (running in parallel)
+      const technicalAnalysis = await technicalPromises[agentKey]
+
+      // Now send complete with BOTH conversational and technical
       sendEvent('message_complete', {
         agent: agentKey,
         name: agent.name,
         emoji: agent.emoji,
         conversationalResponse,
-        technicalAnalysis: '', // Will be filled in later
+        technicalAnalysis,
         message: `${agent.emoji} ${agent.name} has finished speaking`,
       })
 
@@ -334,9 +368,10 @@ export async function streamAgentRoundtable(
       })
 
       completedAgents.push(agent.name)
-      conversationalResults.push({
+      round1Results.push({
         agent: agentKey,
-        response: conversationalResponse,
+        conversational: conversationalResponse,
+        technical: technicalAnalysis,
       })
     } catch (error: any) {
       console.error(`Error in ${agent.name} (${agentKey}):`, error)
@@ -352,68 +387,9 @@ export async function streamAgentRoundtable(
         name: agent.name,
       })
 
-      conversationalResults.push({
-        agent: agentKey,
-        response: '',
-        error: error.message,
-      })
+      round1Results.push({ agent: agentKey, conversational: '', technical: '', error: error.message })
     }
   }
-
-  // PHASE 2: Generate all technical analyses in PARALLEL (hidden from UI, don't block UX)
-  // This is the optimization - technical calls don't need to be sequential since they're not shown to user
-  const technicalPromises = agentOrder.map(async (agentKey) => {
-    try {
-      let technicalPrompt: string
-      if (agentKey === 'platform_expert') {
-        technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
-      } else {
-        technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
-      }
-
-      const technicalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        {
-          role: 'user',
-          content: technicalPrompt + contextString,
-        },
-      ]
-
-      const technicalResponse = await openai.chat.completions.create({
-        model: getModelForFeature('agent'),
-        messages: technicalMessages,
-        temperature: 0.7,
-        max_tokens: 500,
-      })
-
-      return {
-        agent: agentKey,
-        technical: technicalResponse.choices[0]?.message?.content || '',
-      }
-    } catch (error: any) {
-      console.error(`Error in technical analysis for ${agentKey}:`, error)
-      return {
-        agent: agentKey,
-        technical: '',
-        error: error.message,
-      }
-    }
-  })
-
-  // Wait for all technical analyses to complete
-  const technicalResults = await Promise.all(technicalPromises)
-
-  // PHASE 3: Combine conversational and technical results
-  const round1Results = agentOrder.map((agentKey, index) => {
-    const conversational = conversationalResults.find(r => r.agent === agentKey)
-    const technical = technicalResults.find(r => r.agent === agentKey)
-
-    return {
-      agent: agentKey,
-      conversational: conversational?.response || '',
-      technical: technical?.technical || '',
-      error: conversational?.error || technical?.error,
-    }
-  })
 
   sendEvent('status', {
     message: 'Round 1 complete. Team is now debating key creative decisions...',
