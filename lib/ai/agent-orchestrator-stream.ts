@@ -232,12 +232,9 @@ export async function streamAgentRoundtable(
   // Track completed agents for cross-referencing
   const completedAgents: string[] = []
 
-  // Process agents with PARALLEL technical analysis for performance
+  // Process agents SEQUENTIALLY for natural conversation flow
   const round1Results = []
-  const conversationalResults: { agentKey: Agent; response: string }[] = []
-  const technicalPromises: Promise<{ agentKey: Agent; analysis: string }>[] = []
 
-  // PHASE 1: Stream conversational responses SEQUENTIALLY (for natural UX)
   for (const agentKey of agentOrder) {
     const agent = agents[agentKey]
 
@@ -276,7 +273,7 @@ export async function streamAgentRoundtable(
           model: getModelForFeature('agent'),
           messages: conversationalMessages,
           temperature: 0.8, // Higher temp for more natural conversation
-          max_tokens: 200, // Reduced from 300 for faster responses
+          max_tokens: 300,
           stream: true,
         }),
         timeoutPromise
@@ -315,21 +312,7 @@ export async function streamAgentRoundtable(
         })
       }
 
-      // Store conversational result
-      conversationalResults.push({
-        agentKey,
-        response: conversationalResponse,
-      })
-
-      // Clear typing indicator after conversational response
-      sendEvent('typing_stop', {
-        agent: agentKey,
-        name: agent.name,
-      })
-
-      completedAgents.push(agent.name)
-
-      // Queue technical analysis (don't await - will run in parallel)
+      // Generate technical analysis (non-streaming, hidden from UI)
       let technicalPrompt: string
       if (agentKey === 'platform_expert') {
         technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
@@ -344,18 +327,36 @@ export async function streamAgentRoundtable(
         },
       ]
 
-      // Add to parallel promises array
-      technicalPromises.push(
-        openai.chat.completions.create({
-          model: getModelForFeature('agent'),
-          messages: technicalMessages,
-          temperature: 0.7,
-          max_tokens: 350, // Reduced from 500 for faster responses
-        }).then(response => ({
-          agentKey,
-          analysis: response.choices[0]?.message?.content || '',
-        }))
-      )
+      const technicalResponse = await openai.chat.completions.create({
+        model: getModelForFeature('agent'),
+        messages: technicalMessages,
+        temperature: 0.7,
+        max_tokens: 500,
+      })
+
+      const technicalAnalysis = technicalResponse.choices[0]?.message?.content || ''
+
+      sendEvent('message_complete', {
+        agent: agentKey,
+        name: agent.name,
+        emoji: agent.emoji,
+        conversationalResponse,
+        technicalAnalysis,
+        message: `${agent.emoji} ${agent.name} has finished speaking`,
+      })
+
+      // Clear typing indicator for this agent
+      sendEvent('typing_stop', {
+        agent: agentKey,
+        name: agent.name,
+      })
+
+      completedAgents.push(agent.name)
+      round1Results.push({
+        agent: agentKey,
+        conversational: conversationalResponse,
+        technical: technicalAnalysis,
+      })
     } catch (error: any) {
       console.error(`Error in ${agent.name} (${agentKey}):`, error)
       sendEvent('agent_error', {
@@ -370,30 +371,8 @@ export async function streamAgentRoundtable(
         name: agent.name,
       })
 
-      conversationalResults.push({ agentKey, response: '' })
-      technicalPromises.push(Promise.resolve({ agentKey, analysis: '' }))
+      round1Results.push({ agent: agentKey, conversational: '', technical: '', error: error.message })
     }
-  }
-
-  // PHASE 2: Wait for all technical analysis to complete IN PARALLEL
-  sendEvent('status', {
-    message: 'Team is analyzing technical details...',
-    stage: 'technical_analysis',
-  })
-
-  const technicalResults = await Promise.all(technicalPromises)
-
-  // PHASE 3: Combine results (no individual completion events to avoid flickering)
-  for (let i = 0; i < agentOrder.length; i++) {
-    const agentKey = agentOrder[i]
-    const conversationalResponse = conversationalResults[i]?.response || ''
-    const technicalAnalysis = technicalResults[i]?.analysis || ''
-
-    round1Results.push({
-      agent: agentKey,
-      conversational: conversationalResponse,
-      technical: technicalAnalysis,
-    })
   }
 
   sendEvent('status', {
