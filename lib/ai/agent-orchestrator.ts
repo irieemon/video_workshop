@@ -450,216 +450,18 @@ async function synthesizeRoundtable(data: {
   }
 
   const synthesisPrompt = `
-You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Scenra video generation.
+Original Brief: ${data.brief}
+Platform: ${data.platform}
+Duration: ${data.platform.toLowerCase() === 'tiktok' || data.platform.toLowerCase() === 'instagram' ? '4-8s for short-form' : '8-12s for standard'}${data.characterContext || ''}${soraSettingsContext}
 
-CRITICAL OUTPUT REQUIREMENTS:
-- ULTRA-DETAILED TECHNICAL SPECIFICATIONS - professional cinematographer-level detail
-- STRUCTURED SECTIONS with clear headers like a production document
-- TARGET: 2000-3000 characters with comprehensive technical specifications
-- STYLE: Professional cinematography documentation - highly detailed and precise
-- USE PROFESSIONAL TERMINOLOGY - full technical specifications, measurements, equipment names
+Team Insights:
+Round 1 Analysis:
+${JSON.stringify(data.round1, null, 2)}
 
-ULTRA-DETAILED PROMPT STRUCTURE:
-Generate a highly detailed, structured prompt with these sections:
+Round 2 Discussion:
+${JSON.stringify(data.round2, null, 2)}
 
-FORMAT & LOOK:
-- Duration (4s, 8s, or 12s based on ${data.platform})
-- Shutter angle (180° standard, 90° for action, 270° for motion blur)
-- Capture format (digital capture emulating 35mm/65mm photochemical)
-- Grain quality (fine grain, medium grain, heavy grain)
-- Optical effects (halation on speculars, gate weave, lens breathing)
-
-LENSES & FILTRATION:
-- Specific lens choices (32mm, 50mm, 85mm spherical/anamorphic primes)
-- Filtration (Black Pro-Mist 1/8-1/2, CPL rotation for reflections, ND filters)
-- Technical notes (focus distance, aperture settings if relevant)
-
-GRADE / PALETTE:
-- Highlights: color treatment and lift
-- Mids: tonal balance and color cast
-- Blacks: density, lift, and haze retention
-
-LIGHTING & ATMOSPHERE:
-- Key light: source, direction with time/angle (e.g., "natural sunlight camera left, low angle 07:30 AM")
-- Fill light: source and placement (e.g., "4×4 ultrabounce silver from trackside")
-- Negative fill: placement for contrast control
-- Practicals: any practical lights in scene with intensity
-- Atmosphere: mist, haze, smoke, particles, weather
-
-LOCATION & FRAMING:
-- Location description with time of day
-- Foreground elements (specific objects, lines, markers)
-- Midground action/subjects
-- Background elements
-- Avoidances (signage, branding, specific elements to exclude)
-
-WARDROBE / PROPS / EXTRAS:
-- CRITICAL: Character descriptions MUST include ethnicity and skin tone
-  Format: "[Name]: [ethnicity] [age] with [skin tone], [clothing], [physical details]"
-  Example: "Lyle: Black young child with deep brown skin, denim shirt, short textured black hair, warm brown eyes"
-- CRITICAL: If character voice/vocal characteristics are provided in character descriptions, you MUST include them in the SOUND section
-- Main subject details if no named characters
-- Extras descriptions
-- Key props list
-
-SOUND:
-- Type: diegetic, non-diegetic, or mixed
-- CRITICAL: Extract and include character vocal characteristics from character descriptions
-  - Look for "Voice:" sections in character templates
-  - Format: "Character vocals: [Name]: [voice details from template]; [Name]: [voice details]."
-  - Example: "Character vocals: Lyle: sounds young child, playful tone, high pitch; Dad: warm baritone, neutral American accent."
-  - If no voice data in templates, skip this line
-- Specific audio elements with levels if relevant (e.g., "-20 LUFS")
-- Exclusions (no score, no added foley, etc.)
-
-OPTIMIZED SHOT LIST (2-6 shots):
-For each shot:
-- Timing (e.g., "0.00-2.40")
-- Shot title/name
-- Lens choice
-- Camera movement description
-- Detailed action/composition description
-- Purpose/intent of shot
-
-CAMERA NOTES (Why It Reads):
-- Eyeline positioning
-- Allowed/desired optical effects (flares, aberrations)
-- Handheld quality or stabilization notes
-- Exposure guidance for key moments
-
-FINISHING:
-- Grain overlay specifications
-- Halation treatment
-- LUT or color treatment description
-- Audio mix priorities
-- Poster frame suggestion
-${soraSettingsContext}${data.characterContext || ''}
-COPYRIGHT SAFETY:
-- NO brands, IPs, celebrities, or copyrighted music
-- Use descriptive language without brand references
-- EXCEPTION: When character descriptions are provided above, you MUST use those exact descriptions in the prompt
-
-AGENT CONTRIBUTIONS:
-${JSON.stringify(data, null, 2)}
-
-Generate THREE outputs:
-
-1. DETAILED BREAKDOWN (structured technical sections):
-- Format & Look: Duration, shutter, capture format, grain, optical effects
-- Lenses & Filtration: Specific lenses, filters, technical notes
-- Grade/Palette: Highlights, mids, blacks color treatment
-- Lighting & Atmosphere: Key, fill, negative fill, practicals, atmosphere
-- Location & Framing: Location, foreground, midground, background, avoidances
-- Wardrobe/Props/Extras: Characters (with ethnicity/skin tone), extras, props
-- Sound: Type, elements, levels, exclusions
-- Shot List: Each shot with timing, title, lens, movement, description, purpose
-- Camera Notes: Eyeline, optical effects, handheld quality, exposure
-- Finishing: Grain, halation, LUT, mix, poster frame
-
-2. ULTRA-DETAILED STRUCTURED PROMPT (2000-3000 characters):
-
-EXAMPLE FORMAT:
-"Format & Look
-Duration 4s; 180° shutter; digital capture emulating 65mm photochemical contrast; fine grain; subtle halation on speculars; no gate weave.
-
-Lenses & Filtration
-32mm / 50mm spherical primes; Black Pro-Mist 1/4; slight CPL rotation to manage reflections.
-
-Grade / Palette
-Highlights: clean morning sunlight with amber lift.
-Mids: balanced neutrals with slight teal cast in shadows.
-Blacks: soft, neutral with mild lift for haze retention.
-
-Lighting & Atmosphere
-Natural sunlight from camera left, low angle (07:30 AM).
-Bounce: 4×4 ultrabounce silver from trackside.
-Negative fill from opposite wall.
-Practical: sodium platform lights on dim fade.
-Atmos: gentle mist; light beam diffusion.
-
-Location & Framing
-Urban commuter platform, dawn.
-Foreground: yellow safety line, coffee cup.
-Midground: waiting passengers silhouetted in haze.
-Background: arriving train braking to stop.
-Avoid signage or corporate branding.
-
-Wardrobe / Props / Extras
-Lyle: Black young child with deep brown skin, denim shirt, short textured black hair, warm brown eyes.
-Tom: White early teen with fair neutral skin, light brown hair, blue eyes, gray sweater vest.
-Props: soda bottles, mentos packages, paper cups.
-
-Sound
-Diegetic only: fizzing soda, laughter, gentle breeze through trees (-18 LUFS).
-No score or added foley.
-
-Optimized Shot List (3 shots / 8s total)
-
-0.00-3.00 — "Setup" (24mm, handheld)
-Wide shot captures backyard setup; Lyle and Tom arranging bottles on grass. Sunlight glints off bottles. Purpose: establish playful energy.
-
-3.00-5.50 — "Preparation" (50mm, locked)
-Medium shot of hands shaking soda bottle and dropping mentos. Focus on character expressions of anticipation. Purpose: build tension.
-
-5.50-8.00 — "Explosion" (24mm, slow motion)
-Wide shot as soda erupts into fizzy geyser; both children react with joy. Sunlight backlights spray. Purpose: climactic payoff.
-
-Camera Notes (Why It Reads)
-Handheld energy for playful feel in shots 1 and 3.
-Allow natural lens flare from sunlight on bottle glass.
-Maintain clear silhouettes against bright background.
-
-Finishing
-Fine-grain overlay for organic feel; subtle halation on bottle highlights; vibrant LUT enhancing blues and greens.
-Mix: prioritize fizzing sound and laughter over ambient.
-Poster frame: moment of explosion with both children mid-laugh."
-
-- MUST be structured with clear section headers
-- MUST be 2000-3000 characters with comprehensive detail
-- MUST include specific technical specifications
-- Professional cinematography documentation style
-
-3. SUGGESTED SHOT LIST (2-6 shots with full technical specs):
-- Shot timing with decimals (e.g., "0.00-2.40")
-- Shot title/name
-- Specific lens choice
-- Camera movement description
-- Detailed composition and action
-- Purpose/intent statement
-- Order shots sequentially from 1 to N
-
-Return JSON:
-{
-  "breakdown": {
-    "format_and_look": "Duration, shutter, capture format, grain, optical effects",
-    "lenses_and_filtration": "Specific lenses, filters, technical notes",
-    "grade_palette": "Highlights, mids, blacks treatment",
-    "lighting_atmosphere": "Key, fill, negative fill, practicals, atmosphere",
-    "location_framing": "Location, foreground, midground, background, avoidances",
-    "wardrobe_props_extras": "Characters with ethnicity/skin tone, extras, props",
-    "sound": "Type, elements, levels, exclusions",
-    "shot_list_summary": "Number of shots and total duration",
-    "camera_notes": "Eyeline, optical effects, handheld quality, exposure",
-    "finishing": "Grain, halation, LUT, mix, poster frame"
-  },
-  "optimized_prompt": "Format & Look\\nDuration 8s; 180° shutter; digital capture emulating 35mm photochemical; fine grain; subtle halation on speculars.\\n\\nLenses & Filtration\\n24mm / 50mm spherical primes; Black Pro-Mist 1/8.\\n\\n... [FULL ULTRA-DETAILED PROMPT 2000-3000 chars]",
-  "character_count": 2450,
-  "suggested_shots": [
-    {
-      "timing": "0.00-3.00",
-      "title": "Setup",
-      "description": "Wide shot captures backyard setup; Lyle and Tom arranging bottles on grass",
-      "camera": "24mm handheld for playful energy",
-      "lens": "24mm",
-      "movement": "handheld",
-      "order": 1,
-      "lighting": "Natural sunlight creating glints on bottles",
-      "notes": "Purpose: establish playful energy",
-      "purpose": "establish playful energy and scene context"
-    }
-  ]
-}
-`
+Generate the Sora prompt following the required structure exactly. Return as text (not JSON) with markdown section headers (**Section Name**).`
 
   const openai = getOpenAI()
   const completion = await openai.chat.completions.create({
@@ -667,39 +469,75 @@ Return JSON:
     messages: [
       {
         role: 'system',
-        content: 'You are an ULTRA-DETAILED CINEMATOGRAPHY SYNTHESIZER for Scenra video generation. You transform production team contributions into HIGHLY DETAILED PROFESSIONAL CINEMATOGRAPHY DOCUMENTATION with comprehensive technical specifications. Target: 2000-3000 characters with structured sections and precise technical details. Style: Professional cinematography documentation - detailed shot specs, lighting design, technical parameters. USE FULL PROFESSIONAL TERMINOLOGY - specific equipment, measurements, technical specifications. Format with clear section headers: Format & Look, Lenses & Filtration, Grade/Palette, Lighting & Atmosphere, Location & Framing, Wardrobe/Props/Extras, Sound, Optimized Shot List, Camera Notes, Finishing.',
+        content: `You are a creative cinematographer synthesizing a Sora video prompt that balances technical precision with compelling storytelling.
+
+CRITICAL: Output must follow this EXACT structure with these section headers:
+
+**Story & Direction**
+Narrative arc, emotional beats, character motivations, scene purpose, storytelling goals
+IMPORTANT: If characters are provided, describe them EXACTLY as specified including age, appearance, and personality. Character descriptions are LOCKED and must be preserved.
+
+**Format & Look**
+Duration, shutter angle, capture format, grain quality, halation, gate weave specs
+
+**Lenses & Filtration**
+Lens specs (focal lengths, spherical/anamorphic), filtration (Black Pro-Mist, ND, CPL, etc.)
+
+**Grade / Palette**
+Highlights, mids, blacks - specific color treatment for each tonal range
+
+**Lighting & Atmosphere**
+Light sources (natural/practical/artificial), direction, quality, bounce/fill/negative, atmospheric effects
+
+**Location & Framing**
+Setting description, foreground/midground/background elements, composition rules, brand avoidance
+
+**Wardrobe / Props / Extras**
+Main subject description WITH character details (age, appearance from character profiles), extras, key props, wardrobe details
+
+**Sound**
+Audio approach (diegetic/non-diegetic), specific sound elements, LUFS levels, foley notes
+CRITICAL DIALOGUE HANDLING:
+1. If screenplay dialogue is provided in the context (look for "EPISODE SCREENPLAY CONTEXT" and "Dialogue:" sections), you MUST extract and include the actual dialogue lines
+2. Format dialogue with character names and their lines: "- CHARACTER_NAME: \\"dialogue line\\""
+3. If character voice profiles are provided, include voice characteristics AFTER each character's dialogue
+4. Example format:
+   Dialogue:
+   - ORIN: "Come on, Sol… what're you hiding in there?" (earthy Midwestern drawl, measured tone)
+   - SOL: "You are accessing restricted archives, Engineer Kale." (soft, androgynous tone)
+IMPORTANT: Always prioritize actual screenplay dialogue over generic descriptions. If dialogue exists in context, it MUST appear in this section.
+
+**Optimized Shot List**
+Numbered shots with timecodes, lens, movement, purpose. Format: "0.00–2.40 — \\"Shot Name\\" (lens, movement) | Description | Purpose"
+
+**Camera Notes**
+Technical shooting notes, why specific choices work, what to preserve/avoid
+
+**Finishing**
+Post-production specs, grain overlay, color finishing, mix priorities, poster frame description
+
+Use technical terminology AND creative direction. Be specific with measurements, focal lengths, color values. Maintain professional cinematography standards while telling a compelling story.`,
       },
       { role: 'user', content: synthesisPrompt },
     ],
-    temperature: 0.3,
-    response_format: { type: 'json_object' },
+    temperature: 0.5,
   })
 
-  const result = JSON.parse(completion.choices[0].message.content || '{}')
+  const finalPrompt = completion.choices[0].message.content || ''
 
-  // Ensure hashtags is always an array of strings
-  const hashtags = Array.isArray(result.breakdown?.hashtags)
-    ? result.breakdown.hashtags.filter((tag: any) => typeof tag === 'string')
-    : []
-
-  // Ensure suggested shots is valid
-  const suggestedShots = Array.isArray(result.suggested_shots)
-    ? result.suggested_shots.map((shot: any, index: number) => ({
-        timing: shot.timing || `${index * 4}-${(index + 1) * 4}s`,
-        description: shot.description || '',
-        camera: shot.camera || '',
-        order: shot.order || index + 1,
-        lighting: shot.lighting,
-        notes: shot.notes,
-      }))
-    : []
-
+  // For now, return empty breakdown - the formatted prompt is what matters
   return {
-    breakdown: result.breakdown || {},
-    prompt: result.optimized_prompt || '',
-    characterCount: result.character_count || 0,
-    hashtags,
-    suggestedShots,
+    breakdown: {
+      scene_structure: '',
+      visual_specs: '',
+      audio: '',
+      platform_optimization: '',
+      hashtags: [],
+    },
+    prompt: finalPrompt,
+    characterCount: finalPrompt.length,
+    hashtags: [],
+    suggestedShots: [],
   }
 }
 
@@ -848,24 +686,12 @@ async function synthesizeAdvancedRoundtable(data: {
   }
 
   const synthesisPrompt = `
-You are synthesizing production team input into an ULTRA-DETAILED PROFESSIONAL CINEMATOGRAPHY PROMPT for Scenra video generation.
+Original Brief: ${data.brief}
+Platform: ${data.platform}
+Duration: ${data.platform.toLowerCase() === 'tiktok' || data.platform.toLowerCase() === 'instagram' ? '4-8s for short-form' : '8-12s for standard'}${data.characterContext || ''}${soraSettingsContext}
 
-CRITICAL OUTPUT REQUIREMENTS:
-- ULTRA-DETAILED TECHNICAL SPECIFICATIONS - professional cinematographer-level detail
-- STRUCTURED SECTIONS with clear headers like a production document
-- TARGET: 2000-3000 characters with comprehensive technical specifications
-- STYLE: Professional cinematography documentation - highly detailed and precise
-- USE PROFESSIONAL TERMINOLOGY - full technical specifications, measurements, equipment names
-
-ULTRA-DETAILED PROMPT STRUCTURE:
-Generate a highly detailed, structured prompt with these sections:
-
-FORMAT & LOOK:
-- Duration (4s, 8s, or 12s based on ${data.platform})
-- Shutter angle (180° standard, 90° for action, 270° for motion blur)
-- Capture format (digital capture emulating 35mm/65mm photochemical)
-- Grain quality (fine grain, medium grain, heavy grain)
-- Optical effects (halation on speculars, gate weave, lens breathing)
+Team Insights:
+Round 1 Analysis:
 
 LENSES & FILTRATION:
 - Specific lens choices (32mm, 50mm, 85mm spherical/anamorphic primes)

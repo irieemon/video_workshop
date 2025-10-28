@@ -65,7 +65,7 @@ export default function NewVideoPage() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<RoundtableResult | null>(null)
   const [series, setSeries] = useState<any[]>([])
-  const [useStreaming, setUseStreaming] = useState(true)
+  const [useStreaming, setUseStreaming] = useState(false) // Disabled streaming - use fast parallel API
   const [streamingStarted, setStreamingStarted] = useState(false)
   const [pendingResult, setPendingResult] = useState<{
     finalPrompt: string

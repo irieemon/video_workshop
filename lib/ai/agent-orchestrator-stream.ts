@@ -225,154 +225,99 @@ export async function streamAgentRoundtable(
   ]
 
   sendEvent('status', {
-    message: 'Round 1: Creative team analyzing your brief...',
+    message: 'Round 1: Assembling creative team...',
     stage: 'round1_start',
   })
 
-  // Track completed agents for cross-referencing
-  const completedAgents: string[] = []
+  // PHASE 0: PARALLEL FETCH - Fire ALL API calls immediately
+  // This runs in ~5-10 seconds total while user sees loading
+  const fetchAllResponses = async () => {
+    const promises = agentOrder.map(async (agentKey) => {
+      try {
+        // Technical prompt (detailed analysis for display and synthesis)
+        let technicalPrompt: string
+        if (agentKey === 'platform_expert') {
+          technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
+        } else {
+          technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
+        }
 
-  // Process agents SEQUENTIALLY for natural conversation flow
+        // Single API call per agent - technical analysis only
+        const response = await openai.chat.completions.create({
+          model: getModelForFeature('agent'),
+          messages: [{ role: 'user', content: technicalPrompt + contextString }],
+          temperature: 0.7,
+          max_tokens: 400, // Technical analysis
+        })
+
+        return {
+          agent: agentKey,
+          technical: response.choices[0]?.message?.content || '',
+        }
+      } catch (error: any) {
+        console.error(`Error fetching ${agents[agentKey].name}:`, error)
+        return {
+          agent: agentKey,
+          technical: '',
+          error: error.message,
+        }
+      }
+    })
+
+    return Promise.all(promises)
+  }
+
+  // Fetch all responses in parallel (happens in background, ~5-10 seconds)
+  const allResponses = await fetchAllResponses()
+
+  // PHASE 1: SEQUENTIAL DISPLAY - Show full responses instantly
   const round1Results = []
 
-  for (const agentKey of agentOrder) {
+  // Display each agent's complete response immediately
+  for (let i = 0; i < agentOrder.length; i++) {
+    const agentKey = agentOrder[i]
     const agent = agents[agentKey]
+    const response = allResponses[i]
 
-    // Send typing indicator
+    // Send typing indicator briefly
     sendEvent('typing_start', {
       agent: agentKey,
       name: agent.name,
       emoji: agent.emoji,
-      message: `${agent.emoji} ${agent.name} is typing...`,
+      message: `${agent.emoji} ${agent.name} is analyzing...`,
     })
 
-    try {
-      // Generate conversational response with timeout protection
-      let conversationalPrompt: string
-      if (agentKey === 'platform_expert') {
-        conversationalPrompt = agents.platform_expert.conversationalPrompt(brief, platform, completedAgents)
-      } else {
-        conversationalPrompt = (agent as any).conversationalPrompt(brief, completedAgents)
-      }
+    // Brief delay to show typing indicator
+    await new Promise(resolve => setTimeout(resolve, 300))
 
-      const conversationalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        {
-          role: 'user',
-          content: conversationalPrompt + contextString,
-        },
-      ]
+    // Send full response at once
+    sendEvent('message_chunk', {
+      agent: agentKey,
+      name: agents[agentKey].name,
+      emoji: agents[agentKey].emoji,
+      content: response.technical,
+    })
 
-      // Create timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`${agent.name} response timed out after 60 seconds`)), 60000)
-      })
+    // Send completion event immediately after
+    sendEvent('message_complete', {
+      agent: agentKey,
+      name: agent.name,
+      emoji: agent.emoji,
+      conversationalResponse: response.technical,
+      technicalAnalysis: response.technical,
+      message: `${agent.emoji} ${agent.name} has finished speaking`,
+    })
 
-      // Race between API call and timeout
-      const conversationalStream = await Promise.race([
-        openai.chat.completions.create({
-          model: getModelForFeature('agent'),
-          messages: conversationalMessages,
-          temperature: 0.8, // Higher temp for more natural conversation
-          max_tokens: 300,
-          stream: true,
-        }),
-        timeoutPromise
-      ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+    // Clear typing indicator
+    sendEvent('typing_stop', {
+      agent: agentKey,
+      name: agent.name,
+    })
 
-      let conversationalResponse = ''
-      let sentenceBuffer = ''
+    // Small pause between agents for readability
+    await new Promise(resolve => setTimeout(resolve, 500))
 
-      for await (const chunk of conversationalStream) {
-        const content = chunk.choices[0]?.delta?.content || ''
-        if (content) {
-          conversationalResponse += content
-          sentenceBuffer += content
-
-          // Split into sentences for chunking
-          if (content.includes('.') || content.includes('!') || content.includes('?')) {
-            // Send complete sentence as a chunk
-            sendEvent('message_chunk', {
-              agent: agentKey,
-              name: agent.name,
-              emoji: agent.emoji,
-              content: sentenceBuffer.trim(),
-            })
-            sentenceBuffer = ''
-          }
-        }
-      }
-
-      // Send any remaining content
-      if (sentenceBuffer.trim()) {
-        sendEvent('message_chunk', {
-          agent: agentKey,
-          name: agent.name,
-          emoji: agent.emoji,
-          content: sentenceBuffer.trim(),
-        })
-      }
-
-      // Generate technical analysis (non-streaming, hidden from UI)
-      let technicalPrompt: string
-      if (agentKey === 'platform_expert') {
-        technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
-      } else {
-        technicalPrompt = (agent as any).technicalPrompt(brief)
-      }
-
-      const technicalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        {
-          role: 'user',
-          content: technicalPrompt + contextString,
-        },
-      ]
-
-      const technicalResponse = await openai.chat.completions.create({
-        model: getModelForFeature('agent'),
-        messages: technicalMessages,
-        temperature: 0.7,
-        max_tokens: 500,
-      })
-
-      const technicalAnalysis = technicalResponse.choices[0]?.message?.content || ''
-
-      sendEvent('message_complete', {
-        agent: agentKey,
-        name: agent.name,
-        emoji: agent.emoji,
-        conversationalResponse,
-        technicalAnalysis,
-        message: `${agent.emoji} ${agent.name} has finished speaking`,
-      })
-
-      // Clear typing indicator for this agent
-      sendEvent('typing_stop', {
-        agent: agentKey,
-        name: agent.name,
-      })
-
-      completedAgents.push(agent.name)
-      round1Results.push({
-        agent: agentKey,
-        conversational: conversationalResponse,
-        technical: technicalAnalysis,
-      })
-    } catch (error: any) {
-      console.error(`Error in ${agent.name} (${agentKey}):`, error)
-      sendEvent('agent_error', {
-        agent: agentKey,
-        name: agent.name,
-        error: error.message || 'Failed to get response',
-      })
-
-      // Send typing stop even on error
-      sendEvent('typing_stop', {
-        agent: agentKey,
-        name: agent.name,
-      })
-
-      round1Results.push({ agent: agentKey, conversational: '', technical: '', error: error.message })
-    }
+    round1Results.push(response)
   }
 
   sendEvent('status', {
