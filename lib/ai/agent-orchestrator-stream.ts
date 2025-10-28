@@ -232,47 +232,63 @@ export async function streamAgentRoundtable(
   // Track completed agents for cross-referencing
   const completedAgents: string[] = []
 
-  // OPTIMIZATION: Start ALL technical analysis calls immediately in parallel (non-blocking)
-  // They run in background while we stream conversational responses sequentially
-  const technicalPromises = agentOrder.reduce<Record<Agent, Promise<string>>>((acc, agentKey) => {
-    acc[agentKey] = (async () => {
-      try {
-        let technicalPrompt: string
-        if (agentKey === 'platform_expert') {
-          technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
-        } else {
-          technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
-        }
+  // MAXIMUM SPEED: Start ALL API calls in parallel (both conversational and technical)
+  const agentPromises = agentOrder.map(async (agentKey) => {
+    try {
+      // Build prompts
+      let conversationalPrompt: string
+      let technicalPrompt: string
 
-        const technicalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-          {
-            role: 'user',
-            content: technicalPrompt + contextString,
-          },
-        ]
+      if (agentKey === 'platform_expert') {
+        conversationalPrompt = agents.platform_expert.conversationalPrompt(brief, platform, [])
+        technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
+      } else {
+        conversationalPrompt = (agents[agentKey] as any).conversationalPrompt(brief, [])
+        technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
+      }
 
-        const technicalResponse = await openai.chat.completions.create({
+      // Run BOTH calls in parallel for this agent
+      const [conversationalResponse, technicalResponse] = await Promise.all([
+        openai.chat.completions.create({
           model: getModelForFeature('agent'),
-          messages: technicalMessages,
+          messages: [{ role: 'user', content: conversationalPrompt + contextString }],
+          temperature: 0.8,
+          max_tokens: 300,
+        }),
+        openai.chat.completions.create({
+          model: getModelForFeature('agent'),
+          messages: [{ role: 'user', content: technicalPrompt + contextString }],
           temperature: 0.7,
           max_tokens: 500,
-        })
+        }),
+      ])
 
-        return technicalResponse.choices[0]?.message?.content || ''
-      } catch (error: any) {
-        console.error(`Error in technical analysis for ${agentKey}:`, error)
-        return ''
+      return {
+        agent: agentKey,
+        conversational: conversationalResponse.choices[0]?.message?.content || '',
+        technical: technicalResponse.choices[0]?.message?.content || '',
       }
-    })()
-    return acc
-  }, {} as Record<Agent, Promise<string>>)
+    } catch (error: any) {
+      console.error(`Error in ${agents[agentKey].name}:`, error)
+      return {
+        agent: agentKey,
+        conversational: '',
+        technical: '',
+        error: error.message,
+      }
+    }
+  })
 
-  // Process agents SEQUENTIALLY for natural conversation flow
-  // But wait for each agent's technical promise (running in parallel) before completing
+  // Wait for ALL agents to complete
+  const results = await Promise.all(agentPromises)
+
+  // Send results sequentially for UI display (but all data is ready)
   const round1Results = []
 
-  for (const agentKey of agentOrder) {
+  for (let i = 0; i < agentOrder.length; i++) {
+    const agentKey = agentOrder[i]
     const agent = agents[agentKey]
+    const result = results[i]
 
     // Send typing indicator
     sendEvent('typing_start', {
@@ -282,113 +298,32 @@ export async function streamAgentRoundtable(
       message: `${agent.emoji} ${agent.name} is typing...`,
     })
 
-    try {
-      // Generate conversational response with timeout protection
-      let conversationalPrompt: string
-      if (agentKey === 'platform_expert') {
-        conversationalPrompt = agents.platform_expert.conversationalPrompt(brief, platform, completedAgents)
-      } else {
-        conversationalPrompt = (agent as any).conversationalPrompt(brief, completedAgents)
-      }
+    // Small delay for visual effect (data is already ready)
+    await new Promise(resolve => setTimeout(resolve, 100))
 
-      const conversationalMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        {
-          role: 'user',
-          content: conversationalPrompt + contextString,
-        },
-      ]
+    // Send complete message immediately (no streaming)
+    sendEvent('message_chunk', {
+      agent: agentKey,
+      name: agent.name,
+      emoji: agent.emoji,
+      content: result.conversational,
+    })
 
-      // Create timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`${agent.name} response timed out after 60 seconds`)), 60000)
-      })
+    sendEvent('message_complete', {
+      agent: agentKey,
+      name: agent.name,
+      emoji: agent.emoji,
+      conversationalResponse: result.conversational,
+      technicalAnalysis: result.technical,
+      message: `${agent.emoji} ${agent.name} has finished speaking`,
+    })
 
-      // Race between API call and timeout
-      const conversationalStream = await Promise.race([
-        openai.chat.completions.create({
-          model: getModelForFeature('agent'),
-          messages: conversationalMessages,
-          temperature: 0.8, // Higher temp for more natural conversation
-          max_tokens: 300,
-          stream: true,
-        }),
-        timeoutPromise
-      ]) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+    sendEvent('typing_stop', {
+      agent: agentKey,
+      name: agent.name,
+    })
 
-      let conversationalResponse = ''
-      let sentenceBuffer = ''
-
-      for await (const chunk of conversationalStream) {
-        const content = chunk.choices[0]?.delta?.content || ''
-        if (content) {
-          conversationalResponse += content
-          sentenceBuffer += content
-
-          // Split into sentences for chunking
-          if (content.includes('.') || content.includes('!') || content.includes('?')) {
-            // Send complete sentence as a chunk
-            sendEvent('message_chunk', {
-              agent: agentKey,
-              name: agent.name,
-              emoji: agent.emoji,
-              content: sentenceBuffer.trim(),
-            })
-            sentenceBuffer = ''
-          }
-        }
-      }
-
-      // Send any remaining content
-      if (sentenceBuffer.trim()) {
-        sendEvent('message_chunk', {
-          agent: agentKey,
-          name: agent.name,
-          emoji: agent.emoji,
-          content: sentenceBuffer.trim(),
-        })
-      }
-
-      // Wait for THIS agent's technical analysis (running in parallel)
-      const technicalAnalysis = await technicalPromises[agentKey]
-
-      // Now send complete with BOTH conversational and technical
-      sendEvent('message_complete', {
-        agent: agentKey,
-        name: agent.name,
-        emoji: agent.emoji,
-        conversationalResponse,
-        technicalAnalysis,
-        message: `${agent.emoji} ${agent.name} has finished speaking`,
-      })
-
-      // Clear typing indicator for this agent
-      sendEvent('typing_stop', {
-        agent: agentKey,
-        name: agent.name,
-      })
-
-      completedAgents.push(agent.name)
-      round1Results.push({
-        agent: agentKey,
-        conversational: conversationalResponse,
-        technical: technicalAnalysis,
-      })
-    } catch (error: any) {
-      console.error(`Error in ${agent.name} (${agentKey}):`, error)
-      sendEvent('agent_error', {
-        agent: agentKey,
-        name: agent.name,
-        error: error.message || 'Failed to get response',
-      })
-
-      // Send typing stop even on error
-      sendEvent('typing_stop', {
-        agent: agentKey,
-        name: agent.name,
-      })
-
-      round1Results.push({ agent: agentKey, conversational: '', technical: '', error: error.message })
-    }
+    round1Results.push(result)
   }
 
   sendEvent('status', {
