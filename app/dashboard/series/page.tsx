@@ -25,22 +25,63 @@ export default async function AllSeriesPage() {
     .eq('user_id', user.id)
     .order('name', { ascending: true })
 
-  // Fetch all series for the user with counts in a single query
-  // Using Supabase's aggregation feature to avoid N+1 queries
-  // Note: Phase 2 decoupled series from projects - removed project relationship
-  const { data, error: seriesError } = await supabase
-    .from('series')
-    .select(`
-      *,
-      episodes:series_episodes(count),
-      characters:series_characters(count),
-      settings:series_settings(count)
-    `)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  // Fetch all series for the user with counts
+  // DUAL-PATH QUERY: Works with Phase 1 (project-based) or Phase 2 (user-based) schema
+  let data: any[] = []
+  let seriesError: any = null
+
+  // Try Phase 2 query first (direct user_id ownership)
+  try {
+    const { data: phase2Data, error: phase2Error } = await supabase
+      .from('series')
+      .select(`
+        *,
+        episodes:series_episodes(count),
+        characters:series_characters(count),
+        settings:series_settings(count)
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (!phase2Error && phase2Data && phase2Data.length > 0) {
+      data = phase2Data
+    } else if (phase2Error) {
+      console.warn('Phase 2 query failed, falling back to Phase 1:', phase2Error.message)
+
+      // Fall back to Phase 1 query (through project relationships)
+      const { data: userProjects } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('user_id', user.id)
+
+      const projectIds = userProjects?.map((p) => p.id) || []
+
+      if (projectIds.length > 0) {
+        const { data: phase1Data, error: phase1Error } = await supabase
+          .from('series')
+          .select(`
+            *,
+            episodes:series_episodes(count),
+            characters:series_characters(count),
+            settings:series_settings(count)
+          `)
+          .in('project_id', projectIds)
+          .order('created_at', { ascending: false })
+
+        if (!phase1Error && phase1Data) {
+          data = phase1Data
+        } else {
+          seriesError = phase1Error
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error('Error fetching series:', error)
+    seriesError = error
+  }
 
   if (seriesError) {
-    console.error('Error fetching series:', seriesError)
+    console.error('Failed to fetch series with both methods:', seriesError)
   }
 
   // Transform the data to include counts in a clean format
