@@ -9,13 +9,24 @@ import { cn } from '@/lib/utils'
 
 interface PromptOutputProps {
   detailedBreakdown: {
+    // Modern AI-generated fields (ultra-detailed structure)
+    format_and_look?: string
+    lenses_and_filtration?: string
+    grade_palette?: string
+    lighting_atmosphere?: string
+    location_framing?: string
+    wardrobe_props_extras?: string
+    sound?: string
+    shot_list_summary?: string
+    camera_notes?: string
+    finishing?: string
+    // Legacy fields for backward compatibility
     subject_direction?: string
-    scene_structure: string
+    scene_structure?: string
     camera_specs?: string
     lighting_setup?: string
     composition_rules?: string
     platform_specs?: string
-    // Legacy fields for backward compatibility
     visual_specs?: string
     audio?: string
     platform_optimization?: string
@@ -143,6 +154,138 @@ export function PromptOutput({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Modern AI-generated fields */}
+          {/* Format & Look */}
+          {detailedBreakdown.format_and_look && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#6B8E9C]" />
+                Format & Look
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.format_and_look}
+              </p>
+            </div>
+          )}
+
+          {/* Lenses & Filtration */}
+          {detailedBreakdown.lenses_and_filtration && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#7C9473]" />
+                Lenses & Filtration
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.lenses_and_filtration}
+              </p>
+            </div>
+          )}
+
+          {/* Grade/Palette */}
+          {detailedBreakdown.grade_palette && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#C97064]" />
+                Grade / Palette
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.grade_palette}
+              </p>
+            </div>
+          )}
+
+          {/* Lighting & Atmosphere */}
+          {detailedBreakdown.lighting_atmosphere && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#F4A261]" />
+                Lighting & Atmosphere
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.lighting_atmosphere}
+              </p>
+            </div>
+          )}
+
+          {/* Location & Framing */}
+          {detailedBreakdown.location_framing && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#5A6D52]" />
+                Location & Framing
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.location_framing}
+              </p>
+            </div>
+          )}
+
+          {/* Wardrobe/Props/Extras */}
+          {detailedBreakdown.wardrobe_props_extras && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#8B7C6B]" />
+                Wardrobe / Props / Extras
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.wardrobe_props_extras}
+              </p>
+            </div>
+          )}
+
+          {/* Sound */}
+          {detailedBreakdown.sound && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#9B59B6]" />
+                Sound
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.sound}
+              </p>
+            </div>
+          )}
+
+          {/* Shot List Summary */}
+          {detailedBreakdown.shot_list_summary && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#3B4A5C]" />
+                Shot List Summary
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.shot_list_summary}
+              </p>
+            </div>
+          )}
+
+          {/* Camera Notes */}
+          {detailedBreakdown.camera_notes && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#2C3E50]" />
+                Camera Notes
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.camera_notes}
+              </p>
+            </div>
+          )}
+
+          {/* Finishing */}
+          {detailedBreakdown.finishing && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#34495E]" />
+                Finishing
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap">
+                {detailedBreakdown.finishing}
+              </p>
+            </div>
+          )}
+
+          {/* Legacy fields for backward compatibility */}
           {/* Subject Direction */}
           {detailedBreakdown.subject_direction && (
             <div>
@@ -157,15 +300,17 @@ export function PromptOutput({
           )}
 
           {/* Scene Structure */}
-          <div>
-            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#3B4A5C]" />
-              Scene Structure & Timing
-            </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-              {detailedBreakdown.scene_structure}
-            </p>
-          </div>
+          {detailedBreakdown.scene_structure && (
+            <div>
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#3B4A5C]" />
+                Scene Structure & Timing
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                {detailedBreakdown.scene_structure}
+              </p>
+            </div>
+          )}
 
           {/* Camera Specifications */}
           {detailedBreakdown.camera_specs && (
