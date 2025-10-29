@@ -43,10 +43,21 @@ export default async function AllSeriesPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    if (!phase2Error && phase2Data && phase2Data.length > 0) {
+    // Check Phase 2 results
+    if (!phase2Error && phase2Data) {
       data = phase2Data
-    } else if (phase2Error) {
-      console.warn('Phase 2 query failed, falling back to Phase 1:', phase2Error.message)
+      console.log(`[Series Page] Phase 2 query succeeded: ${phase2Data.length} series found for user ${user.id}`)
+    }
+
+    // If Phase 2 failed OR returned empty results, try Phase 1 fallback
+    const shouldTryPhase1 = phase2Error || (data.length === 0)
+
+    if (shouldTryPhase1) {
+      if (phase2Error) {
+        console.warn('[Series Page] Phase 2 query error, falling back to Phase 1:', phase2Error.message)
+      } else {
+        console.log('[Series Page] Phase 2 returned 0 results, trying Phase 1 fallback')
+      }
 
       // Fall back to Phase 1 query (through project relationships)
       const { data: userProjects } = await supabase
