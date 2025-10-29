@@ -806,6 +806,14 @@ ${data.shotList ? '- REFINE user shot list with ultra-detailed cinematography sp
 - Purpose/intent statement
 - Order shots sequentially from 1 to N
 
+4. PLATFORM-OPTIMIZED HASHTAGS (5-10 tags):
+Generate hashtags optimized for ${data.platform} platform:
+- Mix of broad reach tags (e.g., #videoProduction, #cinematography)
+- Niche specific tags based on content (e.g., #shortFilm, #brandVideo)
+- Platform-specific popular tags
+- Content style tags (e.g., #behindTheScenes, #filmmaking)
+- Format as array of strings with # prefix included
+
 Return JSON:
 {
   "breakdown": {
@@ -818,7 +826,8 @@ Return JSON:
     "sound": "Type, elements, levels, exclusions",
     "shot_list_summary": "Number of shots and total duration",
     "camera_notes": "Eyeline, optical effects, handheld quality, exposure",
-    "finishing": "Grain, halation, LUT, mix, poster frame"
+    "finishing": "Grain, halation, LUT, mix, poster frame",
+    "hashtags": ["#videoProduction", "#cinematography", "#creator", "#contentCreator", "#filmmaking"]
   },
   "optimized_prompt": "Format & Look\\nDuration 8s; 180° shutter; digital capture emulating 35mm photochemical; fine grain; subtle halation on speculars.\\n\\nLenses & Filtration\\n24mm / 50mm spherical primes; Black Pro-Mist 1/8.\\n\\n... [FULL ULTRA-DETAILED PROMPT 2000-3000 chars]",
   "character_count": 2450,
