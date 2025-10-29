@@ -36,7 +36,7 @@ export default async function AllSeriesPage() {
       .from('series')
       .select(`
         *,
-        episodes:series_episodes(count),
+        episodes(count),
         characters:series_characters(count),
         settings:series_settings(count)
       `)
@@ -72,7 +72,7 @@ export default async function AllSeriesPage() {
           .from('series')
           .select(`
             *,
-            episodes:series_episodes(count),
+            episodes(count),
             characters:series_characters(count),
             settings:series_settings(count)
           `)

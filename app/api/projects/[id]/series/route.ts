@@ -33,42 +33,33 @@ export async function GET(
       throw projectError
     }
 
-    // Fetch series through junction table with episode counts
-    const { data: seriesAssociations, error } = await supabase
-      .from('project_series')
+    // Phase 2: Fetch series directly with episode counts
+    // Series are now decoupled from projects, so we fetch all user's series
+    const { data: allSeries, error } = await supabase
+      .from('series')
       .select(
         `
-        id,
-        created_at,
-        series:series_id (
-          *,
-          episodes:series_episodes(count),
-          characters:series_characters(count),
-          settings:series_settings(count)
-        )
+        *,
+        episodes(count),
+        characters:series_characters(count),
+        settings:series_settings(count)
       `
       )
-      .eq('project_id', projectId)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) throw error
 
-    // Flatten and transform the data to include counts
-    const transformedSeries = seriesAssociations
-      ?.map((assoc: any) => {
-        if (!assoc.series) return null
-        const s = assoc.series
-        return {
-          ...s,
-          episode_count: s.episodes?.[0]?.count || 0,
-          character_count: s.characters?.[0]?.count || 0,
-          setting_count: s.settings?.[0]?.count || 0,
-          episodes: undefined,
-          characters: undefined,
-          settings: undefined,
-        }
-      })
-      .filter(Boolean) || []
+    // Transform the data to include counts
+    const transformedSeries = (allSeries || []).map((s: any) => ({
+      ...s,
+      episode_count: s.episodes?.[0]?.count || 0,
+      character_count: s.characters?.[0]?.count || 0,
+      setting_count: s.settings?.[0]?.count || 0,
+      episodes: undefined,
+      characters: undefined,
+      settings: undefined,
+    }))
 
     return NextResponse.json(transformedSeries)
   } catch (error: any) {
@@ -130,24 +121,17 @@ export async function POST(
       )
     }
 
-    // Check for duplicate series name in project through junction table
-    const { data: existingAssociations } = await supabase
-      .from('project_series')
-      .select(`
-        series:series_id (
-          id,
-          name
-        )
-      `)
-      .eq('project_id', projectId)
-
-    const existingSeries = existingAssociations?.find(
-      (assoc: any) => assoc.series?.name === name.trim()
-    )
+    // Phase 2: Check for duplicate series name for this user
+    const { data: existingSeries } = await supabase
+      .from('series')
+      .select('id, name')
+      .eq('user_id', user.id)
+      .eq('name', name.trim())
+      .single()
 
     if (existingSeries) {
       return NextResponse.json(
-        { error: 'A series with this name already exists in this project' },
+        { error: 'A series with this name already exists' },
         { status: 409 }
       )
     }
@@ -161,7 +145,7 @@ export async function POST(
       )
     }
 
-    // Create series (no project_id since it's decoupled)
+    // Phase 2: Create series (decoupled from projects, no junction table needed)
     const { data: newSeries, error: seriesError } = await supabase
       .from('series')
       .insert({
@@ -177,23 +161,6 @@ export async function POST(
       .single()
 
     if (seriesError) throw seriesError
-
-    // Associate series with project through junction table
-    const { error: associationError } = await supabase
-      .from('project_series')
-      .insert({
-        project_id: projectId,
-        series_id: newSeries.id,
-        created_by: user.id,
-      })
-
-    if (associationError) {
-      // Rollback: delete the series we just created
-      await supabase.from('series').delete().eq('id', newSeries.id)
-      throw associationError
-    }
-
-    // Note: series_visual_style entry is auto-created by database trigger
 
     return NextResponse.json(newSeries, { status: 201 })
   } catch (error: any) {
