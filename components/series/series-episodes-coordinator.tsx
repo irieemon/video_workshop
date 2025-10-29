@@ -9,6 +9,7 @@ interface SeriesEpisodesCoordinatorProps {
   seasons?: ConceptSeason[]
   seriesId: string
   seriesName: string
+  projectId?: string | null
 }
 
 /**
@@ -19,6 +20,7 @@ export function SeriesEpisodesCoordinator({
   seasons,
   seriesId,
   seriesName,
+  projectId,
 }: SeriesEpisodesCoordinatorProps) {
   // Ref to access EpisodeManager's refresh function
   const episodeManagerRef = useRef<{ refresh: () => void } | null>(null)
@@ -37,6 +39,7 @@ export function SeriesEpisodesCoordinator({
         ref={episodeManagerRef}
         seriesId={seriesId}
         seriesName={seriesName}
+        projectId={projectId}
       />
 
       {/* Concept Episodes (if they exist) */}

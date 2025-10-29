@@ -452,7 +452,7 @@ async function synthesizeRoundtable(data: {
   const synthesisPrompt = `
 Original Brief: ${data.brief}
 Platform: ${data.platform}
-Duration: ${data.platform.toLowerCase() === 'tiktok' || data.platform.toLowerCase() === 'instagram' ? '4-8s for short-form' : '8-12s for standard'}${data.characterContext || ''}${soraSettingsContext}
+Duration: ${data.platform.toLowerCase() === 'tiktok' || data.platform.toLowerCase() === 'instagram' ? '4-8s for short-form' : '8-12s for standard'}${soraSettingsContext}
 
 Team Insights:
 Round 1 Analysis:
@@ -688,7 +688,7 @@ async function synthesizeAdvancedRoundtable(data: {
   const synthesisPrompt = `
 Original Brief: ${data.brief}
 Platform: ${data.platform}
-Duration: ${data.platform.toLowerCase() === 'tiktok' || data.platform.toLowerCase() === 'instagram' ? '4-8s for short-form' : '8-12s for standard'}${data.characterContext || ''}${soraSettingsContext}
+Duration: ${data.platform.toLowerCase() === 'tiktok' || data.platform.toLowerCase() === 'instagram' ? '4-8s for short-form' : '8-12s for standard'}${soraSettingsContext}
 
 Team Insights:
 Round 1 Analysis:

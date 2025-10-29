@@ -5,6 +5,7 @@ import { generateCharacterPromptBlock } from '@/lib/types/character-consistency'
 import { createAPILogger, LOG_MESSAGES } from '@/lib/logger'
 import { checkRateLimit, createRateLimitKey, RATE_LIMITS, createRateLimitResponse, getRateLimitHeaders } from '@/lib/rate-limit'
 import { agentRoundtableSchema, validateRequest, createValidationError } from '@/lib/validation/schemas'
+import { fetchCompleteSeriesContext, formatSeriesContextForAgents } from '@/lib/services/series-context'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -51,9 +52,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings } = validation.data
+    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeId } = validation.data
 
-    // Fetch series context if applicable
+    // Fetch series context - NEW: automatic context from episodeId
     let visualTemplate = null
     let seriesCharacters = null
     let seriesSettings = null
@@ -61,8 +62,53 @@ export async function POST(request: NextRequest) {
     let characterRelationships = null
     let seriesSoraSettings = null
     let characterContext = ''
+    let autoSeriesContext: string | undefined
 
-    if (seriesId) {
+    // NEW: If episodeId provided, auto-fetch complete series context
+    if (episodeId) {
+      try {
+        const completeContext = await fetchCompleteSeriesContext(episodeId)
+
+        // Format for agents
+        autoSeriesContext = formatSeriesContextForAgents(completeContext)
+
+        // Populate context variables for backward compatibility
+        seriesCharacters = completeContext.characters
+        seriesSettings = completeContext.settings
+        visualAssets = completeContext.visualAssets
+
+        // Generate character context
+        if (completeContext.characters.length > 0) {
+          const characterBlocks = completeContext.characters.map(char =>
+            char.sora_prompt_template || generateCharacterPromptBlock(char as any)
+          )
+          characterContext = `\n\nCHARACTERS IN THIS VIDEO:\n${characterBlocks.join('\n\n')}\n\nIMPORTANT: The character descriptions above are LOCKED. Use them exactly as provided for consistency across videos.\n\n`
+        }
+
+        // Set Sora settings from series
+        if (completeContext.soraSettings) {
+          seriesSoraSettings = {
+            sora_camera_style: completeContext.series.sora_camera_style,
+            sora_lighting_mood: completeContext.series.sora_lighting_mood,
+            sora_color_palette: completeContext.series.sora_color_palette,
+            sora_overall_tone: completeContext.series.sora_overall_tone,
+            sora_narrative_prefix: completeContext.series.sora_narrative_prefix,
+          }
+        }
+
+        visualTemplate = completeContext.series.visual_template
+
+        logger.info('Auto-fetched series context from episode', {
+          episodeId,
+          seriesId: completeContext.series.id,
+          characterCount: completeContext.characters.length,
+          settingCount: completeContext.settings.length,
+        })
+      } catch (error) {
+        logger.warn('Failed to auto-fetch series context from episode', { episodeId, error })
+        // Fall through to manual context fetching
+      }
+    } else if (seriesId) {
       const { data: series } = await supabase
         .from('series')
         .select('visual_template, sora_camera_style, sora_lighting_mood, sora_color_palette, sora_overall_tone, sora_narrative_prefix')

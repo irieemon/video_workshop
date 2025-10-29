@@ -233,6 +233,7 @@ export const agentRoundtableSchema = z.object({
   platform: platformSchema,
   projectId: uuidSchema,
   seriesId: uuidSchema.optional().nullable(),
+  episodeId: uuidSchema.optional().nullable(), // NEW: Auto-fetch series context from episode
   selectedCharacters: z.array(uuidSchema).optional().default([]),
   selectedSettings: z.array(uuidSchema).optional().default([]),
 });

@@ -64,7 +64,6 @@ export interface Database {
           user_id: string
           name: string
           description: string | null
-          default_series_id: string | null
           created_at: string
           updated_at: string
         }
@@ -73,7 +72,6 @@ export interface Database {
           user_id: string
           name: string
           description?: string | null
-          default_series_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -82,7 +80,6 @@ export interface Database {
           user_id?: string
           name?: string
           description?: string | null
-          default_series_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -91,7 +88,6 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          project_id: string | null
           name: string
           description: string | null
           genre: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
@@ -109,7 +105,6 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          project_id?: string | null
           name: string
           description?: string | null
           genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
@@ -127,7 +122,6 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          project_id?: string | null
           name?: string
           description?: string | null
           genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
@@ -304,14 +298,19 @@ export interface Database {
           created_at?: string
         }
       }
-      series_episodes: {
+      episodes: {
         Row: {
           id: string
           series_id: string
-          season_id: string | null
-          video_id: string
+          user_id: string
+          season_number: number
           episode_number: number
-          episode_title: string | null
+          title: string
+          logline: string | null
+          screenplay_text: string | null
+          structured_screenplay: StructuredScreenplay | null
+          status: EpisodeStatus
+          current_session_id: string | null
           story_beat: string | null
           emotional_arc: string | null
           continuity_breaks: Json
@@ -321,14 +320,20 @@ export interface Database {
           timeline_position: number | null
           is_key_episode: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           series_id: string
-          season_id?: string | null
-          video_id: string
+          user_id: string
+          season_number: number
           episode_number: number
-          episode_title?: string | null
+          title: string
+          logline?: string | null
+          screenplay_text?: string | null
+          structured_screenplay?: Json | null
+          status?: EpisodeStatus
+          current_session_id?: string | null
           story_beat?: string | null
           emotional_arc?: string | null
           continuity_breaks?: Json
@@ -338,14 +343,20 @@ export interface Database {
           timeline_position?: number | null
           is_key_episode?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           series_id?: string
-          season_id?: string | null
-          video_id?: string
+          user_id?: string
+          season_number?: number
           episode_number?: number
-          episode_title?: string | null
+          title?: string
+          logline?: string | null
+          screenplay_text?: string | null
+          structured_screenplay?: Json | null
+          status?: EpisodeStatus
+          current_session_id?: string | null
           story_beat?: string | null
           emotional_arc?: string | null
           continuity_breaks?: Json
@@ -354,6 +365,30 @@ export interface Database {
           settings_used?: string[]
           timeline_position?: number | null
           is_key_episode?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      project_series: {
+        Row: {
+          id: string
+          project_id: string
+          series_id: string
+          display_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          series_id: string
+          display_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          series_id?: string
+          display_order?: number
           created_at?: string
         }
       }
@@ -418,6 +453,7 @@ export interface Database {
           series_id: string | null
           episode_id: string | null
           scene_id: string | null
+          is_standalone: boolean
           title: string
           user_brief: string
           agent_discussion: AgentDiscussion
@@ -439,6 +475,7 @@ export interface Database {
           series_id?: string | null
           episode_id?: string | null
           scene_id?: string | null
+          is_standalone?: boolean
           title: string
           user_brief: string
           agent_discussion: Json
@@ -460,6 +497,7 @@ export interface Database {
           series_id?: string | null
           episode_id?: string | null
           scene_id?: string | null
+          is_standalone?: boolean
           title?: string
           user_brief?: string
           agent_discussion?: Json
@@ -771,21 +809,8 @@ export interface StructuredScreenplay {
   notes?: string[]
 }
 
-export interface Episode {
-  id: string
-  series_id: string
-  user_id: string
-  season_number: number
-  episode_number: number
-  title: string
-  logline: string | null
-  screenplay_text: string | null
-  structured_screenplay: StructuredScreenplay | null
-  status: EpisodeStatus
-  current_session_id: string | null
-  created_at: string
-  updated_at: string
-}
+// Episode type is now in Database.public.Tables.episodes
+export type Episode = Database['public']['Tables']['episodes']['Row']
 
 // Screenplay Enrichment Types
 export interface ScreenplayEnrichmentData {
@@ -808,14 +833,8 @@ export interface ScreenplayEnrichmentData {
   enrichmentTimestamp: string
 }
 
-// Project-Series Junction Table
-export interface ProjectSeries {
-  id: string
-  project_id: string
-  series_id: string
-  created_at: string
-  created_by: string
-}
+// Project-Series Junction Table (updated with display_order)
+export type ProjectSeries = Database['public']['Tables']['project_series']['Row']
 
 // Video Generation Source
 export type VideoGenerationSource = 'manual' | 'episode' | 'template'

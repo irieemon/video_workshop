@@ -116,7 +116,7 @@ export default async function ProjectDetailPage({
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1 sm:flex-none" asChild>
-            <Link href={`/dashboard/projects/${id}/series`}>
+            <Link href="/dashboard/series">
               <ListVideo className="mr-1 md:mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Manage Series</span>
               <span className="sm:hidden">Series</span>
@@ -207,7 +207,7 @@ export default async function ProjectDetailPage({
                         {episodeCount} {episodeCount === 1 ? 'episode' : 'episodes'}
                       </span>
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/dashboard/projects/${id}/series/${seriesItem.id}`}>
+                        <Link href={`/dashboard/series/${seriesItem.id}`}>
                           View Details
                         </Link>
                       </Button>

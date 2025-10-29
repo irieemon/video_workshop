@@ -76,9 +76,8 @@ export function SeriesCard({ series, projectId }: SeriesCardProps) {
     }
   }
 
-  const seriesUrl = projectId
-    ? `/dashboard/projects/${projectId}/series/${series.id}`
-    : `/dashboard/series/${series.id}`
+  // Always use unified series detail page
+  const seriesUrl = `/dashboard/series/${series.id}`
 
   return (
     <>

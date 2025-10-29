@@ -5,16 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Film, Plus, Edit, Trash2, Eye } from 'lucide-react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Film, Plus, Edit, Trash2, Eye, Video } from 'lucide-react'
 import { ScreenplayChat } from './screenplay-chat'
 import { ScreenplayViewer } from './screenplay-viewer'
+import { EpisodeVideoGenerator } from '@/components/episodes'
 import type { Episode } from '@/lib/types/database.types'
 import { useModal } from '@/components/providers/modal-provider'
 import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 
 interface EpisodeManagerProps {
   seriesId: string
   seriesName: string
+  projectId?: string | null
 }
 
 export interface EpisodeManagerHandle {
@@ -22,16 +26,19 @@ export interface EpisodeManagerHandle {
 }
 
 export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerProps>(
-  function EpisodeManager({ seriesId, seriesName }, ref) {
+  function EpisodeManager({ seriesId, seriesName, projectId }, ref) {
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [viewingEpisode, setViewingEpisode] = useState<Episode | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
+  const [generatingVideoFor, setGeneratingVideoFor] = useState<Episode | null>(null)
+  const [videoGenOpen, setVideoGenOpen] = useState(false)
 
   const { showConfirm } = useModal()
   const { toast } = useToast()
+  const router = useRouter()
 
   const loadEpisodes = useCallback(async () => {
     try {
@@ -209,6 +216,19 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {projectId && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setGeneratingVideoFor(episode)
+                                setVideoGenOpen(true)
+                              }}
+                              title="Generate video"
+                            >
+                              <Video className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -298,6 +318,34 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
           }}
           episode={viewingEpisode}
         />
+      )}
+
+      {/* Video Generator Modal */}
+      {generatingVideoFor && projectId && (
+        <Dialog open={videoGenOpen} onOpenChange={setVideoGenOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <EpisodeVideoGenerator
+              episodeId={generatingVideoFor.id}
+              seriesId={seriesId}
+              projectId={projectId}
+              episodeTitle={generatingVideoFor.title}
+              episodeNumber={generatingVideoFor.episode_number}
+              seasonNumber={generatingVideoFor.season_number}
+              storyBeat={generatingVideoFor.story_beat || undefined}
+              emotionalArc={generatingVideoFor.emotional_arc || undefined}
+              onVideoCreated={(videoId) => {
+                setVideoGenOpen(false)
+                setGeneratingVideoFor(null)
+                toast({
+                  title: 'Video Created',
+                  description: 'Video prompt generated successfully. Redirecting...',
+                })
+                // Navigate to video detail page
+                router.push(`/dashboard/projects/${projectId}/videos/${videoId}`)
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </>
   )

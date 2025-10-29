@@ -15,7 +15,7 @@ export default async function StandaloneSeriesDetailPage({
   const { seriesId } = await params
   const supabase = await createClient()
 
-  // Fetch standalone series (not associated with a project)
+  // Fetch series (can be standalone or associated with a project)
   const { data: series, error } = await supabase
     .from('series')
     .select(
@@ -26,7 +26,6 @@ export default async function StandaloneSeriesDetailPage({
     `
     )
     .eq('id', seriesId)
-    .is('project_id', null) // Only standalone series
     .single()
 
   if (error || !series) {
@@ -99,6 +98,7 @@ export default async function StandaloneSeriesDetailPage({
         <SeriesEpisodesCoordinator
           seriesId={seriesId}
           seriesName={series.name}
+          projectId={series.project_id}
           seasons={series.screenplay_data?.seasons}
         />
 
