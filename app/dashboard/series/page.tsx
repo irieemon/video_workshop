@@ -27,11 +27,11 @@ export default async function AllSeriesPage() {
 
   // Fetch all series for the user with counts in a single query
   // Using Supabase's aggregation feature to avoid N+1 queries
+  // Note: Phase 2 decoupled series from projects - removed project relationship
   const { data, error: seriesError } = await supabase
     .from('series')
     .select(`
       *,
-      project:projects!series_project_id_fkey(id, name),
       episodes:series_episodes(count),
       characters:series_characters(count),
       settings:series_settings(count)
@@ -54,7 +54,7 @@ export default async function AllSeriesPage() {
         setting_count: (s.settings as any)?.[0]?.count || 0,
         episode_count: (s.episodes as any)?.[0]?.count || 0,
         updated_at: s.updated_at,
-        project_id: (s.project as any)?.id || null,
+        project_id: s.project_id || null, // Direct FK (legacy compatibility)
       }))
     : []
 
