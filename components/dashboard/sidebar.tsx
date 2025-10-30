@@ -15,6 +15,8 @@ import {
   Settings,
   ListVideo,
   Shield,
+  Video,
+  Folder,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -38,7 +40,7 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', i
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Projects', href: '/dashboard', icon: FolderKanban },
+    { name: 'Videos', href: '/dashboard/videos', icon: Video },
     { name: 'Series', href: '/dashboard/series', icon: ListVideo },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]
