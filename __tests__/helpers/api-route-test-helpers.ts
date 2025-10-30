@@ -23,54 +23,150 @@ export function createMockRequest(url: string, options: {
 }
 
 /**
+ * Create a complete Supabase query builder mock
+ * Returns fully chainable mock that satisfies TypeScript
+ */
+function createSupabaseQueryBuilder() {
+  const mockData = { data: null, error: null }
+
+  const builder: any = {
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
+    gt: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lt: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    like: jest.fn().mockReturnThis(),
+    ilike: jest.fn().mockReturnThis(),
+    is: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    contains: jest.fn().mockReturnThis(),
+    containedBy: jest.fn().mockReturnThis(),
+    rangeGt: jest.fn().mockReturnThis(),
+    rangeGte: jest.fn().mockReturnThis(),
+    rangeLt: jest.fn().mockReturnThis(),
+    rangeLte: jest.fn().mockReturnThis(),
+    rangeAdjacent: jest.fn().mockReturnThis(),
+    overlaps: jest.fn().mockReturnThis(),
+    textSearch: jest.fn().mockReturnThis(),
+    match: jest.fn().mockReturnThis(),
+    not: jest.fn().mockReturnThis(),
+    or: jest.fn().mockReturnThis(),
+    filter: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    range: jest.fn().mockReturnThis(),
+    abortSignal: jest.fn().mockReturnThis(),
+    single: jest.fn().mockResolvedValue(mockData),
+    maybeSingle: jest.fn().mockResolvedValue(mockData),
+    csv: jest.fn().mockResolvedValue(mockData),
+    // Terminal operations that return promises
+    then: jest.fn((resolve) => resolve(mockData)),
+  }
+
+  return builder
+}
+
+/**
  * Create a mock Supabase client for testing
- * @param options - Optional configuration for table-specific mocks
+ * @param options - Configuration for default responses
  */
 export function createMockSupabaseClient(options: {
+  user?: any
   profiles?: any[]
+  defaultData?: any
+  defaultError?: any
 } = {}) {
-  const profileData = options.profiles || [{
+  const defaultUser = options.user || { id: 'test-user-id', email: 'test@example.com' }
+  const defaultProfile = {
     id: 'test-user-id',
     is_admin: false,
     subscription_tier: 'premium',
     usage_current: { videos_this_month: 0 },
     usage_quota: { videos_per_month: 100 }
-  }]
+  }
 
   const mockFrom = jest.fn((table: string) => {
-    const chainable = {
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      single: jest.fn(),
-    }
+    const builder = createSupabaseQueryBuilder()
 
-    // Default handling for profiles table
+    // Configure default responses by table
     if (table === 'profiles') {
-      chainable.select = jest.fn().mockReturnValue({
-        ...chainable,
-        eq: jest.fn().mockReturnValue({
-          ...chainable,
-          limit: jest.fn().mockResolvedValue({
-            data: profileData,
-            error: null,
-          }),
-        }),
+      builder.single.mockResolvedValue({
+        data: options.profiles?.[0] || defaultProfile,
+        error: options.defaultError || null,
+      })
+    } else {
+      builder.single.mockResolvedValue({
+        data: options.defaultData || null,
+        error: options.defaultError || null,
       })
     }
 
-    return chainable
+    return builder
   })
 
   return {
     auth: {
-      getUser: jest.fn(),
-      getSession: jest.fn(),
+      getUser: jest.fn().mockResolvedValue({
+        data: { user: defaultUser },
+        error: null,
+      }),
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: { user: defaultUser } },
+        error: null,
+      }),
+      signOut: jest.fn().mockResolvedValue({
+        error: null,
+      }),
     },
     from: mockFrom,
   }
+}
+
+/**
+ * Create a configured query builder for specific test scenarios
+ * Use this for fine-grained control in individual tests
+ */
+export function createConfiguredQueryBuilder(config: {
+  selectData?: any
+  insertData?: any
+  updateData?: any
+  deleteData?: any
+  error?: any
+}) {
+  const builder = createSupabaseQueryBuilder()
+
+  if (config.selectData !== undefined) {
+    builder.then.mockImplementation((resolve: any) => resolve({
+      data: config.selectData,
+      error: config.error || null,
+    }))
+  }
+
+  if (config.insertData !== undefined) {
+    builder.single.mockResolvedValue({
+      data: config.insertData,
+      error: config.error || null,
+    })
+  }
+
+  if (config.updateData !== undefined) {
+    builder.single.mockResolvedValue({
+      data: config.updateData,
+      error: config.error || null,
+    })
+  }
+
+  if (config.deleteData !== undefined) {
+    builder.single.mockResolvedValue({
+      data: config.deleteData,
+      error: config.error || null,
+    })
+  }
+
+  return builder
 }

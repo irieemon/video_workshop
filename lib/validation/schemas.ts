@@ -67,8 +67,7 @@ export const characterCountSchema = z.enum([
 ]);
 
 export const createVideoSchema = z.object({
-  projectId: uuidSchema,
-  seriesId: uuidSchema.optional().nullable(),
+  series_id: uuidSchema, // REQUIRED: All videos must belong to a series (including system "Standalone Videos" series)
   episodeId: uuidSchema.optional().nullable(),
   selectedCharacters: z.array(uuidSchema).optional().default([]),
   selectedSettings: z.array(uuidSchema).optional().default([]),
@@ -76,17 +75,16 @@ export const createVideoSchema = z.object({
     .min(1, 'Title is required')
     .max(200, 'Title must be less than 200 characters')
     .trim(),
-  userBrief: z.string()
+  user_brief: z.string()
     .min(10, 'Brief must be at least 10 characters')
     .max(5000, 'Brief must be less than 5000 characters')
     .trim(),
-  agentDiscussion: z.string().optional().nullable(),
-  detailedBreakdown: z.string().optional().nullable(),
-  optimizedPrompt: z.string()
-    .min(1, 'Optimized prompt is required')
-    .max(10000, 'Prompt must be less than 10000 characters'),
-  characterCount: z.number().int().nonnegative(),
+  agent_discussion: z.any().optional().nullable(), // JSONB field
+  detailed_breakdown: z.any().optional().nullable(), // JSONB field
+  optimized_prompt: z.string().optional().nullable(),
+  character_count: z.number().int().nonnegative().optional().default(0),
   platform: platformSchema,
+  status: z.enum(['draft', 'generated', 'published']).optional().default('draft'),
   hashtags: z.array(z.string().trim().min(1)).optional().default([]),
   generation_source: z.enum(['manual', 'episode', 'template']).optional().default('manual'),
   source_metadata: z.any().optional().nullable(),
@@ -133,7 +131,8 @@ export const createSeriesSchema = z.object({
     .optional()
     .nullable(),
   genre: genreSchema.optional().nullable(),
-  project_id: uuidSchema.optional().nullable(),
+  workspace_id: uuidSchema.optional().nullable(), // Optional: series can exist independently or within workspaces
+  is_system: z.boolean().optional().default(false), // System series are hidden (e.g., "Standalone Videos")
 });
 
 export const updateSeriesSchema = z.object({
@@ -231,9 +230,9 @@ export const agentRoundtableSchema = z.object({
     .max(5000, 'Brief must be less than 5000 characters')
     .trim(),
   platform: platformSchema,
-  projectId: uuidSchema,
   seriesId: uuidSchema.optional().nullable(),
-  episodeId: uuidSchema.optional().nullable(), // NEW: Auto-fetch series context from episode
+  episodeId: uuidSchema.optional().nullable(), // Auto-fetch series context from episode
+  projectId: uuidSchema.optional().nullable(), // Optional project association
   selectedCharacters: z.array(uuidSchema).optional().default([]),
   selectedSettings: z.array(uuidSchema).optional().default([]),
 });

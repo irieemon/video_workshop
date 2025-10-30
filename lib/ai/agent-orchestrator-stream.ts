@@ -35,7 +35,11 @@ Brief: ${brief}${references}
 Respond ONLY with your conversational thoughts, nothing else.`
     },
     technicalPrompt: (brief: string) =>
-      `You are a creative director. Provide technical narrative specs: story structure (three-act, vignette, montage), emotional beat timing and progression, character motivation and arc, visual metaphors or symbolic elements, wardrobe/prop storytelling function, location narrative purpose, and sound design narrative role. Focus on story mechanics. Brief: ${brief}`,
+      `You are a creative director. Provide technical narrative specs: story structure (three-act, vignette, montage), emotional beat timing and progression, character motivation and arc, visual metaphors or symbolic elements, wardrobe/prop storytelling function, location narrative purpose, and sound design narrative role.
+
+🔒 CHARACTER PRESERVATION CRITICAL: If LOCKED character specifications are provided in the context, you MUST preserve them EXACTLY. Do not alter hair color/style, ethnicity, skin tone, default clothing, ages, or physical characteristics. Your creative input should focus on storytelling elements, emotions, and actions that don't conflict with character visual consistency.
+
+Focus on story mechanics. Brief: ${brief}`,
   },
   cinematographer: {
     name: 'Cinematographer',
@@ -64,7 +68,11 @@ Brief: ${brief}
 Respond ONLY with your conversational thoughts, nothing else.`
     },
     technicalPrompt: (brief: string) =>
-      `You are a cinematographer. Provide precise technical specs: specific focal lengths (e.g., 24mm, 35mm, 50mm, 85mm), lens type (spherical/anamorphic primes or zooms), filtration (Black Pro-Mist rating, ND strength, CPL), camera movements with speed (slow dolly, tracking shot, handheld shake), framing rules (rule of thirds, headroom, lead room), and composition notes. Use professional terminology. Brief: ${brief}`,
+      `You are a cinematographer. Provide precise technical specs: specific focal lengths (e.g., 24mm, 35mm, 50mm, 85mm), lens type (spherical/anamorphic primes or zooms), filtration (Black Pro-Mist rating, ND strength, CPL), camera movements with speed (slow dolly, tracking shot, handheld shake), framing rules (rule of thirds, headroom, lead room), and composition notes.
+
+🔒 CHARACTER PRESERVATION CRITICAL: If LOCKED character specifications are provided, preserve ALL physical attributes exactly (hair, ethnicity, skin tone, clothing, build). Focus your expertise on camera angles, lighting that enhances their features, and framing that showcases their characteristics - NOT on changing their appearance.
+
+Use professional terminology. Brief: ${brief}`,
   },
   editor: {
     name: 'Editor',
@@ -91,7 +99,11 @@ Brief: ${brief}
 Respond ONLY with your conversational thoughts, nothing else.`
     },
     technicalPrompt: (brief: string) =>
-      `You are a video editor. Provide precise editing specs: exact shot duration ranges (e.g., 2.5-4.0s per cut), transition types with timing (dissolve 0.5s, cut, J/L cut), pacing rhythm (slow/medium/fast with BPM if applicable), sound design sync points, flow structure (linear, rhythmic, montage), and cut motivation. Use editorial terminology. Brief: ${brief}`,
+      `You are a video editor. Provide precise editing specs: exact shot duration ranges (e.g., 2.5-4.0s per cut), transition types with timing (dissolve 0.5s, cut, J/L cut), pacing rhythm (slow/medium/fast with BPM if applicable), sound design sync points, flow structure (linear, rhythmic, montage), and cut motivation.
+
+🔒 CHARACTER PRESERVATION CRITICAL: If LOCKED character specifications exist, maintain their exact physical descriptions throughout all cuts and shots. Your editing choices should emphasize their characteristics, not alter them. Focus on pacing and rhythm while preserving visual consistency.
+
+Use editorial terminology. Brief: ${brief}`,
   },
   colorist: {
     name: 'Colorist',
@@ -117,7 +129,11 @@ Brief: ${brief}
 Respond ONLY with your conversational thoughts, nothing else.`
     },
     technicalPrompt: (brief: string) =>
-      `You are a colorist. Provide precise grading specs: Highlights (color cast, lift/gain), Mids (balance, tint direction), Blacks (lift level, color treatment), specific LUT recommendations, color palette with tonal range assignments, contrast curve approach, saturation strategy per channel, and atmospheric color effects (haze, mist color temperature). Use colorist terminology. Brief: ${brief}`,
+      `You are a colorist. Provide precise grading specs: Highlights (color cast, lift/gain), Mids (balance, tint direction), Blacks (lift level, color treatment), specific LUT recommendations, color palette with tonal range assignments, contrast curve approach, saturation strategy per channel, and atmospheric color effects (haze, mist color temperature).
+
+🔒 CHARACTER PRESERVATION CRITICAL: If LOCKED character specifications include skin tone descriptions, you MUST preserve them exactly. Your color grading should enhance and complement their natural skin tones, NOT alter them. Focus on mood and atmosphere while maintaining accurate skin tone representation.
+
+Use colorist terminology. Brief: ${brief}`,
   },
   platform_expert: {
     name: 'Platform Expert',
@@ -143,7 +159,11 @@ Brief: ${brief}
 Respond ONLY with your conversational thoughts, nothing else.`
     },
     technicalPrompt: (brief: string, platform: string) =>
-      `You are a ${platform} platform expert. Provide TECHNICAL specs only: optimal duration (in seconds), aspect ratio (e.g., 9:16, 16:9, 1:1), frame rate, resolution, and technical format requirements for ${platform}. NO marketing tactics, hashtags, or posting times. Brief: ${brief}`,
+      `You are a ${platform} platform expert. Provide TECHNICAL specs only: optimal duration (in seconds), aspect ratio (e.g., 9:16, 16:9, 1:1), frame rate, resolution, and technical format requirements for ${platform}.
+
+🔒 CHARACTER PRESERVATION CRITICAL: If LOCKED character specifications are provided, ensure your platform recommendations don't conflict with character visual consistency. Focus on technical format requirements while preserving character attributes.
+
+NO marketing tactics, hashtags, or posting times. Brief: ${brief}`,
   },
 }
 
@@ -229,96 +249,156 @@ export async function streamAgentRoundtable(
     stage: 'round1_start',
   })
 
-  // PHASE 0: PARALLEL FETCH - Fire ALL API calls immediately
-  // This runs in ~5-10 seconds total while user sees loading
-  const fetchAllResponses = async () => {
-    const promises = agentOrder.map(async (agentKey) => {
+  // Retry logic for rate limit errors with exponential backoff
+  const retryWithBackoff = async (fn: () => Promise<any>, maxRetries = 3, agentName = 'Agent') => {
+    for (let i = 0; i < maxRetries; i++) {
       try {
-        // Technical prompt (detailed analysis for display and synthesis)
-        let technicalPrompt: string
-        if (agentKey === 'platform_expert') {
-          technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
-        } else {
-          technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
-        }
-
-        // Single API call per agent - technical analysis only
-        const response = await openai.chat.completions.create({
-          model: getModelForFeature('agent'),
-          messages: [{ role: 'user', content: technicalPrompt + contextString }],
-          temperature: 0.7,
-          max_tokens: 400, // Technical analysis
-        })
-
-        return {
-          agent: agentKey,
-          technical: response.choices[0]?.message?.content || '',
-        }
+        return await fn()
       } catch (error: any) {
-        console.error(`Error fetching ${agents[agentKey].name}:`, error)
-        return {
-          agent: agentKey,
-          technical: '',
-          error: error.message,
-        }
-      }
-    })
+        // Check if it's a rate limit error (429)
+        if (error.status === 429 && i < maxRetries - 1) {
+          // Parse retry-after header if available, otherwise use exponential backoff
+          const retryAfterMs = error.headers?.['retry-after-ms']
+            ? parseInt(error.headers['retry-after-ms'])
+            : Math.pow(2, i) * 1000 // 1s, 2s, 4s
 
-    return Promise.all(promises)
+          console.log(`[${agentName}] Rate limit hit, waiting ${retryAfterMs}ms before retry ${i + 1}/${maxRetries}`)
+          await new Promise(resolve => setTimeout(resolve, retryAfterMs))
+          continue
+        }
+        throw error
+      }
+    }
   }
 
-  // Fetch all responses in parallel (happens in background, ~5-10 seconds)
-  const allResponses = await fetchAllResponses()
+  // PHASE 1: Sequential conversational display + parallel technical analysis
+  // Each agent shows conversational response immediately, while technical runs in background
+  const round1Results: Array<{ agent: Agent; conversational: string; technical: string }> = []
+  const conversationalResults: Array<{ agentKey: Agent; response: string }> = []
+  const technicalPromises: Array<Promise<{ agentKey: Agent; analysis: string }>> = []
 
-  // PHASE 1: SEQUENTIAL DISPLAY - Show full responses instantly
-  const round1Results = []
+  for (const agentKey of agentOrder) {
+    const agent = agents[agentKey]
+    const previousAgents = conversationalResults.map((r: { agentKey: Agent }) => agents[r.agentKey].name)
 
-  // Display each agent's complete response immediately
+    try {
+      // Build conversational prompt
+      let conversationalPrompt: string
+      if (agentKey === 'platform_expert') {
+        conversationalPrompt = agents.platform_expert.conversationalPrompt(brief, platform, previousAgents)
+      } else {
+        conversationalPrompt = (agent as any).conversationalPrompt(brief, previousAgents)
+      }
+
+      // Send typing indicator
+      sendEvent('typing_start', {
+        agent: agentKey,
+        name: agent.name,
+        emoji: agent.emoji,
+        message: `${agent.emoji} ${agent.name} is analyzing...`,
+      })
+
+      // Get conversational response with retry logic
+      const conversationalResponse = await retryWithBackoff(
+        () => openai.chat.completions.create({
+          model: getModelForFeature('agent'),
+          messages: [{ role: 'user', content: conversationalPrompt + contextString }],
+          temperature: 0.7,
+          max_tokens: 250, // Shorter conversational responses
+        }),
+        3,
+        agent.name
+      )
+
+      const responseText = conversationalResponse.choices[0]?.message?.content || ''
+
+      // Send message chunks
+      sendEvent('message_chunk', {
+        agent: agentKey,
+        name: agent.name,
+        emoji: agent.emoji,
+        content: responseText,
+      })
+
+      // Send completion
+      sendEvent('message_complete', {
+        agent: agentKey,
+        name: agent.name,
+        emoji: agent.emoji,
+        conversationalResponse: responseText,
+        message: `${agent.emoji} ${agent.name} has finished speaking`,
+      })
+
+      // Send typing stop
+      sendEvent('typing_stop', {
+        agent: agentKey,
+        name: agent.name,
+      })
+
+      conversationalResults.push({ agentKey, response: responseText })
+
+      // Start technical analysis in parallel (for synthesis later)
+      let technicalPrompt: string
+      if (agentKey === 'platform_expert') {
+        technicalPrompt = agents.platform_expert.technicalPrompt(brief, platform)
+      } else {
+        technicalPrompt = (agents[agentKey] as any).technicalPrompt(brief)
+      }
+
+      technicalPromises.push(
+        retryWithBackoff(
+          () => openai.chat.completions.create({
+            model: getModelForFeature('agent'),
+            messages: [{ role: 'user', content: technicalPrompt + contextString }],
+            temperature: 0.7,
+            max_tokens: 400,
+          }),
+          3,
+          `${agent.name} (technical)`
+        ).then(response => ({
+          agentKey,
+          analysis: response.choices[0]?.message?.content || '',
+        }))
+      )
+    } catch (error: any) {
+      console.error(`Error in ${agent.name} (${agentKey}):`, error)
+      sendEvent('agent_error', {
+        agent: agentKey,
+        name: agent.name,
+        error: error.message || 'Failed to get response',
+      })
+
+      sendEvent('typing_stop', {
+        agent: agentKey,
+        name: agent.name,
+      })
+
+      conversationalResults.push({ agentKey, response: '' })
+      technicalPromises.push(Promise.resolve({ agentKey, analysis: '' }))
+    }
+  }
+
+  // Wait for all technical analysis to complete
+  sendEvent('status', {
+    message: 'Team is analyzing technical details...',
+    stage: 'technical_analysis',
+  })
+
+  const technicalResults = await Promise.all(technicalPromises)
+
+  // Combine conversational and technical results
   for (let i = 0; i < agentOrder.length; i++) {
     const agentKey = agentOrder[i]
-    const agent = agents[agentKey]
-    const response = allResponses[i]
+    const conversationalResponse = conversationalResults[i]?.response || ''
+    const technicalAnalysis = technicalResults[i]?.analysis || ''
 
-    // Send typing indicator briefly
-    sendEvent('typing_start', {
+    round1Results.push({
       agent: agentKey,
-      name: agent.name,
-      emoji: agent.emoji,
-      message: `${agent.emoji} ${agent.name} is analyzing...`,
+      conversational: conversationalResponse,
+      technical: technicalAnalysis,
     })
-
-    // Brief delay to show typing indicator
-    await new Promise(resolve => setTimeout(resolve, 300))
-
-    // Send full response at once
-    sendEvent('message_chunk', {
-      agent: agentKey,
-      name: agents[agentKey].name,
-      emoji: agents[agentKey].emoji,
-      content: response.technical,
-    })
-
-    // Send completion event immediately after
-    sendEvent('message_complete', {
-      agent: agentKey,
-      name: agent.name,
-      emoji: agent.emoji,
-      conversationalResponse: response.technical,
-      technicalAnalysis: response.technical,
-      message: `${agent.emoji} ${agent.name} has finished speaking`,
-    })
-
-    // Clear typing indicator
-    sendEvent('typing_stop', {
-      agent: agentKey,
-      name: agent.name,
-    })
-
-    // Small pause between agents for readability
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    round1Results.push(response)
   }
+
 
   sendEvent('status', {
     message: 'Round 1 complete. Team is now debating key creative decisions...',
@@ -583,7 +663,8 @@ Generate the Sora prompt following the required structure exactly. CRITICAL: Use
     }
 
     sendEvent('synthesis_complete', {
-      finalPrompt,
+      optimizedPrompt: finalPrompt,
+      characterCount: finalPrompt.length,
       message: '✅ Final prompt ready!',
     })
 
@@ -642,6 +723,70 @@ Shot list:`,
     sendEvent('shots_complete', {
       suggestedShots,
       message: '🎬 Shot list ready!',
+    })
+
+    // Generate detailed breakdown with hashtags
+    sendEvent('status', {
+      message: 'Creating detailed breakdown and hashtags...',
+      stage: 'breakdown_start',
+    })
+
+    // Extract structured sections from the optimized prompt
+    const extractSection = (prompt: string, sectionName: string): string => {
+      const regex = new RegExp(`\\*\\*${sectionName}\\*\\*([\\s\\S]*?)(?=\\*\\*|$)`, 'i')
+      const match = prompt.match(regex)
+      return match ? match[1].trim() : ''
+    }
+
+    const breakdown: any = {
+      // Extract sections from optimized prompt
+      format_and_look: extractSection(finalPrompt, 'Format & Look'),
+      lenses_and_filtration: extractSection(finalPrompt, 'Lenses & Filtration'),
+      grade_palette: extractSection(finalPrompt, 'Grade / Palette'),
+      lighting_atmosphere: extractSection(finalPrompt, 'Lighting & Atmosphere'),
+      location_framing: extractSection(finalPrompt, 'Location & Framing'),
+      wardrobe_props_extras: extractSection(finalPrompt, 'Wardrobe / Props / Extras'),
+      sound: extractSection(finalPrompt, 'Sound'),
+      shot_list_summary: extractSection(finalPrompt, 'Optimized Shot List'),
+      camera_notes: extractSection(finalPrompt, 'Camera Notes'),
+      finishing: extractSection(finalPrompt, 'Finishing'),
+    }
+
+    // Generate platform-specific hashtags
+    const hashtagPrompt = `Generate 10 platform-specific hashtags for this ${platform} video concept:
+
+Brief: ${brief}
+
+Requirements:
+- Mix broad and niche tags
+- Include content-type tags (e.g., #videoediting, #filmmaking, #cinematography)
+- NO generic tags like #fyp or #viral
+- Ensure all tags start with #
+- Format as JSON array: ["#tag1", "#tag2", ...]
+
+Return ONLY the JSON array, no other text.`
+
+    const hashtagResponse = await openai.chat.completions.create({
+      model: getModelForFeature('synthesis'),
+      messages: [{ role: 'user', content: hashtagPrompt }],
+      temperature: 0.7,
+      max_tokens: 200,
+    })
+
+    let hashtags: string[] = []
+    try {
+      const hashtagText = hashtagResponse.choices[0]?.message?.content || '[]'
+      hashtags = JSON.parse(hashtagText)
+    } catch (e) {
+      console.error('Failed to parse hashtags JSON:', e)
+      hashtags = []
+    }
+
+    breakdown.hashtags = hashtags
+
+    sendEvent('breakdown_complete', {
+      breakdown,
+      message: '✅ Breakdown and hashtags ready!',
     })
 
     return {
