@@ -1,0 +1,14 @@
+# Supabase Project Configuration
+# This file is safe to commit - secrets are stored separately via Supabase CLI
+
+[auth.external.google]
+enabled = true
+client_id = "210098948540-80gnr6r89vv4kr6lk88solmhnrpu0c04.apps.googleusercontent.com"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_uri = "https://qbnkdtbqabpnkoadguez.supabase.co/auth/v1/callback"
+
+[auth.external.github]
+enabled = true
+client_id = "Ov23lijjLkeC6o1WwLuH"
+secret = "env(GITHUB_CLIENT_SECRET)"
+redirect_uri = "https://qbnkdtbqabpnkoadguez.supabase.co/auth/v1/callback"
