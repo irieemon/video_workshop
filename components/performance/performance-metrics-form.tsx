@@ -35,9 +35,7 @@ import { Loader2, Eye, Heart, MessageCircle, Share2, Bookmark, TrendingUp } from
  * Zod schema for performance metrics form
  */
 const performanceFormSchema = z.object({
-  platform: z.enum(['tiktok', 'instagram'], {
-    required_error: 'Please select a platform',
-  }),
+  platform: z.enum(['tiktok', 'instagram']),
   views: z.coerce.number().min(0, 'Views must be 0 or greater').int(),
   likes: z.coerce.number().min(0, 'Likes must be 0 or greater').int(),
   comments: z.coerce.number().min(0, 'Comments must be 0 or greater').int(),
