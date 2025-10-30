@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from './providers/theme-provider'
+import { QueryProvider } from './providers/query-provider'
 import { ModalProvider } from '@/components/providers/modal-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { Toaster as Sonner } from 'sonner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,12 +25,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          <ModalProvider>
-            {children}
-            <Toaster />
-          </ModalProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <ModalProvider>
+              {children}
+              <Toaster />
+              <Sonner />
+            </ModalProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )
