@@ -36,13 +36,13 @@ import { Loader2, Eye, Heart, MessageCircle, Share2, Bookmark, TrendingUp } from
  */
 const performanceFormSchema = z.object({
   platform: z.enum(['tiktok', 'instagram']),
-  views: z.coerce.number().min(0, 'Views must be 0 or greater').int(),
-  likes: z.coerce.number().min(0, 'Likes must be 0 or greater').int(),
-  comments: z.coerce.number().min(0, 'Comments must be 0 or greater').int(),
-  shares: z.coerce.number().min(0, 'Shares must be 0 or greater').int(),
-  saves: z.coerce.number().min(0, 'Saves must be 0 or greater').int().default(0),
-  watch_time_seconds: z.coerce.number().min(0).optional().nullable(),
-  completion_rate: z.coerce
+  views: z.number().min(0, 'Views must be 0 or greater').int(),
+  likes: z.number().min(0, 'Likes must be 0 or greater').int(),
+  comments: z.number().min(0, 'Comments must be 0 or greater').int(),
+  shares: z.number().min(0, 'Shares must be 0 or greater').int(),
+  saves: z.number().min(0, 'Saves must be 0 or greater').int().default(0),
+  watch_time_seconds: z.number().min(0).optional().nullable(),
+  completion_rate: z
     .number()
     .min(0, 'Completion rate must be between 0-100')
     .max(100, 'Completion rate must be between 0-100')
@@ -179,7 +179,12 @@ export function PerformanceMetricsForm({
                     Views
                   </FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" {...field} />
+                    <Input
+                      type="number"
+                      min="0"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -197,7 +202,12 @@ export function PerformanceMetricsForm({
                     Likes
                   </FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" {...field} />
+                    <Input
+                      type="number"
+                      min="0"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -215,7 +225,12 @@ export function PerformanceMetricsForm({
                     Comments
                   </FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" {...field} />
+                    <Input
+                      type="number"
+                      min="0"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -233,7 +248,12 @@ export function PerformanceMetricsForm({
                     Shares
                   </FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" {...field} />
+                    <Input
+                      type="number"
+                      min="0"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -252,7 +272,12 @@ export function PerformanceMetricsForm({
                       Saves
                     </FormLabel>
                     <FormControl>
-                      <Input type="number" min="0" {...field} />
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -283,6 +308,9 @@ export function PerformanceMetricsForm({
                         placeholder="Optional"
                         {...field}
                         value={field.value ?? ''}
+                        onChange={(e) =>
+                          field.onChange(e.target.value ? Number(e.target.value) : null)
+                        }
                       />
                     </FormControl>
                     <FormDescription>
@@ -308,6 +336,9 @@ export function PerformanceMetricsForm({
                         placeholder="Optional (0-100)"
                         {...field}
                         value={field.value ?? ''}
+                        onChange={(e) =>
+                          field.onChange(e.target.value ? Number(e.target.value) : null)
+                        }
                       />
                     </FormControl>
                     <FormDescription>
