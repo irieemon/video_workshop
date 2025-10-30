@@ -199,29 +199,41 @@ export async function POST(request: NextRequest) {
         // Track conversation history for review feature
         const conversationHistory: any[] = []
         const debateMessages: any[] = []
+        let controllerClosed = false
 
         const sendEvent = (type: string, data: any) => {
-          const message = JSON.stringify({ type, data, timestamp: Date.now() }) + '\n'
-          controller.enqueue(encoder.encode(message))
+          // Prevent sending events after controller is closed
+          if (controllerClosed) {
+            console.warn('Attempted to send event after controller closed:', type)
+            return
+          }
 
-          // Track conversation data as it streams
-          if (type === 'message_complete') {
-            conversationHistory.push({
-              agentKey: data.agent, // CRITICAL: Include agentKey for proper UI rendering
-              agentName: data.name,
-              agentColor: data.agent === 'director' ? 'blue' :
-                          data.agent === 'cinematographer' ? 'purple' :
-                          data.agent === 'editor' ? 'green' :
-                          data.agent === 'colorist' ? 'orange' : 'pink',
-              content: data.conversationalResponse || '',
-              isComplete: true,
-            })
-          } else if (type === 'debate_message') {
-            debateMessages.push({
-              from: data.from,
-              fromName: data.fromName,
-              message: data.message,
-            })
+          try {
+            const message = JSON.stringify({ type, data, timestamp: Date.now() }) + '\n'
+            controller.enqueue(encoder.encode(message))
+
+            // Track conversation data as it streams
+            if (type === 'message_complete') {
+              conversationHistory.push({
+                agentKey: data.agent, // CRITICAL: Include agentKey for proper UI rendering
+                agentName: data.name,
+                agentColor: data.agent === 'director' ? 'blue' :
+                            data.agent === 'cinematographer' ? 'purple' :
+                            data.agent === 'editor' ? 'green' :
+                            data.agent === 'colorist' ? 'orange' : 'pink',
+                content: data.conversationalResponse || '',
+                isComplete: true,
+              })
+            } else if (type === 'debate_message') {
+              debateMessages.push({
+                from: data.from,
+                fromName: data.fromName,
+                message: data.message,
+              })
+            }
+          } catch (error) {
+            console.error('Error sending event:', error)
+            controllerClosed = true
           }
         }
 
@@ -256,7 +268,15 @@ export async function POST(request: NextRequest) {
           console.error('Streaming roundtable error:', error)
           sendEvent('error', { message: error.message || 'An error occurred' })
         } finally {
-          controller.close()
+          // Only close if not already closed
+          if (!controllerClosed) {
+            try {
+              controller.close()
+              controllerClosed = true
+            } catch (error) {
+              console.error('Error closing controller:', error)
+            }
+          }
         }
       },
     })

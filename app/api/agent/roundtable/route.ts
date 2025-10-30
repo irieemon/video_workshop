@@ -6,6 +6,7 @@ import { createAPILogger, LOG_MESSAGES } from '@/lib/logger'
 import { checkRateLimit, createRateLimitKey, RATE_LIMITS, createRateLimitResponse, getRateLimitHeaders } from '@/lib/rate-limit'
 import { agentRoundtableSchema, validateRequest, createValidationError } from '@/lib/validation/schemas'
 import { fetchCompleteSeriesContext, formatSeriesContextForAgents } from '@/lib/services/series-context'
+import { validateCharacterConsistency, getQualityAssessment } from '@/lib/validation/character-consistency'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -141,7 +142,30 @@ export async function POST(request: NextRequest) {
           const characterBlocks = characters.map(char =>
             char.sora_prompt_template || generateCharacterPromptBlock(char)
           )
-          characterContext = `\n\nCHARACTERS IN THIS VIDEO:\n${characterBlocks.join('\n\n')}\n\nIMPORTANT: The character descriptions above are LOCKED. Use them exactly as provided for consistency across videos.\n\n`
+          characterContext = `
+═══════════════════════════════════════════════════════
+🔒 LOCKED CHARACTER SPECIFICATIONS - DO NOT MODIFY 🔒
+═══════════════════════════════════════════════════════
+
+${characterBlocks.join('\n\n')}
+
+⚠️ CRITICAL CHARACTER PRESERVATION REQUIREMENTS ⚠️
+1. Use EXACT character descriptions above - NO creative variations allowed
+2. Do NOT change hair color, style, texture, or length from specifications
+3. Do NOT change ethnicity, race, or skin tone - these MUST appear in final prompt
+4. Do NOT change default clothing UNLESS the brief explicitly requests different attire
+5. Do NOT change ages, heights, or physical build characteristics
+6. Do NOT alter facial features, eye color, or distinctive features
+7. ALWAYS mention skin tone explicitly in character descriptions
+8. These specifications ensure visual consistency across the video series
+
+🎯 PRIORITY HIERARCHY:
+- Character specs > Creative ideas
+- If brief conflicts with character specs, PRIORITIZE CHARACTER SPECS
+- You may add details (emotions, actions) but NEVER change core attributes
+
+═══════════════════════════════════════════════════════
+`
         }
 
         // Fetch character relationships for selected characters
@@ -201,7 +225,35 @@ export async function POST(request: NextRequest) {
 
     logger.info(LOG_MESSAGES.AI_ROUNDTABLE_SUCCESS)
 
-    return NextResponse.json(result, {
+    // Validate character consistency if characters were provided
+    let characterConsistency
+    if (seriesCharacters && seriesCharacters.length > 0) {
+      const validation = validateCharacterConsistency(
+        result.optimizedPrompt,
+        seriesCharacters
+      )
+
+      characterConsistency = {
+        qualityScore: validation.qualityScore,
+        qualityTier: validation.qualityScore >= 90 ? 'excellent' :
+                     validation.qualityScore >= 75 ? 'good' :
+                     validation.qualityScore >= 60 ? 'fair' : 'poor',
+        assessment: getQualityAssessment(validation),
+        violations: validation.violations,
+        details: validation.details
+      }
+
+      logger.info('Character consistency validation completed', {
+        qualityScore: validation.qualityScore,
+        violationCount: validation.violations.length,
+        valid: validation.valid
+      })
+    }
+
+    return NextResponse.json({
+      ...result,
+      characterConsistency
+    }, {
       headers: getRateLimitHeaders(rateLimit)
     })
   } catch (error) {

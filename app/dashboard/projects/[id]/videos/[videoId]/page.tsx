@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { AgentRoundtable } from '@/components/agents/agent-roundtable'
 import { PromptOutput } from '@/components/videos/prompt-output'
 import { SoraGenerationButton } from '@/components/videos/sora-generation-button'
+import { PerformanceMetricsSection } from '@/components/performance/performance-metrics-section'
 import { formatDistanceToNow } from 'date-fns'
 
 export default async function VideoDetailPage({
@@ -156,6 +157,13 @@ export default async function VideoDetailPage({
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Performance Metrics */}
+        {video.sora_video_url && video.sora_generation_status === 'completed' && (
+          <div className="mb-6 md:mb-8">
+            <PerformanceMetricsSection videoId={videoId} />
           </div>
         )}
 

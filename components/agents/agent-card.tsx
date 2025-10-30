@@ -24,12 +24,26 @@ const agentConfig = {
     textColor: 'text-[#3B4A5C]',
     icon: Film,
   },
-  photography_director: {
-    name: 'Photography Director',
+  cinematographer: {
+    name: 'Cinematographer',
     color: 'border-l-[#7C9473]',
     bgColor: 'bg-[#7C9473]/10',
     textColor: 'text-[#7C9473]',
     icon: Camera,
+  },
+  editor: {
+    name: 'Editor',
+    color: 'border-l-[#C97064]',
+    bgColor: 'bg-[#C97064]/10',
+    textColor: 'text-[#C97064]',
+    icon: Film,
+  },
+  colorist: {
+    name: 'Colorist',
+    color: 'border-l-[#8B7C6B]',
+    bgColor: 'bg-[#8B7C6B]/10',
+    textColor: 'text-[#8B7C6B]',
+    icon: Film,
   },
   platform_expert: {
     name: 'Platform Expert',
@@ -37,20 +51,6 @@ const agentConfig = {
     bgColor: 'bg-[#5A6D52]/10',
     textColor: 'text-[#5A6D52]',
     icon: TrendingUp,
-  },
-  social_media_marketer: {
-    name: 'Social Media Marketer',
-    color: 'border-l-[#C97064]',
-    bgColor: 'bg-[#C97064]/10',
-    textColor: 'text-[#C97064]',
-    icon: Users,
-  },
-  music_producer: {
-    name: 'Music Producer',
-    color: 'border-l-[#8B7C6B]',
-    bgColor: 'bg-[#8B7C6B]/10',
-    textColor: 'text-[#8B7C6B]',
-    icon: Music,
   },
 }
 

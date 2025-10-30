@@ -91,7 +91,7 @@ export function EpisodeSceneSelector({
         } else if (projectId) {
           router.push(`/dashboard/projects/${projectId}/videos/${data.video.id}`)
         } else {
-          router.push(`/dashboard/videos/${data.video.id}`)
+          router.push(`/dashboard/videos/${data.video.id}/roundtable`)
         }
       }
     } catch (error) {

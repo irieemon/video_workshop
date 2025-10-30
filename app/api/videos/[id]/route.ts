@@ -91,6 +91,77 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    // Extract hashtags from body (they go to separate table)
+    const { hashtags, ...videoFields } = body
+
+    // Update video with provided fields (excluding hashtags)
+    const { data: video, error } = await supabase
+      .from('videos')
+      .update(videoFields)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error || !video) {
+      console.error('Video update error:', error)
+      return NextResponse.json({ error: 'Failed to update video' }, { status: 500 })
+    }
+
+    // If hashtags provided, update the hashtags table
+    if (hashtags && Array.isArray(hashtags)) {
+      // Delete existing hashtags for this video
+      await supabase
+        .from('hashtags')
+        .delete()
+        .eq('video_id', id)
+
+      // Insert new hashtags if any
+      if (hashtags.length > 0) {
+        const hashtagRecords = hashtags.map((tag: string) => ({
+          video_id: id,
+          tag: tag.startsWith('#') ? tag : `#${tag}`,
+          suggested_by: 'platform_expert' as const,
+        }))
+
+        const { error: hashtagError } = await supabase
+          .from('hashtags')
+          .insert(hashtagRecords)
+
+        if (hashtagError) {
+          console.error('Hashtag insert error:', hashtagError)
+          // Don't fail the whole request, just log the error
+        }
+      }
+    }
+
+    return NextResponse.json(video)
+  } catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

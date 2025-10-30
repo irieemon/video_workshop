@@ -58,12 +58,14 @@ export interface Database {
           updated_at?: string
         }
       }
-      projects: {
+      workspaces: {
         Row: {
           id: string
           user_id: string
           name: string
           description: string | null
+          is_active: boolean
+          settings: Json
           created_at: string
           updated_at: string
         }
@@ -72,6 +74,8 @@ export interface Database {
           user_id: string
           name: string
           description?: string | null
+          is_active?: boolean
+          settings?: Json
           created_at?: string
           updated_at?: string
         }
@@ -80,6 +84,8 @@ export interface Database {
           user_id?: string
           name?: string
           description?: string | null
+          is_active?: boolean
+          settings?: Json
           created_at?: string
           updated_at?: string
         }
@@ -88,6 +94,8 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          workspace_id: string | null
+          is_system: boolean
           name: string
           description: string | null
           genre: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
@@ -105,6 +113,8 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          workspace_id?: string | null
+          is_system?: boolean
           name: string
           description?: string | null
           genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
@@ -122,6 +132,8 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          workspace_id?: string | null
+          is_system?: boolean
           name?: string
           description?: string | null
           genre?: 'narrative' | 'product-showcase' | 'educational' | 'brand-content' | 'other' | null
@@ -369,29 +381,6 @@ export interface Database {
           updated_at?: string
         }
       }
-      project_series: {
-        Row: {
-          id: string
-          project_id: string
-          series_id: string
-          display_order: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          series_id: string
-          display_order?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          project_id?: string
-          series_id?: string
-          display_order?: number
-          created_at?: string
-        }
-      }
       character_relationships: {
         Row: {
           id: string
@@ -449,11 +438,9 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          project_id: string | null
-          series_id: string | null
+          series_id: string
           episode_id: string | null
           scene_id: string | null
-          is_standalone: boolean
           title: string
           user_brief: string
           agent_discussion: AgentDiscussion
@@ -465,17 +452,17 @@ export interface Database {
           platform: 'tiktok' | 'instagram' | 'both' | null
           status: 'draft' | 'generated' | 'published'
           user_edits: UserEdits | null
+          series_characters_used: string[] | null
+          series_settings_used: string[] | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          project_id?: string | null
-          series_id?: string | null
+          series_id: string
           episode_id?: string | null
           scene_id?: string | null
-          is_standalone?: boolean
           title: string
           user_brief: string
           agent_discussion: Json
@@ -487,17 +474,17 @@ export interface Database {
           platform?: 'tiktok' | 'instagram' | 'both' | null
           status?: 'draft' | 'generated' | 'published'
           user_edits?: Json | null
+          series_characters_used?: string[] | null
+          series_settings_used?: string[] | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          project_id?: string | null
-          series_id?: string | null
+          series_id?: string
           episode_id?: string | null
           scene_id?: string | null
-          is_standalone?: boolean
           title?: string
           user_brief?: string
           agent_discussion?: Json
@@ -509,6 +496,8 @@ export interface Database {
           platform?: 'tiktok' | 'instagram' | 'both' | null
           status?: 'draft' | 'generated' | 'published'
           user_edits?: Json | null
+          series_characters_used?: string[] | null
+          series_settings_used?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -833,8 +822,8 @@ export interface ScreenplayEnrichmentData {
   enrichmentTimestamp: string
 }
 
-// Project-Series Junction Table (updated with display_order)
-export type ProjectSeries = Database['public']['Tables']['project_series']['Row']
+// Workspace type alias for backward compatibility
+export type Workspace = Database['public']['Tables']['workspaces']['Row']
 
 // Video Generation Source
 export type VideoGenerationSource = 'manual' | 'episode' | 'template'

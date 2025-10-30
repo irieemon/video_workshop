@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Phase 2: Fetch series with episode counts (decoupled from projects)
+    // Fetch series with episode counts (excluding system series by default)
     const { data: series, error } = await supabase
       .from('series')
       .select(
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       `
       )
       .eq('user_id', user.id)
+      .eq('is_system', false) // Don't return system series (e.g., "Standalone Videos")
       .order('updated_at', { ascending: false })
 
     if (error) throw error
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
       name,
       description,
       genre,
-      project_id,
+      workspace_id,
       visual_template,
       enforce_continuity,
       allow_continuity_breaks,
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Phase 2: Check for duplicate series name for this user (no project association)
+    // Check for duplicate series name for this user
     const { data: existingSeries } = await supabase
       .from('series')
       .select('id, name')
@@ -98,23 +99,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If project_id provided, verify it exists and belongs to user (for context only)
-    if (project_id) {
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
+    // If workspace_id provided, verify it exists and belongs to user
+    if (workspace_id) {
+      const { data: workspace, error: workspaceError } = await supabase
+        .from('workspaces')
         .select('id')
-        .eq('id', project_id)
+        .eq('id', workspace_id)
         .eq('user_id', user.id)
         .single()
 
-      if (projectError) {
-        if (projectError.code === 'PGRST116') {
+      if (workspaceError) {
+        if (workspaceError.code === 'PGRST116') {
           return NextResponse.json(
-            { error: 'Project not found' },
+            { error: 'Workspace not found' },
             { status: 404 }
           )
         }
-        throw projectError
+        throw workspaceError
       }
     }
 
@@ -135,14 +136,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Phase 2: Create series (decoupled from projects, no junction table)
+    // Create series (can be standalone or within a workspace)
     const { data: newSeries, error: seriesError } = await supabase
       .from('series')
       .insert({
         user_id: user.id,
+        workspace_id: workspace_id || null,
         name: name.trim(),
         description: description?.trim() || null,
         genre: genre || null,
+        is_system: false, // User-created series are never system series
         visual_template: visual_template || {},
         enforce_continuity:
           enforce_continuity !== undefined ? enforce_continuity : true,

@@ -70,18 +70,18 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-      projectId,
-      seriesId,
+      series_id,
       episodeId,
       selectedCharacters,
       selectedSettings,
       title,
-      userBrief,
-      agentDiscussion,
-      detailedBreakdown,
-      optimizedPrompt,
-      characterCount,
+      user_brief,
+      agent_discussion,
+      detailed_breakdown,
+      optimized_prompt,
+      character_count,
       platform,
+      status,
       hashtags,
       generation_source,
       source_metadata,
@@ -125,18 +125,18 @@ export async function POST(request: NextRequest) {
       .from('videos')
       .insert({
         user_id: user.id,
-        project_id: projectId,
-        series_id: seriesId,
+        series_id: series_id,
         episode_id: episodeId || null,
         series_characters_used: selectedCharacters,
         series_settings_used: selectedSettings,
         title,
-        user_brief: userBrief,
-        agent_discussion: agentDiscussion,
-        detailed_breakdown: detailedBreakdown,
-        optimized_prompt: optimizedPrompt,
-        character_count: characterCount,
+        user_brief: user_brief,
+        agent_discussion: agent_discussion || {},
+        detailed_breakdown: detailed_breakdown || {},
+        optimized_prompt: optimized_prompt || '',
+        character_count: character_count || 0,
         platform,
+        status: status || 'draft',
         generation_source: generation_source || 'manual',
         source_metadata: source_metadata || {},
       })
@@ -230,19 +230,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url)
-    const projectId = searchParams.get('projectId')
+    const seriesId = searchParams.get('seriesId')
 
-    logger.info(LOG_MESSAGES.API_REQUEST_START, { projectId })
+    logger.info(LOG_MESSAGES.API_REQUEST_START, { seriesId })
 
-    // Build query - RLS will filter by user through project relationship
+    // Build query - RLS will filter by user automatically
     let query = supabase
       .from('videos')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    // Filter by project if specified
-    if (projectId) {
-      query = query.eq('project_id', projectId)
+    // Filter by series if specified
+    if (seriesId) {
+      query = query.eq('series_id', seriesId)
     }
 
     const { data: videos, error } = await query
