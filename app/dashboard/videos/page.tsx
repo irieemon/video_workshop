@@ -25,7 +25,7 @@ export default async function VideosPage() {
   }
 
   // Fetch all videos for the user
-  const { data: videos, error: videosError } = await supabase
+  const { data: rawVideos, error: videosError } = await supabase
     .from('videos')
     .select(`
       id,
@@ -46,6 +46,12 @@ export default async function VideosPage() {
   if (videosError) {
     console.error('Error fetching videos:', videosError)
   }
+
+  // Transform the data to match expected type (Supabase returns series as array, but we need single object)
+  const videos = rawVideos?.map((video: any) => ({
+    ...video,
+    series: Array.isArray(video.series) ? (video.series[0] || null) : video.series,
+  }))
 
   // Fetch series for filtering
   const { data: series } = await supabase
