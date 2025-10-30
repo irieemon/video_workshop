@@ -40,7 +40,7 @@ const performanceFormSchema = z.object({
   likes: z.number().min(0, 'Likes must be 0 or greater').int(),
   comments: z.number().min(0, 'Comments must be 0 or greater').int(),
   shares: z.number().min(0, 'Shares must be 0 or greater').int(),
-  saves: z.number().min(0, 'Saves must be 0 or greater').int().default(0),
+  saves: z.number().min(0, 'Saves must be 0 or greater').int().optional().nullable(),
   watch_time_seconds: z.number().min(0).optional().nullable(),
   completion_rate: z
     .number()
@@ -76,7 +76,7 @@ export function PerformanceMetricsForm({
       likes: 0,
       comments: 0,
       shares: 0,
-      saves: 0,
+      saves: null,
       watch_time_seconds: null,
       completion_rate: null,
       traffic_source: null,
@@ -275,8 +275,12 @@ export function PerformanceMetricsForm({
                       <Input
                         type="number"
                         min="0"
+                        placeholder="Optional"
                         {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value ?? ''}
+                        onChange={(e) =>
+                          field.onChange(e.target.value ? Number(e.target.value) : null)
+                        }
                       />
                     </FormControl>
                     <FormMessage />
