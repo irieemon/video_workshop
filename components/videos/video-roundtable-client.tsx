@@ -17,12 +17,14 @@ interface VideoRoundtableClientProps {
   video: any
   agentDiscussion: any
   hashtagsArray: string[]
+  subscriptionTier?: 'free' | 'premium' | 'enterprise'
 }
 
 export function VideoRoundtableClient({
   video,
   agentDiscussion,
   hashtagsArray,
+  subscriptionTier = 'free',
 }: VideoRoundtableClientProps) {
   const router = useRouter()
   const [isGenerating, setIsGenerating] = useState(false)
@@ -176,6 +178,7 @@ export function VideoRoundtableClient({
                 videoId={video.id}
                 videoTitle={video.title}
                 finalPrompt={video.optimized_prompt}
+                subscriptionTier={subscriptionTier}
               />
             )}
           </div>

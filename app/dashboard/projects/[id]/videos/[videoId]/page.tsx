@@ -18,6 +18,18 @@ export default async function VideoDetailPage({
   const { id: projectId, videoId } = await params
   const supabase = await createClient()
 
+  // Get current user to fetch subscription tier
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Fetch user profile for subscription tier
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_tier')
+    .eq('id', user?.id || '')
+    .single()
+
   // Fetch video with all details including hashtags
   const { data: video, error } = await supabase
     .from('videos')
@@ -72,6 +84,7 @@ export default async function VideoDetailPage({
               videoId={videoId}
               videoTitle={video.title}
               finalPrompt={video.optimized_prompt}
+              subscriptionTier={profile?.subscription_tier || 'free'}
             />
           )}
         </div>
