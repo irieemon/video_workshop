@@ -62,7 +62,7 @@ export function RelationshipGraph({
       isSymmetric: rel.is_symmetric,
       description: rel.description,
       intensity: rel.intensity || 5,
-      color: RELATIONSHIP_COLORS[rel.relationship_type],
+      color: RELATIONSHIP_COLORS[rel.relationship_type as RelationshipType],
     }))
 
     setGraphData({ nodes, links })

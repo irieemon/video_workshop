@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { SCREENPLAY_AGENT_SYSTEM_PROMPT } from '@/lib/ai/screenplay-agent'
 import { getModelForFeature } from '@/lib/ai/config'
+import {
+  extractStructuredScreenplay,
+  validateStructuredScreenplay,
+  formatValidationErrors,
+} from '@/lib/utils/screenplay-extraction'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -142,6 +147,66 @@ export async function POST(request: NextRequest) {
               last_activity_at: new Date().toISOString(),
             })
             .eq('id', sessionId)
+
+          // Extract and validate structured screenplay if present
+          const structuredScreenplay = extractStructuredScreenplay(fullResponse)
+          if (structuredScreenplay) {
+            console.log('Extracted structured screenplay from AI response')
+
+            const validationResult = validateStructuredScreenplay(structuredScreenplay)
+
+            if (validationResult.valid) {
+              console.log('Structured screenplay is valid, saving to episode')
+
+              // Save to episode if we have an episode_id
+              if (session.episode_id) {
+                const { error: updateError } = await supabase
+                  .from('episodes')
+                  .update({
+                    structured_screenplay: structuredScreenplay,
+                    status: 'completed', // Mark episode as completed when screenplay is finalized
+                  })
+                  .eq('id', session.episode_id)
+                  .eq('user_id', user.id)
+
+                if (updateError) {
+                  console.error('Failed to save structured screenplay to episode:', updateError)
+                } else {
+                  console.log('Successfully saved structured screenplay to episode', session.episode_id)
+
+                  // Notify client that screenplay was saved
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        type: 'screenplay_saved',
+                        episodeId: session.episode_id,
+                        sceneCount: structuredScreenplay.scenes.length
+                      })}\n\n`
+                    )
+                  )
+                }
+              }
+
+              // Log warnings if any
+              if (validationResult.warnings && validationResult.warnings.length > 0) {
+                console.log('Screenplay validation warnings:', validationResult.warnings)
+              }
+            } else {
+              // Validation failed - log errors
+              console.error('Structured screenplay validation failed:')
+              console.error(formatValidationErrors(validationResult.errors))
+
+              // Notify client of validation errors
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'validation_error',
+                    errors: formatValidationErrors(validationResult.errors)
+                  })}\n\n`
+                )
+              )
+            }
+          }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
           controller.close()

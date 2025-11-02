@@ -19,7 +19,7 @@ interface ScreenplayViewerProps {
 export function ScreenplayViewer({ open, onClose, episode }: ScreenplayViewerProps) {
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set())
 
-  const hasStructured = episode.structured_screenplay?.scenes && episode.structured_screenplay.scenes.length > 0
+  const hasStructured = (episode.structured_screenplay as any)?.scenes && (episode.structured_screenplay as any).scenes.length > 0
   const hasText = episode.screenplay_text && episode.screenplay_text.trim().length > 0
 
   const toggleScene = (sceneId: string) => {
@@ -34,7 +34,7 @@ export function ScreenplayViewer({ open, onClose, episode }: ScreenplayViewerPro
 
   const expandAll = () => {
     if (hasStructured) {
-      const allSceneIds = episode.structured_screenplay!.scenes.map((s: any) => s.scene_id)
+      const allSceneIds = (episode.structured_screenplay as any)!.scenes.map((s: any) => s.scene_id)
       setExpandedScenes(new Set(allSceneIds))
     }
   }
@@ -64,7 +64,7 @@ export function ScreenplayViewer({ open, onClose, episode }: ScreenplayViewerPro
               Collapse All
             </Button>
             <Badge variant="secondary" className="ml-auto">
-              {episode.structured_screenplay!.scenes.length} scenes
+              {(episode.structured_screenplay as any)!.scenes.length} scenes
             </Badge>
           </div>
         )}
@@ -73,7 +73,7 @@ export function ScreenplayViewer({ open, onClose, episode }: ScreenplayViewerPro
           {hasStructured ? (
             // Structured screenplay with scenes
             <div className="space-y-3">
-              {episode.structured_screenplay!.scenes.map((scene: any, idx: number) => {
+              {(episode.structured_screenplay as any)!.scenes.map((scene: any, idx: number) => {
                 const isExpanded = expandedScenes.has(scene.scene_id)
                 const hasDialogue = scene.dialogue && scene.dialogue.length > 0
                 const hasActions = scene.action && scene.action.length > 0

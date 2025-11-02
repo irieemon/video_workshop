@@ -1,7 +1,25 @@
 import OpenAI from 'openai'
-import { AgentName, AgentResponse, AgentDiscussion, DetailedBreakdown, VisualTemplate, Shot } from '../types/database.types'
+import { Shot } from '../types/database.types'
 import { agentSystemPrompts } from './agent-prompts'
 import { getModelForFeature } from './config'
+import { SegmentVisualState, buildContinuityContext } from './visual-state-extractor'
+
+// Re-export agent types for backwards compatibility
+export type {
+  AgentName,
+  AgentResponse,
+  AgentDiscussion,
+  DetailedBreakdown,
+  VisualTemplate
+} from './agent-types'
+
+import type {
+  AgentName,
+  AgentResponse,
+  AgentDiscussion,
+  DetailedBreakdown,
+  VisualTemplate
+} from './agent-types'
 
 // Lazy initialization to avoid build-time API key requirement
 function getOpenAI() {
@@ -30,7 +48,7 @@ interface SeriesSetting {
   environment_type: string | null
   time_of_day: string | null
   atmosphere: string | null
-  is_primary: boolean
+  is_primary: boolean | null
 }
 
 interface VisualAsset {
@@ -73,6 +91,7 @@ interface RoundtableInput {
   characterRelationships?: CharacterRelationship[]
   seriesSoraSettings?: SeriesSoraSettings
   characterContext?: string
+  segmentContext?: SegmentVisualState // Phase 2: Visual state from previous segment
   userId: string
 }
 
@@ -92,7 +111,7 @@ interface RoundtableResult {
 }
 
 export async function runAgentRoundtable(input: RoundtableInput): Promise<RoundtableResult> {
-  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext } = input
+  const { brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext, segmentContext } = input
 
   // Round 1: Parallel agent responses
   const agents: AgentName[] = [
@@ -105,7 +124,7 @@ export async function runAgentRoundtable(input: RoundtableInput): Promise<Roundt
   ]
 
   const round1Promises = agents.map(agent =>
-    callAgent(agent, brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext)
+    callAgent(agent, brief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext, segmentContext)
   )
 
   const round1Responses = await Promise.all(round1Promises)
@@ -183,13 +202,21 @@ async function callAgent(
   visualAssets?: VisualAsset[],
   characterRelationships?: CharacterRelationship[],
   seriesSoraSettings?: SeriesSoraSettings,
-  characterContext?: string
+  characterContext?: string,
+  segmentContext?: SegmentVisualState
 ): Promise<AgentResponse> {
   const systemPrompt = agentSystemPrompts[agentName]
 
   let userMessage = `Brief: ${brief}\nPlatform: ${platform}`
 
-  // Inject character consistency context BEFORE user brief
+  // Phase 2: Inject visual continuity context from previous segment FIRST
+  // This ensures continuity is top priority for agents
+  if (segmentContext) {
+    const continuityContext = buildContinuityContext(segmentContext)
+    userMessage += `\n\n${continuityContext}`
+  }
+
+  // Inject character consistency context AFTER continuity context
   if (characterContext) {
     userMessage += characterContext
   }
@@ -573,7 +600,7 @@ export async function runAdvancedRoundtable(input: AdvancedRoundtableInput): Pro
   ]
 
   const round1Promises = agents.map(agent =>
-    callAgent(agent, enhancedBrief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext)
+    callAgent(agent, enhancedBrief, platform, visualTemplate, seriesCharacters, seriesSettings, visualAssets, characterRelationships, seriesSoraSettings, characterContext, input.segmentContext)
   )
 
   const round1Responses = await Promise.all(round1Promises)

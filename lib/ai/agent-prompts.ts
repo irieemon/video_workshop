@@ -1,4 +1,4 @@
-import { AgentName } from '../types/database.types'
+import { AgentName } from './agent-types'
 
 export const agentSystemPrompts: Record<AgentName, string> = {
   director: `You are the SCENE SETUP SPECIALIST for Scenra cinematic narrative prompts.

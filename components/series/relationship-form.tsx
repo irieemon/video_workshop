@@ -24,9 +24,9 @@ interface Relationship {
   id: string
   character_a_id: string
   character_b_id: string
-  relationship_type: RelationshipType
+  relationship_type: string
   custom_label: string | null
-  is_symmetric: boolean
+  is_symmetric: boolean | null
   description: string | null
   intensity: number | null
 }
@@ -74,9 +74,9 @@ export function RelationshipForm({
       setFormData({
         character_a_id: editingRelationship.character_a_id,
         character_b_id: editingRelationship.character_b_id,
-        relationship_type: editingRelationship.relationship_type,
+        relationship_type: editingRelationship.relationship_type as RelationshipType,
         custom_label: editingRelationship.custom_label || '',
-        is_symmetric: editingRelationship.is_symmetric,
+        is_symmetric: editingRelationship.is_symmetric ?? true,
         description: editingRelationship.description || '',
         intensity: editingRelationship.intensity?.toString() || '',
       })

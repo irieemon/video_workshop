@@ -219,12 +219,10 @@ export default function NewVideoPage() {
           shots.push(currentShot as Shot)
         }
         currentShot = {
-          id: `shot-${shots.length + 1}`,
-          shotNumber: shots.length + 1,
+          timing: `${shots.length * 4}-${(shots.length + 1) * 4}s`,
+          order: shots.length + 1,
           description: trimmed.replace(/^\d+\.\s*/, ''),
-          cameraAngle: '',
-          cameraMovement: '',
-          duration: '4s',
+          camera: '',
         }
       } else if (currentShot) {
         // Add to current shot description

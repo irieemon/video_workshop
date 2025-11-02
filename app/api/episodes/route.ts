@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { Episode, EpisodeStatus } from '@/lib/types/database.types'
+import type { Episode } from '@/lib/types/database.types'
 
 /**
  * GET /api/episodes?seriesId=xxx

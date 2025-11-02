@@ -271,11 +271,11 @@ export function SegmentList({
             <CardContent className="pt-0">
               <div className="space-y-2 text-sm">
                 {/* Dialogue */}
-                {segment.dialogue_lines && segment.dialogue_lines.length > 0 && (
+                {(segment.dialogue_lines as any) && (segment.dialogue_lines as any).length > 0 && (
                   <div>
                     <span className="font-medium text-muted-foreground">Dialogue:</span>
                     <div className="mt-1 space-y-1">
-                      {segment.dialogue_lines.map((line: any, idx: number) => (
+                      {(segment.dialogue_lines as any).map((line: any, idx: number) => (
                         <div key={idx} className="text-sm">
                           <span className="font-medium">{line.character}:</span>{' '}
                           <span className="text-muted-foreground">
@@ -332,7 +332,7 @@ export function SegmentList({
   )
 }
 
-function getStatusLabel(status: string): string {
+function getStatusLabel(status: string | null): string {
   switch (status) {
     case 'pending':
       return 'Pending'
@@ -345,6 +345,6 @@ function getStatusLabel(status: string): string {
     case 'error':
       return 'Error'
     default:
-      return status
+      return status || 'Unknown'
   }
 }

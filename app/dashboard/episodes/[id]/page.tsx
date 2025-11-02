@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Play, Plus, FileText, Video } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ArrowLeft, Play, Plus, FileText, Video, ListOrdered } from 'lucide-react'
 import Link from 'next/link'
+import { EpisodeSegmentsTab } from '@/components/segments/episode-segments-tab'
 
 interface Video {
   id: string
@@ -97,108 +99,140 @@ export default async function EpisodeDetailPage({
         )}
       </div>
 
-      {/* Episode Details */}
-      {episode.screenplay_text && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-scenra-amber" />
-              Screenplay
-            </CardTitle>
-            <CardDescription>
-              {Math.round(episode.screenplay_text.length / 1000)}k characters
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-96 overflow-y-auto rounded-md bg-scenra-dark-panel p-4">
-              <pre className="whitespace-pre-wrap text-sm text-scenra-gray font-mono">
-                {episode.screenplay_text}
-              </pre>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Tabbed Content */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="videos" className="flex items-center gap-2">
+            <Video className="h-4 w-4" />
+            <span className="hidden sm:inline">Videos</span>
+          </TabsTrigger>
+          <TabsTrigger value="segments" className="flex items-center gap-2">
+            <ListOrdered className="h-4 w-4" />
+            <span className="hidden sm:inline">Segments</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Videos Section */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-scenra-light flex items-center gap-2">
-            <Video className="h-6 w-6 text-scenra-amber" />
-            Videos ({episodeVideos.length})
-          </h2>
-          <Button asChild className="bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
-            <Link href={`/dashboard/projects/new?episodeId=${episodeId}`}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Video
-            </Link>
-          </Button>
-        </div>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {episode.screenplay_text && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-scenra-amber" />
+                  Screenplay
+                </CardTitle>
+                <CardDescription>
+                  {Math.round(episode.screenplay_text.length / 1000)}k characters
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto rounded-md bg-scenra-dark-panel p-4">
+                  <pre className="whitespace-pre-wrap text-sm text-scenra-gray font-mono">
+                    {episode.screenplay_text}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
-        {episodeVideos.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Video className="h-12 w-12 text-scenra-gray mx-auto mb-4 opacity-50" />
-              <p className="text-scenra-gray mb-4">No videos created for this episode yet</p>
+        {/* Videos Tab */}
+        <TabsContent value="videos" className="space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-scenra-light flex items-center gap-2">
+                <Video className="h-6 w-6 text-scenra-amber" />
+                Videos ({episodeVideos.length})
+              </h2>
               <Button asChild className="bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
                 <Link href={`/dashboard/projects/new?episodeId=${episodeId}`}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Video
+                  Create Video
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {episodeVideos.map((video) => (
-              <Card key={video.id} className="hover:border-scenra-amber transition-colors">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <CardTitle className="text-base line-clamp-2 text-scenra-light">
-                      {video.title}
-                    </CardTitle>
-                    <Badge className={
-                      video.status === 'published'
-                        ? 'bg-green-600'
-                        : video.status === 'generated'
-                        ? 'bg-scenra-amber text-scenra-dark'
-                        : 'bg-gray-600'
-                    }>
-                      {video.status}
-                    </Badge>
-                  </div>
-                  <CardDescription className="line-clamp-2 text-scenra-gray">
-                    {video.optimized_prompt}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-xs text-scenra-gray mb-3">
-                    <span>{video.character_count} chars</span>
-                    {video.platform && (
-                      <Badge variant="outline" className="text-xs">
-                        {video.platform}
-                      </Badge>
-                    )}
-                  </div>
-                  {video.sora_video_url ? (
-                    <Button asChild size="sm" className="w-full bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
-                      <Link href={`/dashboard/projects/videos/${video.id}`}>
-                        <Play className="mr-2 h-3 w-3" />
-                        View Video
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button asChild size="sm" variant="outline" className="w-full border-scenra-amber/40 text-scenra-light hover:bg-scenra-amber/10">
-                      <Link href={`/dashboard/projects/videos/${video.id}`}>
-                        View Details
-                      </Link>
-                    </Button>
-                  )}
+            </div>
+
+            {episodeVideos.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Video className="h-12 w-12 text-scenra-gray mx-auto mb-4 opacity-50" />
+                  <p className="text-scenra-gray mb-4">No videos created for this episode yet</p>
+                  <Button asChild className="bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
+                    <Link href={`/dashboard/projects/new?episodeId=${episodeId}`}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Your First Video
+                    </Link>
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {episodeVideos.map((video) => (
+                  <Card key={video.id} className="hover:border-scenra-amber transition-colors">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <CardTitle className="text-base line-clamp-2 text-scenra-light">
+                          {video.title}
+                        </CardTitle>
+                        <Badge className={
+                          video.status === 'published'
+                            ? 'bg-green-600'
+                            : video.status === 'generated'
+                            ? 'bg-scenra-amber text-scenra-dark'
+                            : 'bg-gray-600'
+                        }>
+                          {video.status}
+                        </Badge>
+                      </div>
+                      <CardDescription className="line-clamp-2 text-scenra-gray">
+                        {video.optimized_prompt}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between text-xs text-scenra-gray mb-3">
+                        <span>{video.character_count} chars</span>
+                        {video.platform && (
+                          <Badge variant="outline" className="text-xs">
+                            {video.platform}
+                          </Badge>
+                        )}
+                      </div>
+                      {video.sora_video_url ? (
+                        <Button asChild size="sm" className="w-full bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
+                          <Link href={`/dashboard/projects/videos/${video.id}`}>
+                            <Play className="mr-2 h-3 w-3" />
+                            View Video
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild size="sm" variant="outline" className="w-full border-scenra-amber/40 text-scenra-light hover:bg-scenra-amber/10">
+                          <Link href={`/dashboard/projects/videos/${video.id}`}>
+                            View Details
+                          </Link>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+
+        {/* Segments Tab */}
+        <TabsContent value="segments" className="space-y-6">
+          <EpisodeSegmentsTab
+            episodeId={episodeId}
+            seriesId={episode.series.id}
+            episodeTitle={episode.title}
+            screenplay={episode.screenplay_text}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -282,11 +282,11 @@ export function SegmentDetailDrawer({
             <h3 className="font-semibold">Screenplay Content</h3>
 
             {/* Dialogue */}
-            {segment.dialogue_lines && segment.dialogue_lines.length > 0 && (
+            {(segment.dialogue_lines as any) && (segment.dialogue_lines as any).length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-muted-foreground">Dialogue</h4>
                 <div className="space-y-2 rounded-lg border p-3">
-                  {segment.dialogue_lines.map((line: any, idx: number) => (
+                  {(segment.dialogue_lines as any).map((line: any, idx: number) => (
                     <div key={idx} className="space-y-1">
                       <p className="font-semibold text-sm">{line.character}</p>
                       <p className="text-sm text-muted-foreground pl-4">

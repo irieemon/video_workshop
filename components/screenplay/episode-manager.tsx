@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Film, Plus, Edit, Trash2, Eye, Video } from 'lucide-react'
+import { Film, Plus, Edit, Trash2, Eye, Video, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 import { ScreenplayChat } from './screenplay-chat'
 import { ScreenplayViewer } from './screenplay-viewer'
 import { EpisodeVideoGenerator } from '@/components/episodes'
@@ -119,14 +120,14 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     const colors: Record<string, string> = {
       concept: 'bg-gray-100 text-gray-800',
       draft: 'bg-blue-100 text-blue-800',
       'in-progress': 'bg-yellow-100 text-yellow-800',
       complete: 'bg-green-100 text-green-800',
     }
-    return colors[status] || 'bg-gray-100 text-gray-800'
+    return colors[status || ''] || 'bg-gray-100 text-gray-800'
   }
 
   if (loading) {
@@ -199,6 +200,17 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
                         <div className="flex gap-2">
                           <Button
                             size="sm"
+                            variant="default"
+                            asChild
+                            title="View episode details"
+                          >
+                            <Link href={`/dashboard/episodes/${episode.id}`}>
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              Details
+                            </Link>
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="ghost"
                             onClick={() => {
                               setViewingEpisode(episode)
@@ -252,18 +264,18 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
                       )}
 
                       {/* Structured Content */}
-                      {episode.structured_screenplay && episode.structured_screenplay.scenes && (
+                      {episode.structured_screenplay && (episode.structured_screenplay as any).scenes && (
                         <div className="mb-3">
                           <h4 className="text-sm font-semibold mb-2">Structure</h4>
                           <div className="flex gap-2">
                             <Badge variant="outline">
-                              {episode.structured_screenplay.acts?.length || 0} Acts
+                              {(episode.structured_screenplay as any).acts?.length || 0} Acts
                             </Badge>
                             <Badge variant="outline">
-                              {episode.structured_screenplay.scenes?.length || 0} Scenes
+                              {(episode.structured_screenplay as any).scenes?.length || 0} Scenes
                             </Badge>
                             <Badge variant="outline">
-                              {episode.structured_screenplay.beats?.length || 0} Beats
+                              {(episode.structured_screenplay as any).beats?.length || 0} Beats
                             </Badge>
                           </div>
                         </div>
@@ -271,7 +283,7 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
 
                       {/* Last Updated */}
                       <div className="text-xs text-muted-foreground mt-3 pt-3 border-t">
-                        Last updated: {new Date(episode.updated_at).toLocaleString()}
+                        Last updated: {episode.updated_at ? new Date(episode.updated_at).toLocaleString() : 'Never'}
                       </div>
                     </CardContent>
                   </Card>
@@ -298,7 +310,7 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
           selectedEpisode
             ? {
                 episode_number: selectedEpisode.episode_number,
-                season_number: selectedEpisode.season_number,
+                season_number: selectedEpisode.season_number || 1,
                 title: selectedEpisode.title,
                 logline: selectedEpisode.logline || '',
                 plot_summary: selectedEpisode.screenplay_text || '',
@@ -330,7 +342,7 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
               projectId={projectId}
               episodeTitle={generatingVideoFor.title}
               episodeNumber={generatingVideoFor.episode_number}
-              seasonNumber={generatingVideoFor.season_number}
+              seasonNumber={generatingVideoFor.season_number || undefined}
               storyBeat={generatingVideoFor.story_beat || undefined}
               emotionalArc={generatingVideoFor.emotional_arc || undefined}
               onVideoCreated={(videoId) => {

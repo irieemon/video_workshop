@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { runAgentRoundtable } from '@/lib/ai/agent-orchestrator'
+import { runAgentRoundtable, VisualTemplate } from '@/lib/ai/agent-orchestrator'
 import { fetchCompleteSeriesContext, formatSeriesContextForAgents } from '@/lib/services/series-context'
 import { generateCharacterPromptBlock } from '@/lib/types/character-consistency'
 import { extractVisualState, SegmentVisualState } from '@/lib/ai/visual-state-extractor'
@@ -124,18 +124,18 @@ export async function POST(
     // Build segment-specific brief
     const segmentBrief = buildSegmentBrief(segment, includePrecedingContext)
 
-    // Determine platform (segment -> series -> default)
-    const videoPlatform = platform || completeContext.series.visual_style?.default_platform || 'tiktok'
+    // Determine platform (from request or default to tiktok)
+    const videoPlatform = platform || 'tiktok'
 
     // Run agent roundtable with segment context (Phase 2: includes visual state)
     const roundtableResult = await runAgentRoundtable({
       brief: segmentBrief,
       platform: videoPlatform,
-      visualTemplate: completeContext.series.visual_template,
+      visualTemplate: completeContext.series.visual_template ? completeContext.series.visual_template as VisualTemplate : undefined,
       seriesCharacters: completeContext.characters,
       seriesSettings: completeContext.settings,
       visualAssets: completeContext.visualAssets,
-      characterRelationships: completeContext.characterRelationships,
+      characterRelationships: completeContext.relationships,
       seriesSoraSettings: {
         sora_camera_style: completeContext.series.sora_camera_style,
         sora_lighting_mood: completeContext.series.sora_lighting_mood,
@@ -144,7 +144,6 @@ export async function POST(
         sora_narrative_prefix: completeContext.series.sora_narrative_prefix,
       },
       characterContext,
-      seriesContext,
       segmentContext: precedingVisualState, // Phase 2: Visual continuity context
       userId: user.id,
     })

@@ -282,7 +282,7 @@ export function validateStructuredScreenplay(screenplay: StructuredScreenplay): 
       warnings.push('No narrative beats defined. Consider adding beats for better story structure.')
     }
 
-    if (screenplay.acts.length === 0) {
+    if (!screenplay.acts || screenplay.acts.length === 0) {
       warnings.push('No acts defined. Consider organizing scenes into acts for better structure.')
     }
   }

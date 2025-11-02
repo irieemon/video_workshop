@@ -34,6 +34,8 @@ export function parseScreenplayText(screenplayText: string): StructuredScreenpla
   )
 
   return {
+    title: '',
+    logline: '',
     scenes,
     acts: extractActs(lines),
     beats: [],
