@@ -48,3 +48,6 @@ run-*.sh
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# UX Analysis Screenshots
+ux-screenshots/

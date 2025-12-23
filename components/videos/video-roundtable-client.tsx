@@ -50,7 +50,6 @@ export function VideoRoundtableClient({
           brief: video.user_brief,
           platform: video.platform,
           seriesId: video.series_id,
-          projectId: video.series_id, // Using series_id as projectId for compatibility
           selectedCharacters: video.series_characters_used || undefined,
           selectedSettings: video.series_settings_used || undefined,
         }),

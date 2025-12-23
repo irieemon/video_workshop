@@ -33,15 +33,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeData } = body
+    const { brief, platform, seriesId, selectedCharacters, selectedSettings, episodeData } = body
 
     // Validate required fields
-    if (!brief || !platform || !projectId) {
+    if (!brief || !platform) {
       return new Response(
         encoder.encode(
           JSON.stringify({
             type: 'error',
-            data: { message: 'Missing required fields: brief, platform, projectId' },
+            data: { message: 'Missing required fields: brief, platform' },
           }) + '\n'
         ),
         {

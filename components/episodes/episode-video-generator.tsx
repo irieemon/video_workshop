@@ -62,7 +62,6 @@ interface RoundtableResult {
 interface EpisodeVideoGeneratorProps {
   episodeId: string
   seriesId: string
-  projectId: string
   episodeTitle: string
   episodeNumber?: number
   seasonNumber?: number
@@ -74,7 +73,6 @@ interface EpisodeVideoGeneratorProps {
 export function EpisodeVideoGenerator({
   episodeId,
   seriesId,
-  projectId,
   episodeTitle,
   episodeNumber,
   seasonNumber,
@@ -146,9 +144,9 @@ export function EpisodeVideoGenerator({
         body: JSON.stringify({
           brief,
           platform,
-          projectId,
-          episodeId, // NEW: Auto-fetch series context from episode
-          // Note: No need to pass seriesId, selectedCharacters, selectedSettings
+          episodeId, // Auto-fetch series context from episode
+          seriesId,
+          // Note: No need to pass selectedCharacters, selectedSettings
           // These are automatically fetched via the episodeId
         }),
       })
@@ -189,8 +187,8 @@ export function EpisodeVideoGenerator({
         body: JSON.stringify({
           brief: enhancedBrief,
           platform,
-          projectId,
           episodeId,
+          seriesId,
         }),
       })
 
@@ -228,7 +226,6 @@ export function EpisodeVideoGenerator({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId,
           seriesId,
           episodeId,
           title: videoTitle,
@@ -280,7 +277,7 @@ export function EpisodeVideoGenerator({
 
   const handleViewVideo = () => {
     if (savedVideoId) {
-      router.push(`/dashboard/projects/${projectId}/videos/${savedVideoId}`)
+      router.push(`/dashboard/videos/${savedVideoId}`)
     }
   }
 

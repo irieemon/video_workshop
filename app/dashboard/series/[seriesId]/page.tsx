@@ -98,7 +98,6 @@ export default async function StandaloneSeriesDetailPage({
         <SeriesEpisodesCoordinator
           seriesId={seriesId}
           seriesName={series.name}
-          projectId={series.project_id}
           seasons={series.screenplay_data?.seasons}
         />
 

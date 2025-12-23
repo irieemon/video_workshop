@@ -2,10 +2,20 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Film, Send, Loader2 } from 'lucide-react'
+import { Film, Send, Loader2, Save, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Message {
@@ -51,6 +61,9 @@ export function ScreenplayChat({
   const [episodeId, setEpisodeId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [messageCountAtLastSave, setMessageCountAtLastSave] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -111,6 +124,16 @@ export function ScreenplayChat({
     }
   }, [])
 
+  // Track unsaved changes - compare message count to last saved count
+  useEffect(() => {
+    // Only mark as unsaved if we have more messages than at last save
+    // and we have at least one assistant response (initial message doesn't count)
+    const assistantMessages = messages.filter(m => m.role === 'assistant').length
+    if (assistantMessages > 0 && messages.length > messageCountAtLastSave) {
+      setHasUnsavedChanges(true)
+    }
+  }, [messages, messageCountAtLastSave])
+
   const startSession = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -161,6 +184,9 @@ export function ScreenplayChat({
       setInput('')
       setIsUserScrolling(false)
       setLastSaved(null)
+      setHasUnsavedChanges(false)
+      setMessageCountAtLastSave(0)
+      setShowCloseConfirm(false)
     }
   }, [open, sessionId, startSession])
 
@@ -267,8 +293,8 @@ export function ScreenplayChat({
     }
   }
 
-  const saveProgress = async () => {
-    if (!episodeId || isSaving) return
+  const saveProgress = async (): Promise<boolean> => {
+    if (!episodeId || isSaving) return false
 
     setIsSaving(true)
     try {
@@ -292,47 +318,116 @@ export function ScreenplayChat({
       }
 
       setLastSaved(new Date())
+      setMessageCountAtLastSave(messages.length)
+      setHasUnsavedChanges(false)
+      return true
     } catch (error: any) {
       console.error('Failed to save progress:', error)
       alert('Failed to save progress. Please try again.')
+      return false
     } finally {
       setIsSaving(false)
     }
   }
 
+  // Handle close request - show confirmation if unsaved changes
+  const handleCloseRequest = () => {
+    if (hasUnsavedChanges && messages.length > 1) {
+      setShowCloseConfirm(true)
+    } else {
+      onClose()
+    }
+  }
+
+  // Save and close the dialog
+  const handleSaveAndClose = async () => {
+    const saved = await saveProgress()
+    if (saved) {
+      setShowCloseConfirm(false)
+      onClose()
+    }
+  }
+
+  // Discard changes and close
+  const handleDiscardAndClose = () => {
+    setShowCloseConfirm(false)
+    setHasUnsavedChanges(false)
+    onClose()
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <Film className="h-5 w-5" />
-                Screenplay Writer
-              </DialogTitle>
-              <DialogDescription>
-                {seriesName} - Professional screenplay structure
-              </DialogDescription>
-            </div>
-            {episodeId && (
+    <>
+      {/* Unsaved changes confirmation dialog */}
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved work in this screenplay session. Would you like to save your progress before closing?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscardAndClose}>
+              Discard
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSaveAndClose}
+              disabled={isSaving || !episodeId}
+            >
+              {isSaving ? 'Saving...' : 'Save & Close'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={open} onOpenChange={handleCloseRequest}>
+        <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Film className="h-5 w-5" />
+                  Screenplay Writer
+                </DialogTitle>
+                <DialogDescription>
+                  {seriesName} - Professional screenplay structure
+                </DialogDescription>
+              </div>
               <div className="flex items-center gap-2">
                 {lastSaved && (
                   <span className="text-xs text-muted-foreground">
                     Saved {lastSaved.toLocaleTimeString()}
                   </span>
                 )}
-                <Button
-                  onClick={saveProgress}
-                  disabled={isSaving || !messages.length}
-                  variant="outline"
-                  size="sm"
-                >
-                  {isSaving ? 'Saving...' : 'Save Progress'}
-                </Button>
+                {hasUnsavedChanges && !lastSaved && (
+                  <span className="text-xs text-amber-500">
+                    Unsaved changes
+                  </span>
+                )}
+                {episodeId && (
+                  <>
+                    <Button
+                      onClick={() => saveProgress()}
+                      disabled={isSaving || !messages.length || !hasUnsavedChanges}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      onClick={handleSaveAndClose}
+                      disabled={isSaving || !messages.length}
+                      variant="default"
+                      size="sm"
+                    >
+                      {isSaving ? 'Saving...' : 'Save & Close'}
+                    </Button>
+                  </>
+                )}
               </div>
-            )}
-          </div>
-        </DialogHeader>
+            </div>
+          </DialogHeader>
 
         {/* Messages */}
         <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
@@ -398,11 +493,12 @@ export function ScreenplayChat({
           </Button>
         </div>
 
-        {/* Helper text */}
-        <div className="text-xs text-scenra-gray text-center">
-          The screenplay agent will guide you through professional story structure
-        </div>
-      </DialogContent>
-    </Dialog>
+          {/* Helper text */}
+          <div className="text-xs text-scenra-gray text-center">
+            The screenplay agent will guide you through professional story structure
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

@@ -19,7 +19,6 @@ import { useRouter } from 'next/navigation'
 interface EpisodeManagerProps {
   seriesId: string
   seriesName: string
-  projectId?: string | null
 }
 
 export interface EpisodeManagerHandle {
@@ -27,7 +26,7 @@ export interface EpisodeManagerHandle {
 }
 
 export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerProps>(
-  function EpisodeManager({ seriesId, seriesName, projectId }, ref) {
+  function EpisodeManager({ seriesId, seriesName }, ref) {
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null)
@@ -70,7 +69,24 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
   }, [loadEpisodes])
 
   const handleCreateEpisode = () => {
-    setSelectedEpisode(null)
+    // Calculate next episode number
+    const maxEpisodeNum = episodes.reduce((max, ep) => Math.max(max, ep.episode_number || 0), 0)
+    const nextEpisodeNum = maxEpisodeNum + 1
+
+    // Create a placeholder episode object so the API creates an episode record
+    // This ensures episodeId is available for saving
+    setSelectedEpisode({
+      id: '', // Will be created by API
+      series_id: seriesId,
+      user_id: '',
+      episode_number: nextEpisodeNum,
+      season_number: 1,
+      title: `Episode ${nextEpisodeNum}`,
+      logline: '',
+      status: 'draft',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Episode)
     setChatOpen(true)
   }
 
@@ -228,19 +244,17 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          {projectId && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setGeneratingVideoFor(episode)
-                                setVideoGenOpen(true)
-                              }}
-                              title="Generate video"
-                            >
-                              <Video className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setGeneratingVideoFor(episode)
+                              setVideoGenOpen(true)
+                            }}
+                            title="Generate video"
+                          >
+                            <Video className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -333,13 +347,12 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
       )}
 
       {/* Video Generator Modal */}
-      {generatingVideoFor && projectId && (
+      {generatingVideoFor && (
         <Dialog open={videoGenOpen} onOpenChange={setVideoGenOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <EpisodeVideoGenerator
               episodeId={generatingVideoFor.id}
               seriesId={seriesId}
-              projectId={projectId}
               episodeTitle={generatingVideoFor.title}
               episodeNumber={generatingVideoFor.episode_number}
               seasonNumber={generatingVideoFor.season_number || undefined}
@@ -353,7 +366,7 @@ export const EpisodeManager = forwardRef<EpisodeManagerHandle, EpisodeManagerPro
                   description: 'Video prompt generated successfully. Redirecting...',
                 })
                 // Navigate to video detail page
-                router.push(`/dashboard/projects/${projectId}/videos/${videoId}`)
+                router.push(`/dashboard/videos/${videoId}`)
               }}
             />
           </DialogContent>

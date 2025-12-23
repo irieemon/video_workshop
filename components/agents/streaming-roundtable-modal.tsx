@@ -30,7 +30,6 @@ interface StreamingRoundtableModalProps {
   brief: string
   platform: string
   seriesId?: string
-  projectId: string
   selectedCharacters?: string[]
   selectedSettings?: string[]
   episodeData?: any  // Episode data including screenplay context
@@ -125,7 +124,6 @@ export function StreamingRoundtableModal({
   brief,
   platform,
   seriesId,
-  projectId,
   selectedCharacters,
   selectedSettings,
   episodeData,
@@ -335,7 +333,6 @@ export function StreamingRoundtableModal({
           brief,
           platform,
           seriesId,
-          projectId,
           selectedCharacters,
           selectedSettings,
           episodeData,  // Include screenplay context
@@ -392,7 +389,7 @@ export function StreamingRoundtableModal({
     } catch (err: any) {
       console.error('Streaming error:', err)
     }
-  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeData, handleEvent])
+  }, [brief, platform, seriesId, selectedCharacters, selectedSettings, episodeData, handleEvent])
 
   useEffect(() => {
     // If in review mode, load saved conversation

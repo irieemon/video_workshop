@@ -17,33 +17,8 @@ export const paginationSchema = z.object({
 });
 
 // ============================================================
-// PROJECT SCHEMAS
+// (REMOVED: PROJECT SCHEMAS - Projects entity deprecated)
 // ============================================================
-
-export const createProjectSchema = z.object({
-  name: z.string()
-    .min(1, 'Project name is required')
-    .max(100, 'Project name must be less than 100 characters')
-    .trim(),
-  description: z.string()
-    .max(500, 'Description must be less than 500 characters')
-    .trim()
-    .optional()
-    .nullable(),
-});
-
-export const updateProjectSchema = z.object({
-  name: z.string()
-    .min(1, 'Project name is required')
-    .max(100, 'Project name must be less than 100 characters')
-    .trim()
-    .optional(),
-  description: z.string()
-    .max(500, 'Description must be less than 500 characters')
-    .trim()
-    .optional()
-    .nullable(),
-});
 
 // ============================================================
 // VIDEO SCHEMAS
@@ -232,7 +207,6 @@ export const agentRoundtableSchema = z.object({
   platform: platformSchema,
   seriesId: uuidSchema.optional().nullable(),
   episodeId: uuidSchema.optional().nullable(), // Auto-fetch series context from episode
-  projectId: uuidSchema.optional().nullable(), // Optional project association
   selectedCharacters: z.array(uuidSchema).optional().default([]),
   selectedSettings: z.array(uuidSchema).optional().default([]),
 });

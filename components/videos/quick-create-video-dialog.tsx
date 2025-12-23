@@ -40,10 +40,14 @@ interface QuickCreateVideoDialogProps {
   defaultOpen?: boolean
 }
 
+// Special value to indicate standalone video (no series)
+const STANDALONE_VALUE = '__standalone__'
+
 export function QuickCreateVideoDialog({ children, defaultOpen = false }: QuickCreateVideoDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(defaultOpen)
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>('')
+  const [standaloneSeriesId, setStandaloneSeriesId] = useState<string | null>(null)
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
   const [selectedSettings, setSelectedSettings] = useState<string[]>([])
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null)
@@ -63,16 +67,33 @@ export function QuickCreateVideoDialog({ children, defaultOpen = false }: QuickC
     },
   })
 
+  // Fetch standalone series ID (lazy - only when needed)
+  const fetchStandaloneSeriesId = async (): Promise<string> => {
+    if (standaloneSeriesId) return standaloneSeriesId
+    const response = await fetch('/api/series/standalone')
+    if (!response.ok) throw new Error('Failed to fetch standalone series')
+    const data = await response.json()
+    setStandaloneSeriesId(data.id)
+    return data.id
+  }
+
   // Get last used series from localStorage and set as default
   useEffect(() => {
-    if (seriesData && seriesData.length > 0 && !selectedSeriesId) {
+    if (seriesData && !selectedSeriesId) {
       const lastUsedSeriesId = localStorage.getItem('lastUsedSeriesId')
-      if (lastUsedSeriesId && seriesData.some((s) => s.id === lastUsedSeriesId)) {
+
+      // Check if last used was standalone
+      if (lastUsedSeriesId === STANDALONE_VALUE) {
+        setSelectedSeriesId(STANDALONE_VALUE)
+      } else if (lastUsedSeriesId && seriesData.some((s) => s.id === lastUsedSeriesId)) {
         setSelectedSeriesId(lastUsedSeriesId)
-      } else {
-        // Default to first non-system series or standalone
+      } else if (seriesData.length > 0) {
+        // Default to first series if available
         const firstSeries = seriesData.find((s) => !s.is_system) || seriesData[0]
-        setSelectedSeriesId(firstSeries?.id || '')
+        setSelectedSeriesId(firstSeries?.id || STANDALONE_VALUE)
+      } else {
+        // No series exist, default to standalone
+        setSelectedSeriesId(STANDALONE_VALUE)
       }
     }
   }, [seriesData, selectedSeriesId])
@@ -119,15 +140,21 @@ export function QuickCreateVideoDialog({ children, defaultOpen = false }: QuickC
     setIsSubmitting(true)
 
     try {
-      // Store last used series
+      // Store last used series (or standalone indicator)
       localStorage.setItem('lastUsedSeriesId', selectedSeriesId)
+
+      // Resolve actual series_id (fetch standalone series ID if needed)
+      const actualSeriesId =
+        selectedSeriesId === STANDALONE_VALUE
+          ? await fetchStandaloneSeriesId()
+          : selectedSeriesId
 
       // Create video via API
       const response = await fetch('/api/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          series_id: selectedSeriesId,
+          series_id: actualSeriesId,
           episode_id: selectedEpisodeId || undefined,
           title: brief.substring(0, 100), // Use first 100 chars as title
           user_brief: brief,
@@ -161,7 +188,7 @@ export function QuickCreateVideoDialog({ children, defaultOpen = false }: QuickC
   }
 
   const selectedSeries = seriesData?.find((s) => s.id === selectedSeriesId)
-  const isStandalone = selectedSeries?.is_system
+  const isStandalone = selectedSeriesId === STANDALONE_VALUE || selectedSeries?.is_system
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -202,11 +229,16 @@ export function QuickCreateVideoDialog({ children, defaultOpen = false }: QuickC
                         <SelectValue placeholder="Select a series" />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* Standalone option - always first */}
+                        <SelectItem value={STANDALONE_VALUE}>
+                          📹 No Series (Standalone)
+                        </SelectItem>
+
+                        {/* User's series */}
                         {seriesData?.map((series) => (
                           <SelectItem key={series.id} value={series.id}>
-                            {series.is_system ? '📹 ' : '🎬 '}
-                            {series.name}
-                            {series.genre && !series.is_system && (
+                            🎬 {series.name}
+                            {series.genre && (
                               <span className="text-xs text-muted-foreground ml-2">
                                 ({series.genre})
                               </span>
@@ -258,11 +290,11 @@ export function QuickCreateVideoDialog({ children, defaultOpen = false }: QuickC
                   </div>
                 )}
 
-                {selectedSeries && (
+                {selectedSeriesId && (
                   <p className="text-xs text-muted-foreground">
                     {isStandalone
-                      ? 'This video won\'t be part of a series'
-                      : `Video will be added to "${selectedSeries.name}" series`}
+                      ? 'This video won\'t be part of any series'
+                      : `Video will be added to "${selectedSeries?.name}" series`}
                   </p>
                 )}
               </div>

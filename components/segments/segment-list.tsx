@@ -119,7 +119,7 @@ export function SegmentList({
   }
 
   const handleViewVideo = (videoId: string) => {
-    window.location.href = `/dashboard/projects/${seriesId}/videos/${videoId}`
+    window.location.href = `/dashboard/videos/${videoId}`
   }
 
   // Format duration to fix floating-point precision

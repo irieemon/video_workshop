@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Sparkles, Video, Loader2, ArrowLeft } from 'lucide-react'
+import { Plus, Sparkles, Video, Loader2, ArrowLeft, Check } from 'lucide-react'
 import { CharacterSelector } from '@/components/videos/character-selector'
 import { SettingsSelector } from '@/components/videos/settings-selector'
 import { EpisodeSelectorDropdown } from '@/components/videos/episode-selector-dropdown'
@@ -28,9 +28,13 @@ interface Series {
   is_system: boolean
 }
 
+// Special value to indicate standalone video (no series)
+const STANDALONE_VALUE = '__standalone__'
+
 export default function NewVideoPage() {
   const router = useRouter()
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>('')
+  const [standaloneSeriesId, setStandaloneSeriesId] = useState<string | null>(null)
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
   const [selectedSettings, setSelectedSettings] = useState<string[]>([])
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null)
@@ -50,16 +54,33 @@ export default function NewVideoPage() {
     },
   })
 
+  // Fetch standalone series ID (lazy - only when needed)
+  const fetchStandaloneSeriesId = async (): Promise<string> => {
+    if (standaloneSeriesId) return standaloneSeriesId
+    const response = await fetch('/api/series/standalone')
+    if (!response.ok) throw new Error('Failed to fetch standalone series')
+    const data = await response.json()
+    setStandaloneSeriesId(data.id)
+    return data.id
+  }
+
   // Get last used series from localStorage and set as default
   useEffect(() => {
-    if (seriesData && seriesData.length > 0 && !selectedSeriesId) {
+    if (seriesData && !selectedSeriesId) {
       const lastUsedSeriesId = localStorage.getItem('lastUsedSeriesId')
-      if (lastUsedSeriesId && seriesData.some((s) => s.id === lastUsedSeriesId)) {
+
+      // Check if last used was standalone
+      if (lastUsedSeriesId === STANDALONE_VALUE) {
+        setSelectedSeriesId(STANDALONE_VALUE)
+      } else if (lastUsedSeriesId && seriesData.some((s) => s.id === lastUsedSeriesId)) {
         setSelectedSeriesId(lastUsedSeriesId)
-      } else {
-        // Default to first non-system series or standalone
+      } else if (seriesData.length > 0) {
+        // Default to first series if available
         const firstSeries = seriesData.find((s) => !s.is_system) || seriesData[0]
-        setSelectedSeriesId(firstSeries?.id || '')
+        setSelectedSeriesId(firstSeries?.id || STANDALONE_VALUE)
+      } else {
+        // No series exist, default to standalone
+        setSelectedSeriesId(STANDALONE_VALUE)
       }
     }
   }, [seriesData, selectedSeriesId])
@@ -139,15 +160,21 @@ export default function NewVideoPage() {
     setIsSubmitting(true)
 
     try {
-      // Store last used series
+      // Store last used series (or standalone indicator)
       localStorage.setItem('lastUsedSeriesId', selectedSeriesId)
+
+      // Resolve actual series_id (fetch standalone series ID if needed)
+      const actualSeriesId =
+        selectedSeriesId === STANDALONE_VALUE
+          ? await fetchStandaloneSeriesId()
+          : selectedSeriesId
 
       // Create video via API
       const response = await fetch('/api/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          series_id: selectedSeriesId,
+          series_id: actualSeriesId,
           episode_id: selectedEpisodeId || undefined,
           title: brief.substring(0, 100), // Use first 100 chars as title
           user_brief: brief,
@@ -180,7 +207,7 @@ export default function NewVideoPage() {
   }
 
   const selectedSeries = seriesData?.find((s) => s.id === selectedSeriesId)
-  const isStandalone = selectedSeries?.is_system
+  const isStandalone = selectedSeriesId === STANDALONE_VALUE || selectedSeries?.is_system
 
   return (
     <div className="container max-w-4xl py-8">
@@ -224,11 +251,16 @@ export default function NewVideoPage() {
                           <SelectValue placeholder="Select a series" />
                         </SelectTrigger>
                         <SelectContent>
+                          {/* Standalone option - always first */}
+                          <SelectItem value={STANDALONE_VALUE}>
+                            📹 No Series (Standalone)
+                          </SelectItem>
+
+                          {/* User's series */}
                           {seriesData?.map((series) => (
                             <SelectItem key={series.id} value={series.id}>
-                              {series.is_system ? '📹 ' : '🎬 '}
-                              {series.name}
-                              {series.genre && !series.is_system && (
+                              🎬 {series.name}
+                              {series.genre && (
                                 <span className="text-xs text-muted-foreground ml-2">
                                   ({series.genre})
                                 </span>
@@ -280,11 +312,11 @@ export default function NewVideoPage() {
                     </div>
                   )}
 
-                  {selectedSeries && (
+                  {selectedSeriesId && (
                     <p className="text-xs text-muted-foreground">
                       {isStandalone
-                        ? 'This video won\'t be part of a series'
-                        : `Video will be added to "${selectedSeries.name}" series`}
+                        ? 'This video won\'t be part of any series'
+                        : `Video will be added to "${selectedSeries?.name}" series`}
                     </p>
                   )}
                 </div>
@@ -341,27 +373,33 @@ export default function NewVideoPage() {
 
             {/* Platform Selection */}
             <div className="space-y-2">
-              <Label>Platform</Label>
+              <Label>Platform <span className="text-red-500">*</span></Label>
               <div className="grid grid-cols-3 gap-2">
                 <Button
                   type="button"
                   variant={platform === 'tiktok' ? 'default' : 'outline'}
                   onClick={() => setPlatform('tiktok')}
+                  className={platform === 'tiktok' ? 'ring-2 ring-scenra-amber ring-offset-2 ring-offset-background' : ''}
                 >
+                  {platform === 'tiktok' && <Check className="h-4 w-4 mr-1" />}
                   TikTok
                 </Button>
                 <Button
                   type="button"
                   variant={platform === 'instagram' ? 'default' : 'outline'}
                   onClick={() => setPlatform('instagram')}
+                  className={platform === 'instagram' ? 'ring-2 ring-scenra-amber ring-offset-2 ring-offset-background' : ''}
                 >
+                  {platform === 'instagram' && <Check className="h-4 w-4 mr-1" />}
                   Instagram
                 </Button>
                 <Button
                   type="button"
                   variant={platform === 'both' ? 'default' : 'outline'}
                   onClick={() => setPlatform('both')}
+                  className={platform === 'both' ? 'ring-2 ring-scenra-amber ring-offset-2 ring-offset-background' : ''}
                 >
+                  {platform === 'both' && <Check className="h-4 w-4 mr-1" />}
                   Both
                 </Button>
               </div>

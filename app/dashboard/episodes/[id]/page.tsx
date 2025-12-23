@@ -149,7 +149,7 @@ export default async function EpisodeDetailPage({
                 Videos ({episodeVideos.length})
               </h2>
               <Button asChild className="bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
-                <Link href={`/dashboard/projects/new?episodeId=${episodeId}`}>
+                <Link href={`/dashboard/videos/new?episodeId=${episodeId}`}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Video
                 </Link>
@@ -162,7 +162,7 @@ export default async function EpisodeDetailPage({
                   <Video className="h-12 w-12 text-scenra-gray mx-auto mb-4 opacity-50" />
                   <p className="text-scenra-gray mb-4">No videos created for this episode yet</p>
                   <Button asChild className="bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
-                    <Link href={`/dashboard/projects/new?episodeId=${episodeId}`}>
+                    <Link href={`/dashboard/videos/new?episodeId=${episodeId}`}>
                       <Plus className="mr-2 h-4 w-4" />
                       Create Your First Video
                     </Link>
@@ -203,14 +203,14 @@ export default async function EpisodeDetailPage({
                       </div>
                       {video.sora_video_url ? (
                         <Button asChild size="sm" className="w-full bg-scenra-amber hover:bg-scenra-dark text-scenra-dark hover:text-scenra-light">
-                          <Link href={`/dashboard/projects/videos/${video.id}`}>
+                          <Link href={`/dashboard/videos/${video.id}`}>
                             <Play className="mr-2 h-3 w-3" />
                             View Video
                           </Link>
                         </Button>
                       ) : (
                         <Button asChild size="sm" variant="outline" className="w-full border-scenra-amber/40 text-scenra-light hover:bg-scenra-amber/10">
-                          <Link href={`/dashboard/projects/videos/${video.id}`}>
+                          <Link href={`/dashboard/videos/${video.id}`}>
                             View Details
                           </Link>
                         </Button>

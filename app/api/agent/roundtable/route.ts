@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, episodeId } = validation.data
+    const { brief, platform, seriesId, selectedCharacters, selectedSettings, episodeId } = validation.data
 
     // Fetch series context - NEW: automatic context from episodeId
     let visualTemplate = null

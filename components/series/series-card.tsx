@@ -30,7 +30,6 @@ interface SeriesCardProps {
     setting_count: number
     updated_at: string
   }
-  projectId?: string
 }
 
 const genreColors: Record<string, string> = {
@@ -41,7 +40,7 @@ const genreColors: Record<string, string> = {
   other: 'bg-gray-100 text-gray-800',
 }
 
-export function SeriesCard({ series, projectId }: SeriesCardProps) {
+export function SeriesCard({ series }: SeriesCardProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)

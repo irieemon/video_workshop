@@ -35,7 +35,6 @@ export interface EpisodeData {
 }
 
 interface EpisodeSelectorProps {
-  projectId: string
   seriesId: string | null
   selectedEpisodeId: string | null
   onEpisodeSelect: (episodeId: string | null) => void
@@ -44,7 +43,6 @@ interface EpisodeSelectorProps {
 }
 
 export function EpisodeSelector({
-  projectId,
   seriesId,
   selectedEpisodeId,
   onEpisodeSelect,

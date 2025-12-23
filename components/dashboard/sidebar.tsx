@@ -6,6 +6,13 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { HelpCircle } from 'lucide-react'
 import { ScenraLogo } from '@/components/brand'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useTheme } from '@/app/providers/theme-provider'
@@ -130,7 +137,23 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', i
           <>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-900 dark:text-scenra-light">AI Consultations</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-xs font-medium text-gray-900 dark:text-scenra-light flex items-center gap-1 cursor-help">
+                        AI Consultations
+                        <HelpCircle className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-sm">
+                        <strong>AI Consultations</strong> are used each time you generate video prompts with the AI Film Crew.
+                        Free accounts get {usageQuota?.consultations_per_month || 10} per month.
+                        Upgrade to Premium for unlimited consultations.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <span className="text-xs text-gray-600 dark:text-scenra-gray">
                   {consultationsRemaining} left
                 </span>

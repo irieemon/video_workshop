@@ -27,13 +27,11 @@ interface ScenePreview {
 
 interface EpisodeSceneSelectorProps {
   episodeId: string
-  projectId?: string
   onSceneConverted?: (videoId: string) => void
 }
 
 export function EpisodeSceneSelector({
   episodeId,
-  projectId,
   onSceneConverted,
 }: EpisodeSceneSelectorProps) {
   const router = useRouter()
@@ -88,10 +86,8 @@ export function EpisodeSceneSelector({
         // Navigate to video editor or call callback
         if (onSceneConverted) {
           onSceneConverted(data.video.id)
-        } else if (projectId) {
-          router.push(`/dashboard/projects/${projectId}/videos/${data.video.id}`)
         } else {
-          router.push(`/dashboard/videos/${data.video.id}/roundtable`)
+          router.push(`/dashboard/videos/${data.video.id}`)
         }
       }
     } catch (error) {

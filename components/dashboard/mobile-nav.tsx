@@ -15,7 +15,14 @@ import {
   Sparkles,
   Menu,
   ListVideo,
+  HelpCircle,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface MobileNavProps {
   usageQuota?: {
@@ -99,7 +106,23 @@ export function MobileNav({ usageQuota, usageCurrent, subscriptionTier = 'free' 
               <>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-gray-900 dark:text-foreground">AI Consultations</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs font-medium text-gray-900 dark:text-foreground flex items-center gap-1 cursor-help">
+                            AI Consultations
+                            <HelpCircle className="h-3 w-3 text-gray-400" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p className="text-sm">
+                            <strong>AI Consultations</strong> are used each time you generate video prompts with the AI Film Crew.
+                            Free accounts get {usageQuota?.consultations_per_month || 10} per month.
+                            Upgrade to Premium for unlimited consultations.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <span className="text-xs text-gray-600 dark:text-muted-foreground">
                       {consultationsRemaining} left
                     </span>

@@ -12,10 +12,9 @@ import type { SeriesConceptOutput } from '@/lib/types/series-concept.types';
 interface ConceptPreviewProps {
   concept: SeriesConceptOutput;
   onBack: () => void;
-  projectId?: string;
 }
 
-export function ConceptPreview({ concept, onBack, projectId }: ConceptPreviewProps) {
+export function ConceptPreview({ concept, onBack }: ConceptPreviewProps) {
   const [isPersisting, setIsPersisting] = useState(false);
   const router = useRouter();
 
@@ -26,7 +25,7 @@ export function ConceptPreview({ concept, onBack, projectId }: ConceptPreviewPro
       const response = await fetch('/api/series/concept/persist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ concept, projectId }),
+        body: JSON.stringify({ concept }),
       });
 
       const data = await response.json();
@@ -35,12 +34,8 @@ export function ConceptPreview({ concept, onBack, projectId }: ConceptPreviewPro
         throw new Error(data.error || 'Failed to create series');
       }
 
-      // Redirect to appropriate page
-      if (projectId) {
-        router.push(`/dashboard/projects/${projectId}`);
-      } else {
-        router.push(`/dashboard/series/${data.seriesId}`);
-      }
+      // Redirect to series page
+      router.push(`/dashboard/series/${data.seriesId}`);
     } catch (error: any) {
       console.error('Failed to persist concept:', error);
       alert(`Failed to create series: ${error.message}`);

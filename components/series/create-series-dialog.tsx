@@ -14,36 +14,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Plus } from 'lucide-react'
 
-interface CreateSeriesDialogProps {
-  projects?: Array<{
-    id: string
-    name: string
-  }>
-  defaultProjectId?: string
-  standalone?: boolean
-}
-
-export function CreateSeriesDialog({
-  projects = [],
-  defaultProjectId,
-  standalone = false
-}: CreateSeriesDialogProps) {
+export function CreateSeriesDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
-    projectId: defaultProjectId || projects[0]?.id || 'standalone',
     name: '',
     description: '',
     genre: 'narrative' as const,
@@ -55,17 +34,13 @@ export function CreateSeriesDialog({
     setError(null)
 
     try {
-      // Use top-level /api/series for standalone series or project-associated series
-      const apiUrl = '/api/series'
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch('/api/series', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
           genre: formData.genre,
-          project_id: formData.projectId === 'standalone' ? null : formData.projectId, // Convert "standalone" to null
         }),
       })
 
@@ -78,14 +53,7 @@ export function CreateSeriesDialog({
 
       // Close dialog and navigate to new series
       setOpen(false)
-
-      // Navigate based on whether series is associated with a project
-      if (formData.projectId && formData.projectId !== 'standalone') {
-        router.push(`/dashboard/projects/${formData.projectId}/series/${savedSeries.id}`)
-      } else {
-        router.push(`/dashboard/series/${savedSeries.id}`)
-      }
-
+      router.push(`/dashboard/series/${savedSeries.id}`)
       router.refresh()
     } catch (err: any) {
       setError(err.message)
@@ -115,35 +83,6 @@ export function CreateSeriesDialog({
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded text-sm">
                 {error}
-              </div>
-            )}
-
-            {!standalone && projects.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="project">
-                  Project {defaultProjectId ? '' : '(Optional)'}
-                </Label>
-                <Select
-                  value={formData.projectId}
-                  onValueChange={(value) => setFormData({ ...formData, projectId: value })}
-                >
-                  <SelectTrigger id="project">
-                    <SelectValue placeholder="No project (standalone series)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standalone">No project (standalone)</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!defaultProjectId && (
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to create a standalone series not tied to any project
-                  </p>
-                )}
               </div>
             )}
 

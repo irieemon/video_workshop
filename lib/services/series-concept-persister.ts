@@ -71,8 +71,7 @@ export class SeriesConceptPersister {
    */
   async persistConcept(
     concept: SeriesConceptOutput,
-    userId: string,
-    projectId?: string
+    userId: string
   ): Promise<{ success: boolean; seriesId?: string; error?: string }> {
     const supabase = await createClient();
 
@@ -82,7 +81,6 @@ export class SeriesConceptPersister {
         .from('series')
         .insert({
           user_id: userId,
-          project_id: projectId || null,
           name: concept.series.name,
           description: concept.series.premise,
           genre: this.mapGenreToDatabase(concept.series.genre),

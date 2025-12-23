@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 
 /**
  * Diagnostic endpoint to check series table schema and data state
- * Used to debug Phase 2 migration status in production
  */
 export async function GET() {
   try {
@@ -54,46 +53,22 @@ export async function GET() {
       diagnostics.checks.series_with_null_user_id = 'N/A (column might not exist)'
     }
 
-    // Check 4: Count series for current user (new way - direct user_id)
+    // Check 4: Count series for current user
     try {
       const { count: userSeriesCount } = await supabase
         .from('series')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-      diagnostics.checks.series_for_current_user_direct = userSeriesCount
+      diagnostics.checks.series_for_current_user = userSeriesCount
     } catch (e: any) {
-      diagnostics.checks.series_for_current_user_direct = `Error: ${e.message}`
+      diagnostics.checks.series_for_current_user = `Error: ${e.message}`
     }
 
-    // Check 5: Count series for current user (old way - through projects)
-    try {
-      // Get user's project IDs
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('user_id', user.id)
-
-      const projectIds = projects?.map(p => p.id) || []
-
-      if (projectIds.length > 0) {
-        const { count: projectSeriesCount } = await supabase
-          .from('series')
-          .select('*', { count: 'exact', head: true })
-          .in('project_id', projectIds)
-        diagnostics.checks.series_for_current_user_via_projects = projectSeriesCount
-      } else {
-        diagnostics.checks.series_for_current_user_via_projects = 0
-        diagnostics.checks.note = 'User has no projects'
-      }
-    } catch (e: any) {
-      diagnostics.checks.series_for_current_user_via_projects = `Error: ${e.message}`
-    }
-
-    // Check 6: Sample series data (first 3)
+    // Check 5: Sample series data (first 3)
     try {
       const { data: sampleSeries } = await supabase
         .from('series')
-        .select('id, name, user_id, project_id, created_at')
+        .select('id, name, user_id, created_at')
         .limit(3)
         .order('created_at', { ascending: false })
 
@@ -104,17 +79,8 @@ export async function GET() {
 
     // Diagnosis summary
     diagnostics.diagnosis = {
-      migration_applied: diagnostics.checks.user_id_column_exists === true,
+      schema_valid: diagnostics.checks.user_id_column_exists === true,
       data_populated: diagnostics.checks.series_with_null_user_id === 0,
-      recommended_action: ''
-    }
-
-    if (!diagnostics.diagnosis.migration_applied) {
-      diagnostics.diagnosis.recommended_action = 'Run Phase 2 migration: supabase-migrations/resume-decouple-migration.sql'
-    } else if (!diagnostics.diagnosis.data_populated) {
-      diagnostics.diagnosis.recommended_action = 'Run migration to populate user_id values from existing project relationships'
-    } else {
-      diagnostics.diagnosis.recommended_action = 'Schema is up to date. Check if user has any series created.'
     }
 
     return NextResponse.json(diagnostics, { status: 200 })

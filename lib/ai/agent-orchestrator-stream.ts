@@ -776,7 +776,9 @@ Return ONLY the JSON array, no other text.`
     let hashtags: string[] = []
     try {
       const hashtagText = hashtagResponse.choices[0]?.message?.content || '[]'
-      hashtags = JSON.parse(hashtagText)
+      const parsedHashtags = JSON.parse(hashtagText)
+      // Remove duplicates using Set
+      hashtags = [...new Set(parsedHashtags as string[])]
     } catch (e) {
       console.error('Failed to parse hashtags JSON:', e)
       hashtags = []

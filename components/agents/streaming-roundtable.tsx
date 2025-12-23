@@ -26,7 +26,6 @@ interface StreamingRoundtableProps {
   brief: string
   platform: string
   seriesId?: string
-  projectId: string
   selectedCharacters?: string[]
   selectedSettings?: string[]
   onComplete: (result: { finalPrompt: string; suggestedShots: string }) => void
@@ -36,7 +35,6 @@ export function StreamingRoundtable({
   brief,
   platform,
   seriesId,
-  projectId,
   selectedCharacters,
   selectedSettings,
   onComplete,
@@ -272,7 +270,6 @@ export function StreamingRoundtable({
           brief,
           platform,
           seriesId,
-          projectId,
           selectedCharacters,
           selectedSettings,
         }),
@@ -309,7 +306,7 @@ export function StreamingRoundtable({
       console.error('Streaming error:', err)
       setError(err.message || 'An error occurred')
     }
-  }, [brief, platform, seriesId, projectId, selectedCharacters, selectedSettings, handleEvent])
+  }, [brief, platform, seriesId, selectedCharacters, selectedSettings, handleEvent])
 
   useEffect(() => {
     startStreaming()

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ListVideo, FolderKanban, Sparkles } from 'lucide-react'
+import { ListVideo, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { CreateSeriesDialog } from '@/components/series/create-series-dialog'
 import { SeriesCard } from '@/components/series/series-card'
@@ -18,81 +18,21 @@ export default async function AllSeriesPage() {
     redirect('/login')
   }
 
-  // Fetch all user's projects for the create dialog
-  const { data: projects } = await supabase
-    .from('projects')
-    .select('id, name')
-    .eq('user_id', user.id)
-    .order('name', { ascending: true })
-
   // Fetch all series for the user with counts
-  // DUAL-PATH QUERY: Works with Phase 1 (project-based) or Phase 2 (user-based) schema
-  let data: any[] = []
-  let seriesError: any = null
-
-  // Try Phase 2 query first (direct user_id ownership)
-  try {
-    const { data: phase2Data, error: phase2Error } = await supabase
-      .from('series')
-      .select(`
-        *,
-        episodes(count),
-        characters:series_characters(count),
-        settings:series_settings(count)
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-
-    // Check Phase 2 results
-    if (!phase2Error && phase2Data) {
-      data = phase2Data
-      console.log(`[Series Page] Phase 2 query succeeded: ${phase2Data.length} series found for user ${user.id}`)
-    }
-
-    // If Phase 2 failed OR returned empty results, try Phase 1 fallback
-    const shouldTryPhase1 = phase2Error || (data.length === 0)
-
-    if (shouldTryPhase1) {
-      if (phase2Error) {
-        console.warn('[Series Page] Phase 2 query error, falling back to Phase 1:', phase2Error.message)
-      } else {
-        console.log('[Series Page] Phase 2 returned 0 results, trying Phase 1 fallback')
-      }
-
-      // Fall back to Phase 1 query (through project relationships)
-      const { data: userProjects } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('user_id', user.id)
-
-      const projectIds = userProjects?.map((p) => p.id) || []
-
-      if (projectIds.length > 0) {
-        const { data: phase1Data, error: phase1Error } = await supabase
-          .from('series')
-          .select(`
-            *,
-            episodes(count),
-            characters:series_characters(count),
-            settings:series_settings(count)
-          `)
-          .in('project_id', projectIds)
-          .order('created_at', { ascending: false })
-
-        if (!phase1Error && phase1Data) {
-          data = phase1Data
-        } else {
-          seriesError = phase1Error
-        }
-      }
-    }
-  } catch (error: any) {
-    console.error('Error fetching series:', error)
-    seriesError = error
-  }
+  const { data, error: seriesError } = await supabase
+    .from('series')
+    .select(`
+      *,
+      episodes(count),
+      characters:series_characters(count),
+      settings:series_settings(count)
+    `)
+    .eq('user_id', user.id)
+    .eq('is_system', false)
+    .order('created_at', { ascending: false })
 
   if (seriesError) {
-    console.error('Failed to fetch series with both methods:', seriesError)
+    console.error('Error fetching series:', seriesError)
   }
 
   // Transform the data to include counts in a clean format
@@ -106,7 +46,6 @@ export default async function AllSeriesPage() {
         setting_count: (s.settings as any)?.[0]?.count || 0,
         episode_count: (s.episodes as any)?.[0]?.count || 0,
         updated_at: s.updated_at,
-        project_id: s.project_id || null, // Direct FK (legacy compatibility)
       }))
     : []
 
@@ -126,13 +65,11 @@ export default async function AllSeriesPage() {
                 AI-Assisted
               </Link>
             </Button>
-            {(projects && projects.length > 0) && (
-              <CreateSeriesDialog projects={projects} />
-            )}
+            <CreateSeriesDialog />
           </div>
         </div>
         <p className="text-sm md:text-base text-muted-foreground">
-          Manage video series continuity across all your projects
+          Manage video series with consistent characters and settings
         </p>
       </div>
 
@@ -162,9 +99,7 @@ export default async function AllSeriesPage() {
                   AI-Assisted Creation
                 </Link>
               </Button>
-              {(projects && projects.length > 0) && (
-                <CreateSeriesDialog projects={projects} />
-              )}
+              <CreateSeriesDialog />
             </div>
           </div>
         </div>
@@ -174,7 +109,6 @@ export default async function AllSeriesPage() {
             <SeriesCard
               key={item.id}
               series={item}
-              projectId={item.project_id}
             />
           ))}
         </div>

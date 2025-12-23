@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
       brief,
       platform,
       seriesId,
-      projectId,
       selectedCharacters,
       selectedSettings,
       userPromptEdits,
@@ -29,9 +28,9 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!brief || !platform || !projectId) {
+    if (!brief || !platform) {
       return NextResponse.json(
-        { error: 'Missing required fields: brief, platform, projectId' },
+        { error: 'Missing required fields: brief, platform' },
         { status: 400 }
       )
     }

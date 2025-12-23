@@ -6,7 +6,6 @@ import type { SeriesConceptOutput } from '@/lib/types/series-concept.types';
 
 interface PersistRequest {
   concept: SeriesConceptOutput;
-  projectId?: string;
 }
 
 /**
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: PersistRequest = await request.json();
-    const { concept, projectId } = body;
+    const { concept } = body;
 
     // Validate one more time (defense in depth)
     const validation = validateSeriesConcept(concept);
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Persist to database
     const persister = new SeriesConceptPersister();
-    const result = await persister.persistConcept(validation.data!, user.id, projectId);
+    const result = await persister.persistConcept(validation.data!, user.id);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });
