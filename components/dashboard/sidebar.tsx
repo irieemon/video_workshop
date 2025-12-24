@@ -46,10 +46,11 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', i
   const { theme } = useTheme()
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Videos', href: '/dashboard/videos', icon: Video },
-    { name: 'Series', href: '/dashboard/series', icon: ListVideo },
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'nav-dashboard' },
+    { name: 'Videos', href: '/dashboard/videos', icon: Video, tourId: 'nav-videos' },
+    { name: 'Series', href: '/dashboard/series', icon: ListVideo, tourId: 'nav-series' },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings, tourId: 'nav-settings' },
+    { name: 'Help', href: '/dashboard/help', icon: HelpCircle, tourId: 'nav-help' },
   ]
 
   const adminNavigation = isAdmin
@@ -79,6 +80,7 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', i
             <Link
               key={item.name}
               href={item.href}
+              data-tour={item.tourId}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
                 isActive
@@ -135,7 +137,7 @@ export function Sidebar({ usageQuota, usageCurrent, subscriptionTier = 'free', i
 
         {subscriptionTier === 'free' && (
           <>
-            <div>
+            <div data-tour="usage-quota">
               <div className="flex items-center justify-between mb-2">
                 <TooltipProvider>
                   <Tooltip>

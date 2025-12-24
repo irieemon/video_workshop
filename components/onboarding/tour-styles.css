@@ -1,0 +1,226 @@
+/**
+ * Scenra Tour Styles
+ * Custom styling for driver.js popovers to match Scenra design system
+ */
+
+/* Override driver.js default styles */
+.driver-popover.scenra-tour-popover {
+  --driver-bg: hsl(var(--card));
+  --driver-text: hsl(var(--card-foreground));
+  --driver-border: hsl(var(--border));
+  --driver-accent: hsl(var(--scenra-amber, 39 100% 50%));
+
+  background-color: var(--driver-bg);
+  color: var(--driver-text);
+  border: 1px solid var(--driver-border);
+  border-radius: 12px;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.25),
+    0 8px 10px -6px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  max-width: 400px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+/* Dark mode adjustments */
+.dark .driver-popover.scenra-tour-popover {
+  --driver-bg: hsl(240 10% 10%);
+  --driver-border: hsl(240 5% 20%);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Popover arrow */
+.driver-popover.scenra-tour-popover .driver-popover-arrow {
+  border-color: var(--driver-border);
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-arrow-side-left {
+  border-left-color: var(--driver-bg);
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-arrow-side-right {
+  border-right-color: var(--driver-bg);
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-arrow-side-top {
+  border-top-color: var(--driver-bg);
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--driver-bg);
+}
+
+/* Title */
+.driver-popover.scenra-tour-popover .driver-popover-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding: 1rem 1rem 0.5rem;
+  margin: 0;
+  color: var(--driver-text);
+}
+
+/* Description */
+.driver-popover.scenra-tour-popover .driver-popover-description {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  padding: 0 1rem 1rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-description p {
+  margin: 0 0 0.5rem;
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-description p:last-child {
+  margin-bottom: 0;
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-description ul {
+  margin: 0.5rem 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-description li {
+  padding: 0.25rem 0;
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-description strong {
+  color: var(--driver-text);
+  font-weight: 600;
+}
+
+/* Footer */
+.driver-popover.scenra-tour-popover .driver-popover-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--driver-border);
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 0 0 12px 12px;
+}
+
+/* Progress indicator */
+.driver-popover.scenra-tour-popover .driver-popover-progress-text {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+/* Button container */
+.driver-popover.scenra-tour-popover .driver-popover-footer-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Base button styles */
+.driver-popover.scenra-tour-popover button {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  outline: none;
+}
+
+.driver-popover.scenra-tour-popover button:focus-visible {
+  ring: 2px;
+  ring-offset: 2px;
+  ring-color: var(--driver-accent);
+}
+
+/* Previous button */
+.driver-popover.scenra-tour-popover .driver-popover-prev-btn {
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  border: 1px solid var(--driver-border);
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-prev-btn:hover {
+  background: hsl(var(--muted) / 0.5);
+  color: var(--driver-text);
+}
+
+/* Next/Done button */
+.driver-popover.scenra-tour-popover .driver-popover-next-btn {
+  background: var(--driver-accent);
+  color: hsl(240 10% 10%);
+  font-weight: 600;
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-next-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* Close button */
+.driver-popover.scenra-tour-popover .driver-popover-close-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  padding: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.driver-popover.scenra-tour-popover .driver-popover-close-btn:hover {
+  background: hsl(var(--muted) / 0.5);
+  color: var(--driver-text);
+}
+
+/* Overlay styling */
+.driver-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+.dark .driver-overlay {
+  background: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Highlight stage */
+.driver-active-element {
+  position: relative;
+  z-index: 10001;
+}
+
+/* Animation for modal-style popovers (no element) */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.driver-popover.scenra-tour-popover[data-side="over"] {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .driver-popover.scenra-tour-popover {
+    max-width: calc(100vw - 2rem);
+    margin: 1rem;
+  }
+
+  .driver-popover.scenra-tour-popover .driver-popover-title {
+    font-size: 1rem;
+  }
+
+  .driver-popover.scenra-tour-popover .driver-popover-description {
+    font-size: 0.875rem;
+  }
+}
