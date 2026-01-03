@@ -5,13 +5,21 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowLeft, Sparkles, Loader2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Sparkles, Loader2, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { AgentRoundtable } from '@/components/agents/agent-roundtable'
 import { PromptOutput } from '@/components/videos/prompt-output'
 import { SoraGenerationButton } from '@/components/videos/sora-generation-button'
 import { PerformanceMetricsSection } from '@/components/performance/performance-metrics-section'
+import { StepIndicator } from '@/components/ui/step-indicator'
+
 import { formatDistanceToNow } from 'date-fns'
+
+const STEPS = [
+  { label: 'Brief' },
+  { label: 'AI Discussion' },
+  { label: 'Ready' },
+]
 
 interface VideoRoundtableClientProps {
   video: any
@@ -162,7 +170,9 @@ export function VideoRoundtableClient({
             </Link>
           </Button>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            <StepIndicator steps={STEPS} currentStep={2} className="hidden sm:flex" />
+
             {!agentDiscussion && !isGenerating && error && (
               <Button
                 onClick={handleGenerateAI}
@@ -172,13 +182,13 @@ export function VideoRoundtableClient({
                 Retry AI Generation
               </Button>
             )}
-            {video.optimized_prompt && (
-              <SoraGenerationButton
-                videoId={video.id}
-                videoTitle={video.title}
-                finalPrompt={video.optimized_prompt}
-                subscriptionTier={subscriptionTier}
-              />
+            {video.optimized_prompt && !error && (
+              <Button asChild className="gap-2 bg-green-600 hover:bg-green-700">
+                <Link href={`/dashboard/videos/${video.id}/ready`}>
+                  Continue to Final Step
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             )}
           </div>
         </div>
@@ -319,7 +329,38 @@ export function VideoRoundtableClient({
           </div>
         )}
 
-        {/* Prompt Output */}
+        {/* Continue to Final Step CTA */}
+        {video.optimized_prompt && agentDiscussion && !isGenerating && (
+          <div className="mb-6 md:mb-8">
+            <Card className="border-green-500/50 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+                      <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">
+                        AI Analysis Complete!
+                      </h3>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        Your optimized prompt is ready. Continue to see all your options.
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild size="lg" className="gap-2 bg-green-600 hover:bg-green-700 w-full md:w-auto">
+                    <Link href={`/dashboard/videos/${video.id}/ready`}>
+                      Continue to Final Step
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Prompt Output Preview */}
         {video.optimized_prompt && video.detailed_breakdown && (
           <PromptOutput
             detailedBreakdown={video.detailed_breakdown}
