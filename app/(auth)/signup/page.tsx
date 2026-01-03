@@ -7,7 +7,12 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+
+// Current terms and privacy policy versions - update these when policies change
+const TERMS_VERSION = '1.0'
+const PRIVACY_VERSION = '1.0'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -15,6 +20,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -34,6 +40,10 @@ export default function SignupPage() {
 
     try {
       // Validation
+      if (!acceptedTerms) {
+        throw new Error('You must accept the Terms of Service and Privacy Policy to create an account')
+      }
+
       if (password !== confirmPassword) {
         throw new Error('Passwords do not match')
       }
@@ -44,14 +54,20 @@ export default function SignupPage() {
       }
 
       const supabase = createClient()
+      const consentTimestamp = new Date().toISOString()
 
-      // Sign up user
+      // Sign up user with consent tracking
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            terms_accepted_at: consentTimestamp,
+            terms_version: TERMS_VERSION,
+            privacy_accepted_at: consentTimestamp,
+            privacy_version: PRIVACY_VERSION,
+            consent_method: 'signup_form',
           },
           emailRedirectTo: `${window.location.origin}/api/auth/callback`,
         },
@@ -69,12 +85,27 @@ export default function SignupPage() {
   }
 
   const handleOAuthSignup = async (provider: 'google' | 'github') => {
+    // Require terms acceptance before OAuth signup
+    if (!acceptedTerms) {
+      setError('You must accept the Terms of Service and Privacy Policy to create an account')
+      return
+    }
+
     try {
       const supabase = createClient()
+      const consentTimestamp = new Date().toISOString()
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/api/auth/callback`,
+          queryParams: {
+            // Pass consent data through OAuth flow
+            terms_accepted_at: consentTimestamp,
+            terms_version: TERMS_VERSION,
+            privacy_version: PRIVACY_VERSION,
+            consent_method: `oauth_${provider}`,
+          },
         },
       })
 
@@ -181,18 +212,36 @@ export default function SignupPage() {
               </div>
             )}
 
-            <div className="text-xs text-muted-foreground">
-              By creating an account, you agree to our{' '}
-              <Link href="/terms" className="text-scenra-dark hover:text-scenra-amber">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="text-scenra-dark hover:text-scenra-amber">
-                Privacy Policy
-              </Link>
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="terms"
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                disabled={loading}
+                className="mt-1"
+              />
+              <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                I agree to the{' '}
+                <Link
+                  href="/terms"
+                  className="text-amber-700 hover:text-amber-900 underline underline-offset-2"
+                  target="_blank"
+                >
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link
+                  href="/privacy"
+                  className="text-amber-700 hover:text-amber-900 underline underline-offset-2"
+                  target="_blank"
+                >
+                  Privacy Policy
+                </Link>
+                <span className="text-red-500 ml-1">*</span>
+              </Label>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || !acceptedTerms}>
               {loading ? 'Creating account...' : 'Create account'}
             </Button>
           </form>
@@ -213,7 +262,8 @@ export default function SignupPage() {
               type="button"
               variant="outline"
               onClick={() => handleOAuthSignup('google')}
-              disabled={loading}
+              disabled={loading || !acceptedTerms}
+              title={!acceptedTerms ? 'Please accept the Terms of Service first' : undefined}
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -239,7 +289,8 @@ export default function SignupPage() {
               type="button"
               variant="outline"
               onClick={() => handleOAuthSignup('github')}
-              disabled={loading}
+              disabled={loading || !acceptedTerms}
+              title={!acceptedTerms ? 'Please accept the Terms of Service first' : undefined}
             >
               <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z" />

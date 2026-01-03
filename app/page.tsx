@@ -2,12 +2,16 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ScenraLogo } from '@/components/brand'
 import { Sparkles, Film, Zap } from 'lucide-react'
+import { SiteFooter } from '@/components/layout/site-footer'
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-scenra-dark relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-scenra-dark relative overflow-hidden">
       {/* Ambient glow effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-scenra-amber/5 via-transparent to-scenra-blue/5 pointer-events-none" />
+
+      {/* Main content - centered hero */}
+      <div className="flex-1 flex items-center justify-center relative z-10">
 
       <div className="text-center space-y-8 max-w-3xl px-6 relative z-10 scenra-fade-in">
         {/* Logo */}
@@ -55,6 +59,10 @@ export default function HomePage() {
           </Button>
         </div>
       </div>
+      </div>
+
+      {/* Footer */}
+      <SiteFooter />
     </div>
   )
 }
