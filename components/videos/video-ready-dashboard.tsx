@@ -15,6 +15,8 @@ import { StepIndicator } from '@/components/ui/step-indicator'
 import { PromptActionCard } from '@/components/videos/prompt-action-card'
 import { SoraGenerationModal } from '@/components/videos/sora-generation-modal'
 import { ApiKeyStatusBar } from '@/components/videos/api-key-status-bar'
+import { OpenInSoraButton } from '@/components/videos/open-in-sora-button'
+import { ShareExportMenu } from '@/components/videos/share-export-menu'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -29,12 +31,6 @@ import {
   Hash,
   Settings,
 } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -56,6 +52,12 @@ interface VideoReadyDashboardProps {
     character_count: number
     created_at: string
     series?: { name: string; is_system: boolean } | null
+    sora_generation_settings?: {
+      aspect_ratio?: string
+      duration?: number
+      resolution?: string
+      model?: string
+    }
   }
   hashtags: string[]
   subscriptionTier: 'free' | 'premium' | 'enterprise'
@@ -116,40 +118,6 @@ export function VideoReadyDashboard({
 
   // Can generate if premium or has a valid API key
   const canGenerate = isPremium || hasApiKey
-
-  const handleOpenInSora = async () => {
-    await navigator.clipboard.writeText(video.optimized_prompt)
-    toast.success('Prompt copied! Opening Sora...')
-    window.open('https://sora.com', '_blank')
-  }
-
-  const handleShare = async (type: 'link' | 'pdf' | 'json' | 'markdown') => {
-    switch (type) {
-      case 'link':
-        // TODO: Implement shareable link generation
-        toast.info('Shareable links coming soon!')
-        break
-      case 'pdf':
-        toast.info('PDF export coming soon!')
-        break
-      case 'json':
-        const jsonData = JSON.stringify({
-          title: video.title,
-          prompt: video.optimized_prompt,
-          specs: video.detailed_breakdown,
-          hashtags,
-          platform: video.platform,
-        }, null, 2)
-        await navigator.clipboard.writeText(jsonData)
-        toast.success('JSON copied to clipboard!')
-        break
-      case 'markdown':
-        const markdown = `# ${video.title}\n\n## Optimized Prompt\n\n${video.optimized_prompt}\n\n## Hashtags\n\n${hashtags.join(' ')}`
-        await navigator.clipboard.writeText(markdown)
-        toast.success('Markdown copied to clipboard!')
-        break
-    }
-  }
 
   // Get breakdown data with fallbacks
   const breakdown = video.detailed_breakdown || {}
@@ -239,13 +207,22 @@ export function VideoReadyDashboard({
           />
 
           {/* Open in Sora */}
-          <PromptActionCard
-            icon={ExternalLink}
-            title="Open in Sora"
-            description="Open Sora.com with your prompt copied to clipboard"
-            buttonLabel="Open Sora"
-            onClick={handleOpenInSora}
-          />
+          <Card className="relative overflow-hidden transition-all hover:shadow-md">
+            <CardContent className="flex flex-col h-full p-6">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <ExternalLink className="h-6 w-6" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">Open in Sora</h3>
+              <p className="mb-4 flex-1 text-sm text-muted-foreground">
+                Open Sora.com with your prompt copied to clipboard
+              </p>
+              <OpenInSoraButton
+                prompt={video.optimized_prompt}
+                variant="outline"
+                className="w-full"
+              />
+            </CardContent>
+          </Card>
 
           {/* Share & Export */}
           <Card className="relative overflow-hidden transition-all hover:shadow-md">
@@ -257,32 +234,23 @@ export function VideoReadyDashboard({
               <p className="mb-4 flex-1 text-sm text-muted-foreground">
                 Share your prompt or export it in different formats
               </p>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full">
-                    Share
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => handleShare('link')}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Copy Link
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShare('markdown')}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Copy as Markdown
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShare('json')}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Export JSON
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShare('pdf')}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Download PDF
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ShareExportMenu
+                video={{
+                  id: video.id,
+                  title: video.title,
+                  optimizedPrompt: video.optimized_prompt,
+                  hashtags: hashtags,
+                  technicalSpecs: video.sora_generation_settings ? {
+                    aspectRatio: video.sora_generation_settings.aspect_ratio,
+                    duration: video.sora_generation_settings.duration,
+                    resolution: video.sora_generation_settings.resolution,
+                    style: video.sora_generation_settings.model,
+                  } : undefined,
+                  createdAt: video.created_at,
+                  platform: video.platform,
+                }}
+                className="w-full"
+              />
             </CardContent>
           </Card>
         </div>
