@@ -22,9 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, AlertCircle, CheckCircle2, PlayCircle } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle2, PlayCircle, PartyPopper } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ContinuityReportViewer } from './continuity-report-viewer'
+import { useConfetti } from '@/lib/hooks/use-confetti'
 
 interface BatchGenerationDialogProps {
   open: boolean
@@ -66,8 +67,10 @@ export function BatchGenerationDialog({
   const [progress, setProgress] = useState<GenerationProgress | null>(null)
   const [continuityReport, setContinuityReport] = useState<ContinuityReport | null>(null)
   const [segmentGroupId, setSegmentGroupId] = useState<string | null>(null)
+  const [hasTriggeredCelebration, setHasTriggeredCelebration] = useState(false)
 
   const supabase = createClient()
+  const { celebrate } = useConfetti()
 
   // Poll for progress updates
   useEffect(() => {
@@ -150,6 +153,12 @@ export function BatchGenerationDialog({
         status: 'complete'
       })
 
+      // Trigger celebration animation
+      if (!hasTriggeredCelebration) {
+        setHasTriggeredCelebration(true)
+        celebrate()
+      }
+
       // Wait briefly before calling success
       setTimeout(() => {
         onSuccess()
@@ -225,9 +234,14 @@ export function BatchGenerationDialog({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {isGenerating && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isComplete && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                  {isComplete && (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <PartyPopper className="h-4 w-4 text-yellow-500 animate-bounce" />
+                    </>
+                  )}
                   <span className="font-medium">
-                    {isComplete ? 'Generation Complete' : 'Generating Segments'}
+                    {isComplete ? 'Generation Complete!' : 'Generating Segments'}
                   </span>
                 </div>
                 <Badge variant={isComplete ? 'default' : 'secondary'}>

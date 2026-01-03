@@ -20,6 +20,8 @@ import { VideosViewToggle, type ViewMode } from './videos-view-toggle'
 import { VideoListItem } from './video-list-item'
 import { DeleteVideoDialog } from './delete-video-dialog'
 import { useVideosFilters } from '@/lib/hooks/use-videos-filters'
+import { StaggerContainer, StaggerItem, MotionCard } from '@/components/ui/motion'
+import { useAnalytics } from '@/lib/analytics'
 
 type Video = {
   id: string
@@ -42,6 +44,7 @@ interface VideosPageClientProps {
 
 export function VideosPageClient({ videos, series }: VideosPageClientProps) {
   const router = useRouter()
+  const { videoEvents } = useAnalytics()
   const {
     filters,
     setFilters,
@@ -74,6 +77,7 @@ export function VideosPageClient({ videos, series }: VideosPageClientProps) {
       }
 
       toast.success('Video deleted successfully')
+      videoEvents.deleted(videoToDelete.id)
       setDeleteDialogOpen(false)
       setVideoToDelete(null)
       router.refresh()
@@ -143,60 +147,62 @@ export function VideosPageClient({ videos, series }: VideosPageClientProps) {
           </CardContent>
         </Card>
       ) : viewMode === 'card' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedVideos.map((video) => {
             const videoSeries = video.series
             const isStandalone = videoSeries?.is_system
 
             return (
-              <div key={video.id} className="relative group">
+              <StaggerItem key={video.id} className="relative group">
                 <Link href={`/dashboard/videos/${video.id}/roundtable`}>
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="line-clamp-2 text-base">
-                          {video.title}
-                        </CardTitle>
-                        <Badge
-                          variant={
-                            video.status === 'published'
-                              ? 'default'
-                              : video.status === 'generated'
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                        >
-                          {video.status}
-                        </Badge>
-                      </div>
-                      <CardDescription className="line-clamp-3">
-                        {video.user_brief}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          {isStandalone ? (
-                            <Badge variant="outline" className="text-xs">
-                              Standalone
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">
-                              {videoSeries?.name}
+                  <MotionCard className="h-full">
+                    <Card className="h-full">
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="line-clamp-2 text-base">
+                            {video.title}
+                          </CardTitle>
+                          <Badge
+                            variant={
+                              video.status === 'published'
+                                ? 'default'
+                                : video.status === 'generated'
+                                ? 'secondary'
+                                : 'outline'
+                            }
+                          >
+                            {video.status}
+                          </Badge>
+                        </div>
+                        <CardDescription className="line-clamp-3">
+                          {video.user_brief}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            {isStandalone ? (
+                              <Badge variant="outline" className="text-xs">
+                                Standalone
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                {videoSeries?.name}
+                              </Badge>
+                            )}
+                          </div>
+                          {video.platform && (
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {video.platform}
                             </Badge>
                           )}
                         </div>
-                        {video.platform && (
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {video.platform}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {new Date(video.created_at).toLocaleDateString()}
-                      </div>
-                    </CardContent>
-                  </Card>
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          {new Date(video.created_at).toLocaleDateString()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </MotionCard>
                 </Link>
 
                 {/* Actions Menu - Positioned in top right */}
@@ -237,10 +243,10 @@ export function VideosPageClient({ videos, series }: VideosPageClientProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              </div>
+              </StaggerItem>
             )
           })}
-        </div>
+        </StaggerContainer>
       ) : (
         <div className="space-y-2">
           {filteredAndSortedVideos.map((video) => (

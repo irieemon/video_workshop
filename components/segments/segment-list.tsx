@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { PlayCircle, Eye, AlertCircle, CheckCircle2, Clock, Loader2, Info } from 'lucide-react'
+import { PlayCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { SegmentDetailDrawer } from './segment-detail-drawer'
+import { SegmentCard, SegmentCardSkeleton, type SegmentWithStatus } from './segment-card'
 import type { Database } from '@/lib/types/database.types'
 
 type VideoSegment = Database['public']['Tables']['video_segments']['Row']
@@ -17,11 +18,6 @@ interface SegmentListProps {
   seriesId: string
   refreshTrigger: number
   onBatchGenerate: () => void
-}
-
-interface SegmentWithStatus extends VideoSegment {
-  hasVideo: boolean
-  videoId?: string
 }
 
 export function SegmentList({
@@ -122,33 +118,65 @@ export function SegmentList({
     window.location.href = `/dashboard/videos/${videoId}`
   }
 
-  // Format duration to fix floating-point precision
-  const formatDuration = (duration: number) => {
-    return Number(duration.toFixed(2))
-  }
-
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-12">
-          <div className="flex flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading segments...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {/* Skeleton Progress Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-5 w-40 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-56 bg-muted animate-pulse rounded" />
+              </div>
+              <div className="h-6 w-20 bg-muted animate-pulse rounded-full" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-8 bg-muted animate-pulse rounded" />
+              </div>
+              <div className="h-2 w-full bg-muted animate-pulse rounded-full" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Skeleton Segment Cards */}
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <SegmentCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="py-12">
-          <div className="flex flex-col items-center justify-center gap-3">
-            <AlertCircle className="h-8 w-8 text-red-600" />
-            <p className="text-sm text-red-900 font-medium">{error}</p>
-            <Button variant="outline" size="sm" onClick={loadSegments}>
-              Retry
+      <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/20">
+        <CardContent className="py-8 md:py-12">
+          <div className="flex flex-col items-center justify-center gap-4 text-center">
+            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30">
+              <AlertCircle className="h-6 w-6 md:h-8 md:w-8 text-red-600" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-semibold text-red-900 dark:text-red-100">
+                Failed to Load Segments
+              </h3>
+              <p className="text-sm text-red-700 dark:text-red-300 max-w-md">
+                {error}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadSegments}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
             </Button>
           </div>
         </CardContent>
@@ -217,104 +245,13 @@ export function SegmentList({
       {/* Segment Cards */}
       <div className="space-y-3">
         {segments.map((segment) => (
-          <Card key={segment.id} className={segment.hasVideo ? 'border-green-200' : ''}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono">
-                      #{segment.segment_number}
-                    </Badge>
-                    {segment.hasVideo ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <CardTitle className="mt-2">{segment.narrative_beat}</CardTitle>
-                  {segment.narrative_transition && (
-                    <CardDescription className="mt-1">
-                      Transition: {segment.narrative_transition}
-                    </CardDescription>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleViewSegmentDetail(segment)}
-                  >
-                    <Info className="h-4 w-4 mr-2" />
-                    Details
-                  </Button>
-                  {segment.hasVideo ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleViewVideo(segment.videoId!)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => handleGenerateSingle(segment.id)}
-                    >
-                      <PlayCircle className="h-4 w-4 mr-2" />
-                      Generate
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2 text-sm">
-                {/* Dialogue */}
-                {(segment.dialogue_lines as any) && (segment.dialogue_lines as any).length > 0 && (
-                  <div>
-                    <span className="font-medium text-muted-foreground">Dialogue:</span>
-                    <div className="mt-1 space-y-1">
-                      {(segment.dialogue_lines as any).map((line: any, idx: number) => (
-                        <div key={idx} className="text-sm">
-                          <span className="font-medium">{line.character}:</span>{' '}
-                          <span className="text-muted-foreground">
-                            {line.lines.join(' ')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Beats */}
-                {segment.action_beats && segment.action_beats.length > 0 && (
-                  <div>
-                    <span className="font-medium text-muted-foreground">Action:</span>
-                    <ul className="mt-1 list-disc list-inside space-y-0.5">
-                      {segment.action_beats.map((action: string, idx: number) => (
-                        <li key={idx} className="text-muted-foreground">{action}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Duration */}
-                <div className="flex items-center gap-4 pt-2 border-t">
-                  <span className="text-muted-foreground">
-                    Target Duration: <span className="font-medium text-foreground">
-                      {formatDuration(segment.estimated_duration)}s
-                    </span>
-                  </span>
-                  {segment.visual_continuity_notes && (
-                    <span className="text-muted-foreground">
-                      Has continuity notes
-                    </span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <SegmentCard
+            key={segment.id}
+            segment={segment}
+            onViewDetails={handleViewSegmentDetail}
+            onGenerate={handleGenerateSingle}
+            onViewVideo={handleViewVideo}
+          />
         ))}
       </div>
 
