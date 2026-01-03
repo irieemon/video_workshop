@@ -126,9 +126,9 @@ export function VideoRoundtableClient({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agent_discussion: JSON.stringify(discussion),
+          agent_discussion: discussion,
           optimized_prompt: optimizedPrompt,
-          detailed_breakdown: JSON.stringify(detailedBreakdown),
+          detailed_breakdown: detailedBreakdown,
           character_count: characterCount,
           hashtags: hashtags,
           status: 'generated',
