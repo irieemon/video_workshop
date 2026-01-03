@@ -7,6 +7,7 @@ import { checkRateLimit, createRateLimitKey, RATE_LIMITS, createRateLimitRespons
 import { agentRoundtableSchema, validateRequest, createValidationError } from '@/lib/validation/schemas'
 import { fetchCompleteSeriesContext, formatSeriesContextForAgents } from '@/lib/services/series-context'
 import { validateCharacterConsistency, getQualityAssessment } from '@/lib/validation/character-consistency'
+import { enforceQuota, incrementUsage } from '@/lib/stripe/usage'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -38,6 +39,13 @@ export async function POST(request: NextRequest) {
         headers: getRateLimitHeaders(rateLimit)
       }
     )
+  }
+
+  // Check consultation quota
+  const quotaCheck = await enforceQuota(supabase, user.id, 'consultations')
+  if (!quotaCheck.allowed) {
+    logger.warn('AI consultation quota exceeded', { userId: user.id })
+    return quotaCheck.response
   }
 
   try {
@@ -224,6 +232,9 @@ ${characterBlocks.join('\n\n')}
     )
 
     logger.info(LOG_MESSAGES.AI_ROUNDTABLE_SUCCESS)
+
+    // Increment consultation usage after successful completion
+    await incrementUsage(supabase, user.id, 'consultations')
 
     // Validate character consistency if characters were provided
     let characterConsistency

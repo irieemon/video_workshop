@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { MobileNav } from '@/components/dashboard/mobile-nav'
 import { UserMenu } from '@/components/dashboard/user-menu'
+import { DashboardContent } from '@/components/dashboard/dashboard-content'
 import { ScenraLogo } from '@/components/brand'
 import { TourProvider, FloatingHelpButton, WelcomeTourTrigger } from '@/components/onboarding'
 import Link from 'next/link'
@@ -70,9 +71,9 @@ export default async function DashboardLayout({
           </header>
 
           {/* Content Area */}
-          <main className="flex-1 overflow-y-auto bg-background">
+          <DashboardContent>
             {children}
-          </main>
+          </DashboardContent>
         </div>
 
         {/* Onboarding Components */}

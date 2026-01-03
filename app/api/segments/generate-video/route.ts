@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
+import { enforceQuota, incrementUsage, createQuotaExceededResponse } from '@/lib/stripe/usage'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -37,6 +38,12 @@ export async function POST(request: NextRequest) {
         { error: 'Premium subscription required for direct Sora generation' },
         { status: 403 }
       )
+    }
+
+    // Check video generation quota
+    const quotaCheck = await enforceQuota(supabase, user.id, 'videos')
+    if (!quotaCheck.allowed) {
+      return quotaCheck.response
     }
 
     // Parse body
@@ -99,6 +106,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    // Increment video usage counter
+    await incrementUsage(supabase, user.id, 'videos')
 
     // Trigger Sora generation (async - will update video record when complete)
     // This is a placeholder - actual Sora API integration would go here

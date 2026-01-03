@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { enforceQuota, incrementUsage } from '@/lib/stripe/usage'
 
 // GET /api/series - List all series for the authenticated user
 export async function GET(request: NextRequest) {
@@ -84,6 +85,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check project quota before creating series
+    const quotaCheck = await enforceQuota(supabase, user.id, 'projects')
+    if (!quotaCheck.allowed) {
+      return quotaCheck.response
+    }
+
     // Check for duplicate series name for this user
     const { data: existingSeries } = await supabase
       .from('series')
@@ -158,6 +165,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (seriesError) throw seriesError
+
+    // Increment project usage counter
+    await incrementUsage(supabase, user.id, 'projects')
 
     return NextResponse.json(newSeries, { status: 201 })
   } catch (error: any) {

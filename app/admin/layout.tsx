@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { UserMenu } from '@/components/dashboard/user-menu'
-import { Shield, Users, BarChart3 } from 'lucide-react'
+import { Shield, Users, BarChart3, DollarSign } from 'lucide-react'
 
 export default async function AdminLayout({
   children,
@@ -56,6 +56,13 @@ export default async function AdminLayout({
                 >
                   <Users className="h-4 w-4" />
                   Users
+                </Link>
+                <Link
+                  href="/admin/billing"
+                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                >
+                  <DollarSign className="h-4 w-4" />
+                  Billing
                 </Link>
               </nav>
             </div>

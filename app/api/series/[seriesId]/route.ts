@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { decrementUsage } from '@/lib/stripe/usage'
 
 // GET /api/series/[seriesId] - Get series with full context
 export async function GET(
@@ -192,6 +193,9 @@ export async function DELETE(
       .eq('id', seriesId)
 
     if (error) throw error
+
+    // Decrement project usage counter after successful deletion
+    await decrementUsage(supabase, user.id, 'projects')
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

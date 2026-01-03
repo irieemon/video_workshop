@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useTheme } from '@/app/providers/theme-provider'
 import { ApiKeysSettings } from '@/components/settings/api-keys-settings'
+import { BillingSettings } from '@/components/settings/billing-settings'
 
 interface Profile {
   id: string
@@ -171,83 +172,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Subscription & Usage */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription & Usage</CardTitle>
-              <CardDescription>
-                Your current plan and usage statistics
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-md">
-                <div>
-                  <p className="font-medium">Current Plan</p>
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {profile?.subscription_tier || 'Free'} Tier
-                  </p>
-                </div>
-                {profile?.subscription_tier === 'free' && (
-                  <Button variant="outline" size="sm">
-                    Upgrade to Premium
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium">Projects</p>
-                    <p className="text-sm text-muted-foreground">
-                      {profile?.usage_current.projects} / {profile?.usage_quota.projects}
-                    </p>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-scenra-amber"
-                      style={{
-                        width: `${((profile?.usage_current.projects || 0) / (profile?.usage_quota.projects || 1)) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium">Videos this month</p>
-                    <p className="text-sm text-muted-foreground">
-                      {profile?.usage_current.videos_this_month} / {profile?.usage_quota.videos_per_month}
-                    </p>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-scenra-amber"
-                      style={{
-                        width: `${((profile?.usage_current.videos_this_month || 0) / (profile?.usage_quota.videos_per_month || 1)) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium">AI consultations this month</p>
-                    <p className="text-sm text-muted-foreground">
-                      {profile?.usage_current.consultations_this_month} / {profile?.usage_quota.consultations_per_month}
-                    </p>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-scenra-amber"
-                      style={{
-                        width: `${((profile?.usage_current.consultations_this_month || 0) / (profile?.usage_quota.consultations_per_month || 1)) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Billing & Subscription */}
+          <BillingSettings />
 
           {/* API Keys */}
           <ApiKeysSettings />
