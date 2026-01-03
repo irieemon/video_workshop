@@ -24,6 +24,7 @@ interface SoraGenerationModalProps {
   videoId: string
   videoTitle: string
   finalPrompt?: string
+  userApiKeyId?: string | null
 }
 
 export function SoraGenerationModal({
@@ -32,6 +33,7 @@ export function SoraGenerationModal({
   videoId,
   videoTitle,
   finalPrompt,
+  userApiKeyId,
 }: SoraGenerationModalProps) {
   const [step, setStep] = useState<'settings' | 'generating' | 'completed' | 'failed'>('settings')
   const [settings, setSettings] = useState<SoraGenerationSettings>({
@@ -152,7 +154,10 @@ export function SoraGenerationModal({
       const response = await fetch(`/api/videos/${videoId}/generate-sora`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({
+          settings,
+          userApiKeyId: userApiKeyId || undefined,
+        }),
       })
 
       const data = await response.json()

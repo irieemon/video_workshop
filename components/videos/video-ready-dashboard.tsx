@@ -14,6 +14,7 @@ import {
 import { StepIndicator } from '@/components/ui/step-indicator'
 import { PromptActionCard } from '@/components/videos/prompt-action-card'
 import { SoraGenerationModal } from '@/components/videos/sora-generation-modal'
+import { ApiKeyStatusBar } from '@/components/videos/api-key-status-bar'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -79,8 +80,16 @@ export function VideoReadyDashboard({
   const [hashtagsExpanded, setHashtagsExpanded] = useState(false)
   const [soraModalOpen, setSoraModalOpen] = useState(false)
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false)
+  const [selectedApiKeyId, setSelectedApiKeyId] = useState<string | null>(null)
+  const [hasApiKey, setHasApiKey] = useState(false)
 
   const isPremium = subscriptionTier === 'premium' || subscriptionTier === 'enterprise'
+
+  // Check if user has an API key configured
+  const handleKeySelected = (keyId: string | null) => {
+    setSelectedApiKeyId(keyId)
+    setHasApiKey(!!keyId)
+  }
 
   const handleCopyPrompt = async () => {
     await navigator.clipboard.writeText(video.optimized_prompt)
@@ -97,12 +106,16 @@ export function VideoReadyDashboard({
   }
 
   const handleGenerateWithSora = () => {
-    if (isPremium) {
+    // Allow generation if premium OR has BYOK configured
+    if (isPremium || hasApiKey) {
       setSoraModalOpen(true)
     } else {
       setUpgradeDialogOpen(true)
     }
   }
+
+  // Can generate if premium or has a valid API key
+  const canGenerate = isPremium || hasApiKey
 
   const handleOpenInSora = async () => {
     await navigator.clipboard.writeText(video.optimized_prompt)
@@ -181,6 +194,15 @@ export function VideoReadyDashboard({
           </div>
         </div>
 
+        {/* API Key Status Bar (for free users) */}
+        {!isPremium && (
+          <ApiKeyStatusBar
+            selectedKeyId={selectedApiKeyId}
+            onKeySelected={handleKeySelected}
+            className="mb-6"
+          />
+        )}
+
         {/* Action Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* Copy Prompt */}
@@ -197,16 +219,20 @@ export function VideoReadyDashboard({
           <PromptActionCard
             icon={Sparkles}
             title="Generate with Sora"
-            description="Create your video directly using OpenAI's Sora API"
+            description={
+              canGenerate
+                ? "Create your video directly using OpenAI's Sora API"
+                : "Upgrade to Premium or add your API key to generate"
+            }
             buttonLabel="Generate Video"
             onClick={handleGenerateWithSora}
             variant="secondary"
-            isPremiumLocked={!isPremium}
+            isPremiumLocked={!canGenerate}
             secondaryAction={
-              !isPremium
+              !canGenerate
                 ? {
                     label: 'Or use your own API key',
-                    onClick: () => router.push('/dashboard/settings?tab=api-keys'),
+                    onClick: () => router.push('/dashboard/settings'),
                   }
                 : undefined
             }
@@ -435,13 +461,14 @@ export function VideoReadyDashboard({
       </div>
 
       {/* Sora Generation Modal */}
-      {isPremium && (
+      {canGenerate && (
         <SoraGenerationModal
           open={soraModalOpen}
           onClose={() => setSoraModalOpen(false)}
           videoId={video.id}
           videoTitle={video.title}
           finalPrompt={video.optimized_prompt}
+          userApiKeyId={hasApiKey && !isPremium ? selectedApiKeyId : undefined}
         />
       )}
 

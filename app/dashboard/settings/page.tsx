@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useTheme } from '@/app/providers/theme-provider'
+import { ApiKeysSettings } from '@/components/settings/api-keys-settings'
 
 interface Profile {
   id: string
@@ -247,6 +248,9 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* API Keys */}
+          <ApiKeysSettings />
 
           {/* Appearance */}
           <Card>

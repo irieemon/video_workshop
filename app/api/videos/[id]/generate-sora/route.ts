@@ -1,11 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
+import { decryptApiKey } from '@/lib/encryption/api-key-encryption'
 
-const openai = new OpenAI({
+// Platform OpenAI client (for premium users)
+const platformOpenAI = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   organization: 'org-JK5lVhiqePvkP3UHeLcABv0p',
 })
+
+/**
+ * Get the appropriate OpenAI client based on whether user provides their own key
+ */
+async function getOpenAIClient(
+  supabase: any,
+  userId: string,
+  userApiKeyId?: string
+): Promise<{ client: OpenAI; isUserKey: boolean }> {
+  if (!userApiKeyId) {
+    return { client: platformOpenAI, isUserKey: false }
+  }
+
+  // Fetch user's API key
+  const { data: keyRecord, error } = await supabase
+    .from('user_api_keys')
+    .select('encrypted_key, is_valid, provider')
+    .eq('id', userApiKeyId)
+    .eq('user_id', userId)
+    .single()
+
+  if (error || !keyRecord) {
+    throw new Error('API key not found')
+  }
+
+  if (!keyRecord.is_valid) {
+    throw new Error('API key is marked as invalid. Please update your key in settings.')
+  }
+
+  if (keyRecord.provider !== 'openai') {
+    throw new Error('Selected key is not an OpenAI key')
+  }
+
+  // Decrypt the key
+  const apiKey = decryptApiKey(keyRecord.encrypted_key)
+
+  // Create a new OpenAI client with user's key
+  const userClient = new OpenAI({ apiKey })
+
+  return { client: userClient, isUserKey: true }
+}
 
 interface SoraGenerationSettings {
   duration?: number // in seconds (4, 8, 12, or 15 for Sora 2)
@@ -16,6 +59,7 @@ interface SoraGenerationSettings {
 
 interface SoraGenerationRequest {
   settings?: SoraGenerationSettings
+  userApiKeyId?: string // For BYOK users
 }
 
 /**
@@ -106,6 +150,34 @@ export async function POST(
     // Calculate estimated cost
     const estimatedCost = calculateCost(settings.duration || 5, settings.resolution || '1080p')
 
+    // Get the appropriate OpenAI client (platform or user's BYOK key)
+    let openai: OpenAI
+    let isUserKey = false
+    try {
+      const clientResult = await getOpenAIClient(supabase, user.id, body.userApiKeyId)
+      openai = clientResult.client
+      isUserKey = clientResult.isUserKey
+
+      if (isUserKey) {
+        console.log('Using user BYOK key for generation')
+
+        // Update last_used_at for the API key
+        await supabase
+          .from('user_api_keys')
+          .update({
+            last_used_at: new Date().toISOString(),
+            usage_count: supabase.rpc('increment', { x: 1 }), // Will need to handle this differently
+          })
+          .eq('id', body.userApiKeyId)
+      }
+    } catch (keyError: any) {
+      console.error('Failed to get OpenAI client:', keyError)
+      return NextResponse.json(
+        { error: keyError.message || 'Failed to access API key' },
+        { status: 400 }
+      )
+    }
+
     // Create Sora generation job using OpenAI SDK
     let soraJobId: string
     try {
@@ -120,6 +192,7 @@ export async function POST(
         size,
         aspect_ratio: settings.aspect_ratio,
         resolution: settings.resolution,
+        isUserKey,
       })
 
       const duration = settings.duration?.toString() || '5'
@@ -134,6 +207,19 @@ export async function POST(
       soraJobId = videoGeneration.id
     } catch (apiError: any) {
       console.error('Sora API error:', apiError)
+
+      // If using user's key and it fails, mark it as potentially invalid
+      if (isUserKey && apiError?.status === 401) {
+        await supabase
+          .from('user_api_keys')
+          .update({
+            is_valid: false,
+            validation_error: 'Authentication failed. Please check your API key.',
+            last_validated_at: new Date().toISOString(),
+          })
+          .eq('id', body.userApiKeyId)
+      }
+
       return NextResponse.json(
         { error: 'Failed to initiate video generation', details: apiError.message },
         { status: 500 }
@@ -165,8 +251,11 @@ export async function POST(
       success: true,
       jobId: soraJobId,
       status: 'queued',
-      estimatedCost,
-      message: 'Video generation initiated successfully',
+      estimatedCost: isUserKey ? 0 : estimatedCost, // No platform cost for BYOK
+      usedUserKey: isUserKey,
+      message: isUserKey
+        ? 'Video generation initiated using your API key'
+        : 'Video generation initiated successfully',
     })
   } catch (error: any) {
     console.error('Generate Sora error:', error)
