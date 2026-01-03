@@ -36,6 +36,7 @@ import {
 import { useTour } from '@/components/onboarding'
 import { tourDefinitions, type TourId } from '@/components/onboarding/tours/tour-definitions'
 import { cn } from '@/lib/utils'
+import { SiteFooter } from '@/components/layout/site-footer'
 
 // ============================================================
 // HELP PAGE COMPONENT
@@ -449,6 +450,11 @@ export default function HelpPage() {
           </section>
         </TabsContent>
       </Tabs>
+
+      {/* Legal Footer */}
+      <div className="mt-12 -mx-4 md:-mx-6">
+        <SiteFooter />
+      </div>
     </div>
   )
 }
