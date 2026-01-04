@@ -38,7 +38,8 @@ export function UsageWarningBanner({
 
   const message = getWarningMessage()
   const isAtLimit = hasLimitsReached
-  const isFreeUser = usage?.tier === 'free'
+  // Show upgrade for free users or if tier is not explicitly 'premium'
+  const canUpgrade = !usage?.tier || usage.tier === 'free' || usage.tier !== 'premium'
   const resetDateStr = getResetDateString()
 
   return (
@@ -66,7 +67,7 @@ export function UsageWarningBanner({
         {isAtLimit && resetDateStr && (
           <p className="text-xs mt-1 opacity-80">
             Limits reset {resetDateStr}.{' '}
-            {isFreeUser && (
+            {canUpgrade && (
               <button
                 onClick={() => router.push('/dashboard/upgrade')}
                 className="underline hover:no-underline font-medium"
@@ -124,13 +125,13 @@ export function UsageWarningBanner({
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        {isFreeUser && (
+        {canUpgrade && (
           <Button
             size="sm"
             onClick={() => router.push('/dashboard/upgrade')}
             className={cn(
               isAtLimit
-                ? 'bg-destructive hover:bg-destructive/90'
+                ? 'bg-destructive hover:bg-destructive/90 text-white'
                 : 'bg-scenra-amber text-scenra-dark hover:bg-yellow-500'
             )}
           >
