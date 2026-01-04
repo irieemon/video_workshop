@@ -30,10 +30,12 @@ export interface UsageData {
   }
   tier: string
   upgradeRequired: boolean
+  nextResetDate: Date | null
 }
 
 interface UsageResponse {
   tier: string
+  nextResetDate?: string
   usage: {
     quota: {
       projects: number
@@ -100,7 +102,8 @@ export function useUsage() {
       data.usage?.quota?.projects ?? 3
     ),
     tier: data.tier || 'free',
-    upgradeRequired: data.tier === 'free'
+    upgradeRequired: data.tier === 'free',
+    nextResetDate: data.nextResetDate ? new Date(data.nextResetDate) : null,
   } : null
 
   // Determine if any resource is near or at limit
@@ -115,6 +118,24 @@ export function useUsage() {
     usage.consultations.atLimit ||
     usage.projects.atLimit
   ) : false
+
+  // Format reset date for display
+  const getResetDateString = useCallback((): string | null => {
+    if (!usage?.nextResetDate) return null
+    const resetDate = usage.nextResetDate
+    const now = new Date()
+    const diffTime = resetDate.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays <= 0) return 'today'
+    if (diffDays === 1) return 'tomorrow'
+    if (diffDays <= 7) return `in ${diffDays} days`
+
+    return resetDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })
+  }, [usage?.nextResetDate])
 
   // Get the most critical warning message
   const getWarningMessage = useCallback((): string | null => {
@@ -149,6 +170,7 @@ export function useUsage() {
     hasWarnings,
     hasLimitsReached,
     getWarningMessage,
+    getResetDateString,
     refresh: mutate,
   }
 }

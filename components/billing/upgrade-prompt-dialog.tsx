@@ -30,6 +30,7 @@ interface UpgradePromptDialogProps {
   resource: ResourceType
   currentUsage?: number
   limit?: number
+  resetDateString?: string | null
 }
 
 const resourceConfig: Record<ResourceType, {
@@ -77,7 +78,8 @@ export function UpgradePromptDialog({
   onOpenChange,
   resource,
   currentUsage,
-  limit
+  limit,
+  resetDateString
 }: UpgradePromptDialogProps) {
   const router = useRouter()
   const config = resourceConfig[resource]
@@ -135,9 +137,11 @@ export function UpgradePromptDialog({
             </div>
           </div>
 
-          {/* Free tier note */}
+          {/* Reset date info */}
           <p className="text-xs text-center text-muted-foreground">
-            Your limit resets at the start of each billing cycle.
+            {resetDateString
+              ? `Your limit resets ${resetDateString}. Upgrade now for unlimited access.`
+              : 'Your limit resets at the start of each billing cycle.'}
           </p>
         </div>
 
@@ -171,6 +175,7 @@ export function useUpgradePrompt() {
     resource: ResourceType
     currentUsage?: number
     limit?: number
+    resetDateString?: string | null
   }>({
     open: false,
     resource: 'videos'
@@ -179,9 +184,10 @@ export function useUpgradePrompt() {
   const showPrompt = (
     resource: ResourceType,
     currentUsage?: number,
-    limit?: number
+    limit?: number,
+    resetDateString?: string | null
   ) => {
-    setState({ open: true, resource, currentUsage, limit })
+    setState({ open: true, resource, currentUsage, limit, resetDateString })
   }
 
   const hidePrompt = () => {

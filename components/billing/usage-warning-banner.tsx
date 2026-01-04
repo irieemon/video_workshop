@@ -22,7 +22,7 @@ export function UsageWarningBanner({
   dismissible = true
 }: UsageWarningBannerProps) {
   const router = useRouter()
-  const { usage, hasWarnings, hasLimitsReached, getWarningMessage } = useUsage()
+  const { usage, hasWarnings, hasLimitsReached, getWarningMessage, getResetDateString } = useUsage()
   const [isDismissed, setIsDismissed] = useState(false)
 
   // Reset dismissed state when limits change
@@ -39,6 +39,7 @@ export function UsageWarningBanner({
   const message = getWarningMessage()
   const isAtLimit = hasLimitsReached
   const isFreeUser = usage?.tier === 'free'
+  const resetDateStr = getResetDateString()
 
   return (
     <div
@@ -60,6 +61,21 @@ export function UsageWarningBanner({
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{message}</p>
+
+        {/* Show reset date when at limit */}
+        {isAtLimit && resetDateStr && (
+          <p className="text-xs mt-1 opacity-80">
+            Limits reset {resetDateStr}.{' '}
+            {isFreeUser && (
+              <button
+                onClick={() => router.push('/dashboard/upgrade')}
+                className="underline hover:no-underline font-medium"
+              >
+                Upgrade for more
+              </button>
+            )}
+          </p>
+        )}
 
         {/* Show mini progress bars for resources near limit */}
         {usage && (hasWarnings || hasLimitsReached) && (

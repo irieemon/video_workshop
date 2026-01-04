@@ -42,11 +42,19 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Calculate next reset date
+    // For free users: 1st of next month
+    // For premium users: Will be overwritten with billing cycle end
+    const now = new Date()
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const defaultResetDate = nextMonth.toISOString()
+
     // Build response
     const response: any = {
       tier: profile.subscription_tier || 'free',
       status: profile.subscription_status || 'none',
       expiresAt: profile.subscription_expires_at,
+      nextResetDate: defaultResetDate, // Default for free users
       usage: {
         quota: profile.usage_quota,
         current: profile.usage_current,
@@ -70,13 +78,16 @@ export async function GET(request: NextRequest) {
             current_period_end: number
             current_period_start: number
           }
+          const periodEnd = new Date(sub.current_period_end * 1000).toISOString()
           response.subscription = {
             id: sub.id,
             status: sub.status,
             cancelAtPeriodEnd: sub.cancel_at_period_end,
-            currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+            currentPeriodEnd: periodEnd,
             currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
           }
+          // Override reset date with billing cycle end for premium users
+          response.nextResetDate = periodEnd
         }
 
         // Get recent invoices
