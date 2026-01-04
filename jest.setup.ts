@@ -5,6 +5,30 @@ import { TextEncoder, TextDecoder } from 'util'
 global.TextEncoder = TextEncoder as any
 global.TextDecoder = TextDecoder as any
 
+// Polyfill for Radix UI components (pointer capture APIs)
+// These are browser APIs not available in jsdom that Radix UI components use
+if (typeof Element.prototype.hasPointerCapture === 'undefined') {
+  Element.prototype.hasPointerCapture = jest.fn().mockReturnValue(false)
+}
+if (typeof Element.prototype.setPointerCapture === 'undefined') {
+  Element.prototype.setPointerCapture = jest.fn()
+}
+if (typeof Element.prototype.releasePointerCapture === 'undefined') {
+  Element.prototype.releasePointerCapture = jest.fn()
+}
+
+// Polyfill for ResizeObserver (used by many UI libraries)
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}))
+
+// Polyfill for scrollIntoView (used by Radix UI Select)
+if (typeof Element.prototype.scrollIntoView === 'undefined') {
+  Element.prototype.scrollIntoView = jest.fn()
+}
+
 // Mock environment variables for testing
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
@@ -26,6 +50,40 @@ jest.mock('next/navigation', () => ({
   useParams: () => ({}),
 }))
 
+/**
+ * Creates a fully chainable Supabase query builder mock
+ * Supports all common query patterns: .select().eq().limit().single() etc.
+ */
+function createChainableQueryBuilder() {
+  const defaultResponse = { data: null, error: null }
+
+  const builder: Record<string, jest.Mock> = {}
+
+  // All chainable methods return the builder itself
+  const chainableMethods = [
+    'select', 'insert', 'update', 'delete', 'upsert',
+    'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
+    'like', 'ilike', 'is', 'in', 'contains', 'containedBy',
+    'rangeGt', 'rangeGte', 'rangeLt', 'rangeLte', 'rangeAdjacent',
+    'overlaps', 'textSearch', 'match', 'not', 'or', 'and', 'filter',
+    'order', 'limit', 'range', 'abortSignal', 'throwOnError',
+  ]
+
+  chainableMethods.forEach(method => {
+    builder[method] = jest.fn().mockReturnValue(builder)
+  })
+
+  // Terminal methods that return promises
+  builder.single = jest.fn().mockResolvedValue(defaultResponse)
+  builder.maybeSingle = jest.fn().mockResolvedValue(defaultResponse)
+  builder.csv = jest.fn().mockResolvedValue(defaultResponse)
+
+  // Make the builder itself thenable (for await without .single())
+  builder.then = jest.fn((resolve) => resolve(defaultResponse))
+
+  return builder
+}
+
 // Mock Supabase client
 jest.mock('@/lib/supabase/client', () => ({
   createClient: jest.fn(() => ({
@@ -37,14 +95,7 @@ jest.mock('@/lib/supabase/client', () => ({
       signOut: jest.fn(),
       resetPasswordForEmail: jest.fn(),
     },
-    from: jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
+    from: jest.fn(() => createChainableQueryBuilder()),
   })),
 }))
 
@@ -55,14 +106,7 @@ jest.mock('@/lib/supabase/server', () => ({
       getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
       getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
     },
-    from: jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
+    from: jest.fn(() => createChainableQueryBuilder()),
   })),
 }))
 

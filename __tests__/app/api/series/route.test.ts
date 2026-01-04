@@ -4,6 +4,12 @@ import { createMockRequest, createMockSupabaseClient } from '@/__tests__/helpers
 
 jest.mock('@/lib/supabase/server')
 
+// Mock Stripe usage functions to avoid Supabase query chain issues in tests
+jest.mock('@/lib/stripe/usage', () => ({
+  enforceQuota: jest.fn().mockResolvedValue({ allowed: true }),
+  incrementUsage: jest.fn().mockResolvedValue({ success: true }),
+}))
+
 describe('/api/series', () => {
   const mockSupabaseClient = createMockSupabaseClient()
 
@@ -31,19 +37,38 @@ describe('/api/series', () => {
         error: null,
       })
 
-      const mockInsert = jest.fn().mockReturnThis()
-      const mockSelect = jest.fn().mockReturnThis()
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: mockSeries,
-        error: null,
-      })
+      // Track call count to differentiate between duplicate check and insert
+      let selectCallCount = 0
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
-        return {
-          insert: mockInsert,
-          select: mockSelect,
-          single: mockSingle,
+        if (table === 'series') {
+          selectCallCount++
+          // First call: duplicate check returns null (no duplicate)
+          // Second call: insert + select returns created series
+          if (selectCallCount === 1) {
+            return {
+              select: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  eq: jest.fn().mockReturnValue({
+                    single: jest.fn().mockResolvedValue({
+                      data: null,
+                      error: { code: 'PGRST116' }, // "no rows" error
+                    }),
+                  }),
+                }),
+              }),
+            }
+          }
+          return {
+            insert: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: mockSeries,
+              error: null,
+            }),
+          }
         }
+        return {}
       })
 
       const request = createMockRequest('http://localhost:3000/api/series', {
@@ -63,16 +88,17 @@ describe('/api/series', () => {
       expect(data.name).toBe('Test Series')
     })
 
-    it('creates a series with project association', async () => {
+    it('creates a series with workspace association', async () => {
       const mockUser = { id: 'test-user-id' }
-      const mockProject = {
+      const mockWorkspace = {
         id: '550e8400-e29b-41d4-a716-446655440010',
         user_id: 'test-user-id',
       }
       const mockSeries = {
         id: '550e8400-e29b-41d4-a716-446655440021',
-        name: 'Project Series',
+        name: 'Workspace Series',
         user_id: 'test-user-id',
+        workspace_id: '550e8400-e29b-41d4-a716-446655440010',
       }
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -80,14 +106,44 @@ describe('/api/series', () => {
         error: null,
       })
 
+      // Track call count to differentiate between duplicate check, workspace lookup, and insert
+      let seriesCallCount = 0
+
       mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'projects') {
+        if (table === 'series') {
+          seriesCallCount++
+          // First call: duplicate check returns null (no duplicate)
+          if (seriesCallCount === 1) {
+            return {
+              select: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  eq: jest.fn().mockReturnValue({
+                    single: jest.fn().mockResolvedValue({
+                      data: null,
+                      error: { code: 'PGRST116' }, // "no rows" error
+                    }),
+                  }),
+                }),
+              }),
+            }
+          }
+          // Second call: insert + select returns created series
+          return {
+            insert: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: mockSeries,
+              error: null,
+            }),
+          }
+        }
+        if (table === 'workspaces') {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 eq: jest.fn().mockReturnValue({
                   single: jest.fn().mockResolvedValue({
-                    data: mockProject,
+                    data: mockWorkspace,
                     error: null,
                   }),
                 }),
@@ -95,39 +151,14 @@ describe('/api/series', () => {
             }),
           }
         }
-        if (table === 'project_series') {
-          // First call for checking duplicates, second for creating association
-          const selectMock = jest.fn()
-          selectMock.mockReturnValueOnce({
-            eq: jest.fn().mockResolvedValue({
-              data: [],
-              error: null,
-            }),
-          })
-          return {
-            select: selectMock,
-            insert: jest.fn().mockResolvedValue({
-              data: null,
-              error: null,
-            }),
-          }
-        }
-        // series table
-        return {
-          insert: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: mockSeries,
-            error: null,
-          }),
-        }
+        return {}
       })
 
       const request = createMockRequest('http://localhost:3000/api/series', {
         method: 'POST',
         body: {
-          name: 'Project Series',
-          project_id: '550e8400-e29b-41d4-a716-446655440010',
+          name: 'Workspace Series',
+          workspace_id: '550e8400-e29b-41d4-a716-446655440010',
         },
       })
 
@@ -135,7 +166,7 @@ describe('/api/series', () => {
       const data = await response.json()
 
       expect(response.status).toBe(201)
-      expect(data.name).toBe('Project Series')
+      expect(data.name).toBe('Workspace Series')
     })
 
     it('returns 401 for unauthorized requests', async () => {
@@ -180,31 +211,9 @@ describe('/api/series', () => {
         error: null,
       })
 
-      const request = createMockRequest('http://localhost:3000/api/series', {
-        method: 'POST',
-        body: {
-          name: 'Test Series',
-          genre: 'invalid-genre',
-        },
-      })
-
-      const response = await POST(request)
-
-      expect(response.status).toBe(400)
-      const data = await response.json()
-      expect(data.error).toContain('Invalid genre')
-    })
-
-    it('returns 404 when project not found', async () => {
-      const mockUser = { id: 'test-user-id' }
-
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: mockUser },
-        error: null,
-      })
-
+      // Mock duplicate check (returns no duplicate)
       mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'projects') {
+        if (table === 'series') {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
@@ -225,7 +234,64 @@ describe('/api/series', () => {
         method: 'POST',
         body: {
           name: 'Test Series',
-          project_id: '550e8400-e29b-41d4-a716-446655440099',
+          genre: 'invalid-genre',
+        },
+      })
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(400)
+      const data = await response.json()
+      expect(data.error).toContain('Invalid genre')
+    })
+
+    it('returns 404 when workspace not found', async () => {
+      const mockUser = { id: 'test-user-id' }
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      })
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'series') {
+          // Duplicate check - no duplicate
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  single: jest.fn().mockResolvedValue({
+                    data: null,
+                    error: { code: 'PGRST116' },
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'workspaces') {
+          // Workspace lookup - not found
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  single: jest.fn().mockResolvedValue({
+                    data: null,
+                    error: { code: 'PGRST116' },
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const request = createMockRequest('http://localhost:3000/api/series', {
+        method: 'POST',
+        body: {
+          name: 'Test Series',
+          workspace_id: '550e8400-e29b-41d4-a716-446655440099',
         },
       })
 
@@ -234,10 +300,11 @@ describe('/api/series', () => {
       expect(response.status).toBe(404)
     })
 
-    it('returns 409 for duplicate series name in project', async () => {
+    it('returns 409 for duplicate series name for same user', async () => {
       const mockUser = { id: 'test-user-id' }
-      const mockProject = {
-        id: '550e8400-e29b-41d4-a716-446655440010',
+      const existingSeries = {
+        id: '550e8400-e29b-41d4-a716-446655440021',
+        name: 'Duplicate Series',
         user_id: 'test-user-id',
       }
 
@@ -247,33 +314,17 @@ describe('/api/series', () => {
       })
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === 'projects') {
+        if (table === 'series') {
+          // Duplicate check returns existing series
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 eq: jest.fn().mockReturnValue({
                   single: jest.fn().mockResolvedValue({
-                    data: mockProject,
+                    data: existingSeries,
                     error: null,
                   }),
                 }),
-              }),
-            }),
-          }
-        }
-        if (table === 'project_series') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
-                data: [
-                  {
-                    series: {
-                      id: '550e8400-e29b-41d4-a716-446655440021',
-                      name: 'Duplicate Series',
-                    },
-                  },
-                ],
-                error: null,
               }),
             }),
           }
@@ -285,7 +336,6 @@ describe('/api/series', () => {
         method: 'POST',
         body: {
           name: 'Duplicate Series',
-          project_id: '550e8400-e29b-41d4-a716-446655440010',
         },
       })
 
@@ -330,18 +380,23 @@ describe('/api/series', () => {
         error: null,
       })
 
-      const mockSelect = jest.fn().mockReturnThis()
-      const mockEq = jest.fn().mockReturnThis()
+      // Create chainable mock that handles .select().eq().eq().order() pattern
       const mockOrder = jest.fn().mockResolvedValue({
         data: mockSeries,
         error: null,
+      })
+      const mockEq = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          order: mockOrder,
+        }),
+      })
+      const mockSelect = jest.fn().mockReturnValue({
+        eq: mockEq,
       })
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
         return {
           select: mockSelect,
-          eq: mockEq,
-          order: mockOrder,
         }
       })
 

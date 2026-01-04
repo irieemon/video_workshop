@@ -66,19 +66,19 @@ describe('/api/videos', () => {
       })
 
       const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {
-          projectId: '550e8400-e29b-41d4-a716-446655440000',
+          series_id: '550e8400-e29b-41d4-a716-446655440000',
           title: 'Test Video',
-          userBrief: 'Test brief',
-          agentDiscussion: JSON.stringify({ round1: [], round2: [] }),
-          detailedBreakdown: JSON.stringify({
+          user_brief: 'Test brief for creating a video',
+          agent_discussion: { round1: [], round2: [] },
+          detailed_breakdown: {
             scene_structure: 'Test',
             visual_specs: 'Test',
             audio: 'Test',
             platform_optimization: 'Test',
             hashtags: [],
-          }),
-          optimizedPrompt: 'Test prompt',
-          characterCount: 11,
+          },
+          optimized_prompt: 'Test prompt',
+          character_count: 11,
           platform: 'tiktok',
           hashtags: ['test', 'video'],
         } })
@@ -111,9 +111,21 @@ describe('/api/videos', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
-                  data: [{ id: 'test-user-id', is_admin: false }],
+                  data: [{
+                    id: 'test-user-id',
+                    is_admin: false,
+                    subscription_tier: 'premium',
+                    usage_current: { videos_this_month: 0 },
+                    usage_quota: { videos_per_month: 100 }
+                  }],
                   error: null,
                 }),
+              }),
+            }),
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({
+                data: null,
+                error: null,
               }),
             }),
           }
@@ -136,19 +148,19 @@ describe('/api/videos', () => {
       })
 
       const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {
-          projectId: '550e8400-e29b-41d4-a716-446655440000',
+          series_id: '550e8400-e29b-41d4-a716-446655440000',
           title: 'Test Video',
-          userBrief: 'Test brief',
-          agentDiscussion: JSON.stringify({ round1: [], round2: [] }),
-          detailedBreakdown: JSON.stringify({
+          user_brief: 'Test brief for inserting hashtags',
+          agent_discussion: { round1: [], round2: [] },
+          detailed_breakdown: {
             scene_structure: 'Test',
             visual_specs: 'Test',
             audio: 'Test',
             platform_optimization: 'Test',
             hashtags: [],
-          }),
-          optimizedPrompt: 'Test prompt',
-          characterCount: 11,
+          },
+          optimized_prompt: 'Test prompt',
+          character_count: 11,
           platform: 'tiktok',
           hashtags: ['test', 'video', 'ai'],
         } })
@@ -210,19 +222,19 @@ describe('/api/videos', () => {
       }
 
       const request = createMockRequest('http://localhost:3000/api/videos', { method: "POST", body: {
-          projectId: '550e8400-e29b-41d4-a716-446655440000',
+          series_id: '550e8400-e29b-41d4-a716-446655440000',
           title: 'Test Video',
-          userBrief: 'Test brief',
-          agentDiscussion: JSON.stringify({ round1: [], round2: [] }),
-          detailedBreakdown: JSON.stringify({
+          user_brief: 'Test brief for generation source test',
+          agent_discussion: { round1: [], round2: [] },
+          detailed_breakdown: {
             scene_structure: 'Test',
             visual_specs: 'Test',
             audio: 'Test',
             platform_optimization: 'Test',
             hashtags: [],
-          }),
-          optimizedPrompt: 'Test prompt',
-          characterCount: 11,
+          },
+          optimized_prompt: 'Test prompt',
+          character_count: 11,
           platform: 'tiktok',
           hashtags: [],
           generation_source: 'episode',
@@ -283,10 +295,16 @@ describe('/api/videos', () => {
         error: null,
       })
 
-      const mockSelect = jest.fn().mockReturnThis()
+      // Create chainable mock: .select().eq().order()
       const mockOrder = jest.fn().mockResolvedValue({
         data: mockVideos,
         error: null,
+      })
+      const mockEq = jest.fn().mockReturnValue({
+        order: mockOrder,
+      })
+      const mockSelect = jest.fn().mockReturnValue({
+        eq: mockEq,
       })
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
@@ -303,9 +321,8 @@ describe('/api/videos', () => {
           }
         }
         return {
-        select: mockSelect,
-        order: mockOrder,
-      }
+          select: mockSelect,
+        }
       })
 
       const request = createMockRequest('http://localhost:3000/api/videos')

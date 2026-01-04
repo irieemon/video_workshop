@@ -190,7 +190,9 @@ describe('PerformanceMetricsList', () => {
 
     // Should render the metric card
     expect(screen.getByText('TikTok')).toBeInTheDocument()
-    expect(screen.getByText('0')).toBeInTheDocument() // Zero views displayed
+    // Multiple zeros expected (views, likes, comments, shares all at 0)
+    const zeroElements = screen.getAllByText('0')
+    expect(zeroElements.length).toBeGreaterThanOrEqual(1)
   })
 
   it('formats numbers with commas', () => {
