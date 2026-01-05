@@ -107,6 +107,20 @@ if (typeof Element.prototype.scrollIntoView === 'undefined') {
   Element.prototype.scrollIntoView = jest.fn()
 }
 
+// Polyfill for Clipboard API (not available in jsdom)
+// Creates a mockable clipboard that tests can spy on
+const mockClipboard = {
+  writeText: jest.fn().mockResolvedValue(undefined),
+  readText: jest.fn().mockResolvedValue(''),
+}
+Object.defineProperty(navigator, 'clipboard', {
+  value: mockClipboard,
+  writable: true,
+  configurable: true,
+})
+// Export for tests to access
+;(global as any).__mockClipboard = mockClipboard
+
 // Mock environment variables for testing
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
