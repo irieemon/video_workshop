@@ -636,7 +636,7 @@ export function SoraGenerationModal({
                     Retry ({maxRetries - retryCount} left)
                   </Button>
                 )}
-                {!errorDetails.canRetry || retryCount >= maxRetries && (
+                {(!errorDetails.canRetry || retryCount >= maxRetries) && (
                   <Button onClick={() => setStep('settings')}>
                     Try Again with New Settings
                   </Button>
